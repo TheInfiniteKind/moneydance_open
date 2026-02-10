@@ -1,0 +1,109 @@
+/*
+ * Author: Stuart Beesley - February 2026
+ * antmigration.gradle: gradle buildfile that attempts to migrate user properties and key files from ANT
+ * This should not be run standalone
+*/
+
+import java.nio.file.Files
+import java.nio.file.StandardCopyOption
+
+final Project p = project
+
+if (!p.ext.has("executingMainBuild")) {
+  throw new GradleException("antmigration.gradle must be applied from build.gradle, not executed standalone!")
+}
+
+def srcPath  = p.ext.srcPath
+
+// task that can transform / resolve strings with embedded ${xxx} type commands to full paths
+// Whilst ANT allowed this, gradle does not
+def resolveAntProps = { String valStr ->
+  valStr
+      .replace("\${user.home}", System.getProperty("user.home"))
+      .replace("\${basedir}", p.projectDir.parentFile.absolutePath)
+      .replace("\${src}", file(srcPath).absolutePath)
+}
+
+tasks.register("migrateAntUserConfig") {
+  group = "TOOLS"
+  description = "One-time migration from Ant user properties and key file(s) to Gradle user config"
+
+  doFirst { logger.lifecycle("${path} START") }
+
+  doLast {
+    def antBuild = file("${srcPath}/build.xml")
+    if (!antBuild.exists()) {
+      throw new GradleException("ANT migration aborted - no legacy ${antBuild} found")
+    }
+
+    def antUserProps = file("${srcPath}/user.properties")
+    def gradleUserProps = file("../userconfig/user.gradle.properties")
+
+    def privKey = file(p.property("extprivkeyfile"))
+    def pubKey  = file(p.property("extpubkeyfile"))
+
+    def targetsExist = gradleUserProps.exists() || privKey.exists() || pubKey.exists()
+
+    if (targetsExist) {
+      print "\u0007"; System.out.flush() // beep-beep
+      println ""
+      println "------------------------------------------------------------------------"
+      print "Gradle user config and/or key file(s) already exist. Overwrite? [y/N]: "
+      System.out.flush()
+      def ans = new BufferedReader(new InputStreamReader(System.in)).readLine()
+      if (!ans?.equalsIgnoreCase("y")) {
+        throw new GradleException("ANT migration aborted (by user) - gradle user file(s) already exist")
+      }
+    }
+
+    // create the user config folder
+    gradleUserProps.parentFile.mkdirs()
+    println "Ensured gradle user config folder exists"
+
+    // ---- copy user.properties ----
+    if (antUserProps.exists()) {
+      gradleUserProps.text = ""
+
+      antUserProps.eachLine { line ->
+        if (!line || line.startsWith("#") || !line.contains("=")) {
+          gradleUserProps << line + "\n"
+          return
+        }
+        def (rawKey, v) = line.split("=", 2)
+        def k = rawKey.trim()
+
+        // specific key remap / rename (ANT → Gradle)
+        def gradleKey = (k == "md_ext_lib_dir") ? "mdbuildlibs" : k
+
+        def resolved = resolveAntProps(v)
+        if (resolved.contains("\${")) {
+          throw new GradleException("ANT migration aborted - Unresolved ANT property after migration: ${gradleKey}=${v}")
+        }
+        gradleUserProps << "${gradleKey}=${resolved}\n"
+      }
+      println "Copied / resolved user.properties → user.gradle.properties"
+    } else {
+      println "No ANT user.properties found to migrate!"
+    }
+
+    // ---- copy key files ----
+    def antPriv = file("${srcPath}/priv_key")
+    def antPub  = file("${srcPath}/pub_key")
+
+    if (antPriv.exists()) {
+      privKey.parentFile.mkdirs()
+      Files.copy(antPriv.toPath(), privKey.toPath(), StandardCopyOption.REPLACE_EXISTING)
+      println "Copied priv_key"
+    }
+
+    if (antPub.exists()) {
+      pubKey.parentFile.mkdirs()
+      Files.copy(antPub.toPath(),  pubKey.toPath(),  StandardCopyOption.REPLACE_EXISTING)
+      println "Copied pub_key"
+    }
+
+    println "ANT → Gradle user configuration migration complete"
+
+    logger.lifecycle("${path} END")
+  }
+}

@@ -1,0 +1,117 @@
+/*
+ * Author: Stuart Beesley - February 2026
+ * reportwriter.gradle: gradle buildfile for Mike Bray's reportwriter extension (for Moneydance)
+ * This has been separated out so-as not to contaminate the generic gradle.build
+ * This should not be run standalone
+*/
+
+final Project p = project
+
+if (!p.ext.has("executingMainBuild")) {
+  throw new GradleException("reportwriter.gradle must be applied from build.gradle, not executed standalone!")
+}
+
+def mdJars = p.ext.mdJars
+def srcPath  = p.ext.srcPath
+def libPath  = p.ext.libPath
+def distPath = p.ext.distPath
+def dontSignJavaKotlin = p.ext.dontSignJavaKotlin
+
+def reportwriterLibs = files(
+    "${libPath}/h2-1.4.200.jar",
+    "${libPath}/opencsv-5.2.jar",
+    "${libPath}/poi-4.1.2.jar",
+    "${libPath}/poi-excelant-4.1.2.jar",
+    "${libPath}/poi-ooxml-4.1.2.jar",
+    "${libPath}/poi-ooxml-schemas-4.1.2.jar",
+    "${libPath}/SparseBitSet-1.2.jar",
+    "${libPath}/commons-codec-1.13.jar",
+    "${libPath}/commons-collections4-4.4.jar",
+    "${libPath}/commons-compress-1.19.jar",
+    "${libPath}/commons-math3-3.6.1.jar",
+    "${libPath}/jaxb-api-2.3.1.jar",
+    "${libPath}/jaxb-core-2.3.0.1.jar",
+    "${libPath}/jaxb-impl-2.3.2.jar",
+    "${libPath}/org.apache.commons.io.jar",
+    "${libPath}/xmlbeans-3.1.0.jar"
+)
+
+sourceSets {
+  loadsectrans
+  reportwriter {
+    java.srcDir("${srcPath}/com/moneydance/modules/features/reportwriter")
+  }
+}
+dependencies {
+  mdJars.each { add("reportwriterCompileOnly", it) }
+  add("reportwriterImplementation", sourceSets.mrbutil.output)
+  add("reportwriterImplementation", sourceSets.loadsectrans.output)
+  add("reportwriterImplementation", reportwriterLibs)
+}
+tasks.register("compile_reportwriter") {
+  group = "other"
+  description = "compile reportwriter"
+  dependsOn("reportwriterClasses", "mrbutilClasses")
+}
+tasks.register("jar_reportwriter", Jar) {
+  dependsOn("compile_reportwriter")
+  group = "other"
+  description = "jar reportwriter"
+
+  duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+
+  archiveBaseName.set("reportwriter")
+  archiveExtension.set("mxt")
+  destinationDirectory.set(file(distPath))
+
+  doFirst { delete(file("${distPath}/reportwriter.mxt")) }
+
+  // compiled classes
+  from(sourceSets.reportwriter.output)
+  from(sourceSets.mrbutil.output)
+
+  // resources
+  from(srcPath) {
+    include "com/moneydance/modules/features/reportwriter/**"
+    exclude "**/*.java"
+    exclude "**/*.kt"
+  }
+
+  // embed third-party jars (zipgroupfileset equivalent)
+  from(reportwriterLibs.collect { zipTree(it) })
+}
+
+tasks.register("sign_reportwriter", JavaExec) {
+  group = "other"
+  description = "sign reportwriter"
+  dependsOn("jar_reportwriter")
+  onlyIf { !dontSignJavaKotlin }
+
+  workingDir = file(distPath)
+  classpath = configurations.mdClasspath
+  mainClass.set("com.moneydance.admin.KeyAdmin")
+
+  systemProperty "moneydance_key_pass", p.property("keypass")
+
+  args(
+      "signextjar",
+      p.property("extprivkeyfile"),
+      p.property("privkeyid"),
+      "reportwriter",
+      "${distPath}/reportwriter.mxt"
+  )
+
+  standardInput = System.in
+
+  doLast {
+    def src = file("${distPath}/s-reportwriter.mxt")
+    def dst = file("${distPath}/reportwriter.mxt")
+    if (dst.exists()) dst.delete()
+    if (!src.renameTo(dst)) throw new GradleException("rename failed")
+  }
+}
+tasks.register("reportwriter") {
+  group = "BUILD EXTENSION"
+  description = "Build extension: reportwriter"
+  dependsOn("ensureDist", "compile_reportwriter", "jar_reportwriter", "sign_reportwriter")
+}

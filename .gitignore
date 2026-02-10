@@ -20,3 +20,7 @@ MoneydanceOpen.iws
 !bin/repackage-jython
 .jython_cache
 src/user.properties.sh
+.gradle/
+userconfig/
+/mdbuildlibs/
+/python_scripts/*/META-INF/*
