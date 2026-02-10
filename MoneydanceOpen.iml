@@ -16,6 +16,12 @@
       <excludeFolder url="file://$MODULE_DIR$/src/build" />
       <excludeFolder url="file://$MODULE_DIR$/src/com/moneydance/modules/features/palmsync" />
       <excludeFolder url="file://$MODULE_DIR$/src/com/moneydance/modules/features/paypalas" />
+      <excludeFolder url="file://$MODULE_DIR$/.idea/inspectionProfiles" />
+      <excludeFolder url="file://$MODULE_DIR$/.idea/libraries" />
+      <excludeFolder url="file://$MODULE_DIR$/.jython_cache" />
+      <excludeFolder url="file://$MODULE_DIR$/classes" />
+      <excludeFolder url="file://$MODULE_DIR$/dist" />
+      <excludeFolder url="file://$MODULE_DIR$/userconfig" />
     </content>
     <orderEntry type="module-library" scope="PROVIDED">
       <library>

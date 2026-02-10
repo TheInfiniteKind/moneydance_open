@@ -1,0 +1,44 @@
+/*
+ * Author: Stuart Beesley - February 2026
+ * usage.gradle: gradle buildfile that simply displays usage information for this build set
+ * This should not be run standalone
+*/
+final Project p = project
+
+if (!p.ext.has("executingMainBuild")) {
+  throw new GradleException("usage.gradle must be applied from build.gradle, not executed standalone!")
+}
+
+ext.printUsage = {
+  println ""
+  println "-------------------------------------------------------------------------------------------------------------------------"
+  println "Moneydance Gradle build - usage"
+  println ""
+  println "./gradlew verifyConfig         -> configuration + path checks (default)"
+  println "./gradlew <extensionname>      -> build & sign one extension - e.g. "
+  println "./gradlew allJavaKotlin        -> build all Java/Kotlin extensions"
+  println "./gradlew allPython            -> build all Python extensions"
+  println "./gradlew all                  -> build everything"
+  println "./gradlew clean                -> removes the dist folder, and all build/compiled files"
+  println "./gradlew cleanextensionname   -> cleanup a single extension's build files"
+  println "./gradlew ensureDist           -> ensure the dist folder is present (otherwise does nothing)"
+  println "./gradlew ensureUserConfig     -> ensure the userconfig folder is present (otherwise does nothing)"
+  println "./gradlew ensureUserProperties -> creates user.gradle.properties file/template if missing (otherwise does nothing)"
+  println "./gradlew migrateAntUserConfig -> performs a one-time migration of ant properties/key file(s) to gradle (prompts to overwrite)"
+  println ""
+  println "Configuration files (in order of precedence):"
+  println "  userconfig/user.gradle.properties   (user overrides - not committed to git)"
+  println "  gradle/gradle.properties            (base set of properties - committed to git"
+  println ""
+  println "Signing setup:"
+  println "  Set keypass=<your passphrase> in user.gradle.properties"
+  println "  Then run: ./gradlew genkeys"
+  println ""
+  println "Optional flags (user.gradle.properties):"
+  println "  debug=true                   -> enable additional debug messages"
+  println "  dont_sign_java_kotlin=true   -> skip signing of java/kotlin extensions(.mxt still built)"
+  println "  mdbuildlibs=<folder>         -> specify folder containing a 'master set' of Moneydance jars (overriding lib folder jars)"
+  println ""
+  println "-------------------------------------------------------------------------------------------------------------------------"
+  println ""
+}
