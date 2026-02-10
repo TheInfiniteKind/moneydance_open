@@ -1,4 +1,8 @@
 <!--
+
+*** DEPRECATED BUILD SCRIPT (as of February 2026)
+*** PLEASE USE GRADLE /gradle/gradlew
+
 build file for ant (java and also with mixed java/kotlin support)
 http://jakarta.apache.org/ant/index.html
 
@@ -79,6 +83,15 @@ note: as 'withKolin' can pull in unwanted kotlin files, we've replaced the stand
   <!-- START OF STANDARD TARGET & MACRO DEFINITIONS -->
   <!-- ******************************************** -->
   <target name="init">
+
+    <echo level="error" message="" />
+    <echo level="error" message="###########################################" />
+    <echo level="error" message="### THIS ANT BUILD SCRIPT IS DEPRECATED ###" />
+    <echo level="error" message="### PLEASE USE GRADLE: /gradle/gradlew  ###" />
+    <echo level="error" message="###########################################" />
+    <echo level="error" message="" />
+    <echo level="error" message="" />
+
     <echo level="info" message="ANT Build Running.... Executing INIT" />
     <echo level="verbose" message="OS Name is:         ${os.name}" />
     <echo level="verbose" message="OS Architecture is: ${os.arch}" />
