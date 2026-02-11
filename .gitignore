@@ -21,6 +21,7 @@ MoneydanceOpen.iws
 .jython_cache
 src/user.properties.sh
 .gradle/
-userconfig/
+userconfig/*
+!userconfig/template/
 /mdbuildlibs/
 /python_scripts/*/META-INF/*
