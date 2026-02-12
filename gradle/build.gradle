@@ -145,6 +145,7 @@ java {
 }
 tasks.withType(JavaCompile).configureEach {
   options.release = targetRelease                            // specify the java --release (soource/target/bytecode/API) version
+  options.encoding = "UTF-8"                                 // utf8 encoding for all platforms
   options.incremental = true                                 // performance - incremental build - default in modern Gradle
   options.compilerArgs += ["-Xlint:all"]                     // enable all compiler warnings (no impact on build)
 
@@ -203,6 +204,7 @@ tasks.withType(JavaExec).configureEach {
       languageVersion = JavaLanguageVersion.of(compilerJDK)         // JDK version used to execute java compile, package, sign tasks
     }
   )
+  systemProperty "file.encoding", "UTF-8"
 }
 ////////////////////// end JavaExec config /////////////////////////////////////////////////////////////////////////////
 
@@ -610,7 +612,7 @@ def registerFeature = { String featureName, FileCollection extraClasspath = file
     group = "BUILD EXTENSION"
     description = "Build java/kotlin extension: ${featureName}"
     dependsOn("ensureDist", "compile_${featureName}", "jar_${featureName}", "sign_${featureName}")
-    mustRunAfter(tasks.named("clean"))
+    mustRunAfter(tasks.named("clean"), tasks.named("clean${featureName}"))
 
     doLast { logger.lifecycle("EXTENSION BUILD (java/kotlin) '${featureName}' ${path} END") }
   }
@@ -629,17 +631,21 @@ def registerFeature = { String featureName, FileCollection extraClasspath = file
 ////////////////////////////////////////////////////////
 def registerPythonPrecompile = { String feature, String pythonBase ->
 
-  ////////////////////////////////////////////////////////
+  //////////////////////////////////////////////////////////////////////////////////////////////
   // PRE-COMPILING CPython to create CPython bytecode .pyc
-  ////////////////////////////////////////////////////////
+  // note: required when you getting 'Module or method too large' issues with large python files
+  //////////////////////////////////////////////////////////////////////////////////////////////
   tasks.register("py_compile_${feature}", Exec) {
     group = "other"
     description = "Pre-compile CPython bytecode (.pyc) for ${feature}"
 
-    ignoreExitValue = false
+    ignoreExitValue = false  // trap error to cause fail on error
 
     workingDir file(pythonBase)
+
+    inputs.file(file("${pythonBase}/${feature}.py"))
     outputs.file(file("${pythonBase}/${feature}.pyc"))
+    outputs.upToDateWhen { false }    // always repackage the whole extension - too difficult to use gradle's incremtal system
 
     doFirst {
       if (debug) logger.lifecycle("${path} START")
@@ -649,7 +655,12 @@ def registerPythonPrecompile = { String feature, String pythonBase ->
           file("${pythonBase}/${feature}\$py.class")
       )
     }
-    commandLine "sh", "-c", "${pythonExec} -m py_compile ${feature}.py"
+//    commandLine "sh", "-c", "${pythonExec} -m py_compile ${feature}.py"
+
+    environment "PYTHONIOENCODING", "UTF-8"
+
+    commandLine pythonExec, "-m", "compileall", "-f", "${feature}.py"   // compileall is more verbose, and -f forces recompile (or just py_compile file.py)
+
     doLast { if (debug) logger.lifecycle("${path} END") }
   }
   tasks.named("py_compile_${feature}") { dependsOn("verifyPython27") }    // verify python2.7 installed
@@ -658,28 +669,29 @@ def registerPythonPrecompile = { String feature, String pythonBase ->
   // PRE-COMPILING Jython to create $py.class
   ////////////////////////////////////////////////////////
   def mdPythonJar = file("${libPath}/mdpython.jar")
-  tasks.register("jython_compile_${feature}", Exec) {
+  tasks.register("jython_compile_${feature}", JavaExec) {
     group = "other"
     description = "Pre-compile Jython bytecode (\$py.class) for ${feature}"
 
-    ignoreExitValue = false
+    inputs.file("${pythonBase}/${feature}.py")
+    inputs.file("${pythonBase}/${feature}.pyc")
+    outputs.file(file("${pythonBase}/${feature}\$py.class"))
+    outputs.upToDateWhen { false }    // always repackage the whole extension - too difficult to use gradle's incremtal system
+
+    classpath = files(mdPythonJar)
+    mainClass.set("org.python.util.jython")
+
+    args(
+        "-c",
+        "import compileall; compileall.compile_file('${pythonBase}/${feature}.py', force=True)"
+    )
 
     doFirst { if (debug) logger.lifecycle("${path} START") }
-
-    outputs.file(file("${pythonBase}/${feature}\$py.class"))
-
-    commandLine(
-        "java",
-        "-cp", mdPythonJar.absolutePath,
-        "org.python.util.jython",
-        "-c",
-        "import compileall; compileall.compile_file('${pythonBase}/${feature}.py')"
-    )
     doLast { if (debug) logger.lifecycle("${path} END") }
   }
   // enforce the correct sequence...
   tasks.named("jython_compile_${feature}") {
-    mustRunAfter("py_compile_${feature}")
+    mustRunAfter(tasks.named("py_compile_${feature}"))
   }
 
   ////////////////////////////////////////////
@@ -707,6 +719,7 @@ def registerPackagePythonExtension = { String feature, String pythonBase, boolea
     description = "package python scripts into a signed extension mxt file for ${feature}"
 
     outputs.file("${distPath}/${feature}.mxt")
+    outputs.upToDateWhen { false }    // always repackage the whole extension - too difficult to use gradle's incremtal system
 
     doFirst {
       if (debug) logger.lifecycle("${path} START")
@@ -787,7 +800,7 @@ def registerPythonModule = { String feature, boolean precompile = false, boolean
     group = "BUILD EXTENSION"
     description = "Build python extension: ${feature}"
     dependsOn("ensureDist")
-    mustRunAfter(tasks.named("clean"))
+    mustRunAfter(tasks.named("clean"), tasks.named("clean${feature}"))
 
     if (precompile) dependsOn("precompile_${feature}")
     dependsOn("package_python_${feature}")
