@@ -14,9 +14,11 @@ Execute ./gradlew                       to show usage
         ./gradlew migrateAntUserConfig  to attempt to migrate legacy Ant settings to gradle user properties
 
 Notes:
+        - TO START either run migrateAntUserConfig, or create/edit user.gradle.properties and set keypass=xxx and then run genkeys
+
         - Python packaging (with precompile) requires python2.7 installed
 
-        - By default all java/kotlin debugging option are turned on
+        - By default all java/kotlin debug symbols option are turned on
           - java: includes source file name, line numbers, and local variable tables (equivalent to javac -g) - has full debug symbols.
           - kotlin: line numbers are always emitted, source mapping is present for stack traces. Parameter/call assertions are on by default.
 */
