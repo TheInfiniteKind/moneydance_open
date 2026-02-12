@@ -28,7 +28,7 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 plugins {
   id 'java'
   id 'org.jetbrains.kotlin.jvm' version '1.9.21'    // plugin version to match Moneydance's build system and also bundled runtime kotlin-stdlib-x.x.x.jar
-  //id 'org.jetbrains.kotlin.jvm' version '2.3.10'
+                                                    // use '2.3.10' to upgrade
 }
 
 repositories {
@@ -38,8 +38,7 @@ repositories {
 def isKotlin2 = KotlinCompilerVersion.VERSION.startsWith("2.")  // detect 1.9.x vs 2.x plugin...
 
 // Detect Kotlin 1.9 and run specific commands
-if (!KotlinCompilerVersion.VERSION.startsWith("2.")) {
-
+if (!isKotlin2) {
   // Kotlin 1.9 only: disable classpath snapshotting (removed / not applicable in Kotlin 2.x)
   // Moneydance build jars are mutable and order-sensitive; classpath snapshotting
   // can cause incorrect incremental rebuilds. Incremental compilation remains enabled.
@@ -56,6 +55,7 @@ ext {
     targetRelease     = 17                          // equivilent java --release (source/target/bytecode/API) version
     kotlinLangVersion = KotlinVersion.KOTLIN_1_9    // kotlin language version (lock to plugin version) - match to Moneydance bundled kotlin-stdlib-x.x.x.jar
     kotlinApiVersion  = KotlinVersion.KOTLIN_1_9    // kotlin API version (lock to plugin version) - match to Moneydance bundled kotlin-stdlib-x.x.x.jar
+                                                    // use KotlinVersion.KOTLIN_2_1 (for example) to upgrade
 }
 
 // set flag to let subordinate gradle scripts know that the master script is executing
@@ -65,9 +65,11 @@ apply from: rootProject.file("usage.gradle")
 defaultTasks "verifyConfig"
 
 // Guard against configuration cache being enabled via CLI or user settings.
-// This build is not configuration-cache safe (dynamic feature registration, mutable classpaths, JavaExec signing tasks).
-// Fail fast to avoid invalid builds.
-// Note: this next check triggers a deprecation warning. There seems no way to replace this (perhaps wait for v10)
+// This build is not 'configuration-cache' safe (dynamic feature registration, mutable classpaths, JavaExec signing tasks).
+// Fail fast here to avoid hard build failures.
+// Note: this check triggers a harmless deprecation warning. There seems to be no way to avoid this (perhaps wait for v10)
+// if you remove this check, then you will get a hard fail later, if 'configuration-cache=true' as the script executes unsupported statements
+// to eliminate the deprecation warning, simply remove this check. //TODO - re-evaluate when using gradle10
 if (gradle.startParameter.configurationCacheRequested) {
   throw new GradleException("Configuration cache must be disabled in gradle.properties for this build - use: org.gradle.configuration-cache=false")
 }
@@ -96,6 +98,11 @@ def distPath = project.property("dist")
 def pythonSrcPath = project.property("python-src")
 def mdbuildlibs = project.findProperty("mdbuildlibs") // note: this is an optional path that will override where the std set of build libs are found
 def dontSignJavaKotlin = project.findProperty("dontSignJavaKotlin")?.toString()?.toBoolean() ?: false // when true then no package signing will take place
+def extPrivKeyFile = project.property("extprivkeyfile")
+def extPubKeyFile = project.property("extpubkeyfile")
+def keyPassValue = project.property("keypass")
+def privKeyID = project.property("privkeyid")
+
 
 // export for imported gradle files
 ext.srcPath = srcPath
@@ -224,6 +231,7 @@ tasks.withType(JavaExec).configureEach {
     }
   )
   systemProperty "file.encoding", "UTF-8"
+  systemProperty "moneydance_key_pass", keyPassValue
 }
 ////////////////////// end JavaExec config /////////////////////////////////////////////////////////////////////////////
 
@@ -323,11 +331,10 @@ tasks.register("verifyConfig") {
     println "lib = ${libPath}"
     println "dist = ${distPath}"
     println "pythonSrcPath = ${pythonSrcPath}"
-    println "extprivkeyfile = ${project.property('extprivkeyfile')}"
-    println "extpubkeyfile = ${project.property('extpubkeyfile')}"
+    println "extprivkeyfile = ${extPrivKeyFile}"
+    println "extpubkeyfile = ${extPubKeyFile}"
 
-    def keyPass = project.findProperty("keypass")
-    def isPassBlank = !keyPass?.toString()?.trim()
+    def isPassBlank = !keyPassValue?.toString()?.trim()
     if (!isPassBlank) {
       println "keypass = <set>"
     } else {
@@ -338,8 +345,8 @@ tasks.register("verifyConfig") {
         "src"           : srcPath,
         "lib"           : libPath,
         "python src"    : pythonSrcPath,
-        "extprivkeyfile": project.property("extprivkeyfile"),
-        "extpubkeyfile" : project.property("extpubkeyfile")
+        "extprivkeyfile": extPrivKeyFile,
+        "extpubkeyfile" : extPubKeyFile
     ]
 
     mustExist.each { name, path ->
@@ -362,10 +369,10 @@ tasks.register("verifyConfig") {
     }
 
     println "------------------"
+    println "configuration-cache property = ${providers.gradleProperty("org.gradle.configuration-cache").orNull ?: "<not set>"}"
     println "parallelProjectExecutionEnabled = ${gradle.startParameter.parallelProjectExecutionEnabled}"
     println "Kotlin incremental compilation enabled = ${providers.gradleProperty("kotlin.incremental").orNull != "false"}"
     println "Kotlin classpath snapshotting enabled = ${providers.gradleProperty("kotlin.incremental.useClasspathSnapshot").orNull == "true"}"
-
     println "------------------"
     println "mdClasspath order:"
     configurations.mdClasspath.files.each { println "  ${it.absolutePath}" }
@@ -419,26 +426,23 @@ tasks.register("genkeys", JavaExec) {
   outputs.upToDateWhen { false }
 
   outputs.files(
-      project.property("extprivkeyfile"),
-      project.property("extpubkeyfile")
+      extPrivKeyFile,
+      extPubKeyFile
   )
 
   classpath = configurations.mdClasspath
   mainClass.set("com.moneydance.admin.KeyAdmin")
 
-  systemProperty "moneydance_key_pass", project.property("keypass")   // load the key from properties if possible
-
   args(
       "genkey",
-      project.property("extprivkeyfile"),
-      project.property("extpubkeyfile")
+      extPrivKeyFile,
+      extPubKeyFile
   )
 
   standardInput = System.in   // <-- REQUIRED for keyboard input
 
   doFirst {
-    def keyPass = project.findProperty("keypass")
-    def isPassBlank = !keyPass?.toString()?.trim()
+    def isPassBlank = !keyPassValue?.toString()?.trim()
     logger.lifecycle("")
     logger.lifecycle("########################################################################")
     logger.lifecycle("# genkeys running....")
@@ -453,8 +457,8 @@ tasks.register("genkeys", JavaExec) {
     }
     logger.lifecycle("########################################################################")
 
-    def priv = file(project.property("extprivkeyfile"))
-    def pub = file(project.property("extpubkeyfile"))
+    def priv = file(extPrivKeyFile)
+    def pub = file(extPubKeyFile)
 
     if (priv.exists() || pub.exists()) {
       print "\u0007"; System.out.flush() // beep-beep
@@ -471,8 +475,8 @@ tasks.register("genkeys", JavaExec) {
   }
 
   doLast {
-    if (!file(project.property("extprivkeyfile")).exists()) throw new GradleException("Private key not created")
-    if (!file(project.property("extpubkeyfile")).exists()) throw new GradleException("Public key not created")
+    if (!file(extPrivKeyFile).exists()) throw new GradleException("Private key not created")
+    if (!file(extPubKeyFile).exists()) throw new GradleException("Public key not created")
   }
 }
 ////////////////////// end genkeys /////////////////////////////////////////////////////////////////////////////////////
@@ -607,12 +611,10 @@ def registerFeature = { String featureName, FileCollection extraClasspath = file
     classpath = configurations.mdClasspath
     mainClass.set("com.moneydance.admin.KeyAdmin")
 
-    systemProperty "moneydance_key_pass", project.property("keypass")
-
     args(
       "signextjar",
-      project.property("extprivkeyfile"),
-      project.property("privkeyid"),
+      extPrivKeyFile,
+      privKeyID,
       featureName,
       "${distPath}/${featureName}.mxt"
     )
@@ -756,11 +758,10 @@ def registerPackagePythonExtension = { String feature, String pythonBase, boolea
 
     classpath = configurations.mdClasspath
     mainClass.set("com.moneydance.admin.PythonExtensionPackager")
-    systemProperty "moneydance_key_pass", project.property("keypass")
 
     args(
-        project.property("extprivkeyfile"),
-        project.property("privkeyid"),
+        extPrivKeyFile,
+        privKeyID,
         feature,
         pythonBase,
         distPath
