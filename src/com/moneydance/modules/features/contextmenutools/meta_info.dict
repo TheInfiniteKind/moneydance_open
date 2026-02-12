@@ -5,6 +5,6 @@
   "module_name.en-GB" = "Context Menu Tools"
   "module_desc" = "Enables additional context menu (right click) tools"
   "id" = "contextmenutools"
-  "module_build" = "3"
+  "module_build" = "4"
   "minbuild" = "5253"
 }

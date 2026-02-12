@@ -325,16 +325,21 @@ class DuplicateTransactions: ContextMenuAction {
   private fun duplicateTxnsRecordChanges(duplicatedTxns: List<AbstractTxn>) {
     val change = UndoableChange()
 
-    // attempt to set the undo menu name
-    runCatching {
-      change.javaClass
-        .getMethod("setName", String::class.java)
-        .invoke(change, string_undo_redo_dup_txns.replace("{num}", "${duplicatedTxns.size}"))
-    }.recover {
-      val f = change.javaClass.getDeclaredField("name")
-      f.isAccessible = true
-      f.set(change, string_undo_redo_dup_txns.replace("{num}", "${duplicatedTxns.size}"))
-    }.getOrNull()
+    val undoName = string_undo_redo_dup_txns.replace("{num}", "${duplicatedTxns.size}")
+
+    val clazz = change.javaClass
+    val setOk = runCatching {
+      val m = clazz.getMethod("setName", String::class.java)
+      m.invoke(change, undoName)
+    }.isSuccess
+    
+    if (!setOk) {
+      runCatching {
+        val f = clazz.getDeclaredField("name")
+        f.isAccessible = true
+        f.set(change, undoName)
+      }
+    }
     
     duplicatedTxns.forEach { dup -> change.finishModification(modifiedItem = dup) }
     mdGUI.undoManager?.recordChange(change)
