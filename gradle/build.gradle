@@ -19,17 +19,31 @@ Notes:
           - kotlin: line numbers are always emitted, source mapping is present for stack traces. Parameter/call assertions are on by default.
 */
 
+
+import org.jetbrains.kotlin.config.KotlinCompilerVersion
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
   id 'java'
-  id 'org.jetbrains.kotlin.jvm' version '1.9.21'  // plugin version to match Moneydance's build system and also bundled runtime kotlin-stdlib-x.x.x.jar
+  id 'org.jetbrains.kotlin.jvm' version '1.9.21'    // plugin version to match Moneydance's build system and also bundled runtime kotlin-stdlib-x.x.x.jar
+  //id 'org.jetbrains.kotlin.jvm' version '2.3.10'
 }
 
 repositories {
   mavenCentral()
+}
+
+def isKotlin2 = KotlinCompilerVersion.VERSION.startsWith("2.")  // detect 1.9.x vs 2.x plugin...
+
+// Detect Kotlin 1.9 and run specific commands
+if (!KotlinCompilerVersion.VERSION.startsWith("2.")) {
+
+  // Kotlin 1.9 only: disable classpath snapshotting (removed / not applicable in Kotlin 2.x)
+  // Moneydance build jars are mutable and order-sensitive; classpath snapshotting
+  // can cause incorrect incremental rebuilds. Incremental compilation remains enabled.
+  project.ext["kotlin.incremental.useClasspathSnapshot"] = "false"
 }
 
 // Using gradle 9.x, with kotlin plugin 1.9.21 (note final release before kotlin 2.0 is 1.9.25 which would have maximum compatibility with gradle 9)
@@ -179,7 +193,12 @@ tasks.withType(KotlinCompile).configureEach {
     apiVersion.set(kotlinApiVersion)                                // kotlin API version
     jvmTarget.set(JvmTarget.valueOf("JVM_${targetRelease}"))        // specify the java --release (soource/target/bytecode/API) version
 
-    freeCompilerArgs.add("-Xjvm-default=all")                       // interface default methods
+    if (isKotlin2) {
+      freeCompilerArgs.add("-jvm-default=no-compatibility")         // interface default methods (plug in 2.x onwards)
+    } else {
+      freeCompilerArgs.add("-Xjvm-default=all")                     // interface default methods (plug in 1.9.x)
+    }
+
     freeCompilerArgs.add("-Xuse-fast-jar-file-system")              // faster incremental builds
 
     // some potentially useful compiler options
@@ -283,6 +302,8 @@ tasks.register("verifyConfig") {
     println "------------------------------------------"
 
     println ""
+    println "Gradle version     = ${gradle.gradleVersion}"
+    println "Kotlin plugin      = ${KotlinCompilerVersion.VERSION}"
     println "CompilerJDK        = ${compilerJDK}"
     println "target release     = ${targetRelease}"
     println "kotlin language    = ${kotlinLangVersion}"
