@@ -7,9 +7,11 @@ build.gradle: gradle buildfile for Moneydance extensions
 ** REVIEW PROPERTIES IN /gradle/gradle.properties file
 ** SET LOCAL/USER OVERRIDING PROPERTIES in /userconfig/user.gradle.properties
 
-Execute ./gradlew                     to show usage
-Execute ./gradlew extensionname       to build extension
-Execute ./gradlew cleanextensionname  to cleanup a single extension's build files
+Execute ./gradlew                       to show usage
+        ./gradlew extensionname         to build extension
+        ./gradlew cleanextensionname    to cleanup a single extension's build files
+        ./gradlew genkeys               to generate private/public signing keyfile(s) - set keypass= first
+        ./gradlew migrateAntUserConfig  to attempt to migrate legacy Ant settings to gradle user properties
 
 Notes:
         - Python packaging (with precompile) requires python2.7 installed
@@ -83,7 +85,7 @@ if (localPropsFile.exists()) {
 }
 
 // verify all required properties are set
-["src", "lib", "dist", "python-src", "keypass", "privkeyid", "extprivkeyfile", "extpubkeyfile"]
+["src", "lib", "dist", "python-src", "privkeyid", "extprivkeyfile", "extpubkeyfile"]
     .each {
       if (!project.hasProperty(it)) throw new GradleException("Missing gradle.property: $it")
     }
@@ -97,19 +99,28 @@ def srcPath = project.property("src")
 def distPath = project.property("dist")
 def pythonSrcPath = project.property("python-src")
 def mdbuildlibs = project.findProperty("mdbuildlibs") // note: this is an optional path that will override where the std set of build libs are found
-def dontSignJavaKotlin = project.findProperty("dontSignJavaKotlin")?.toString()?.toBoolean() ?: false // when true then no package signing will take place
 def extPrivKeyFile = project.property("extprivkeyfile")
 def extPubKeyFile = project.property("extpubkeyfile")
-def keyPassValue = project.property("keypass")
 def privKeyID = project.property("privkeyid")
+def keyPassValue = project.findProperty("keypass")    // don't force keypass= to exist
 
 
 // export for imported gradle files
+ext.debug = debug
 ext.srcPath = srcPath
 ext.libPath = libPath
 ext.distPath = distPath
-ext.dontSignJavaKotlin = dontSignJavaKotlin
+ext.keyPassValue = keyPassValue
+ext.extPrivKeyFile = extPrivKeyFile
+ext.extPubKeyFile = extPubKeyFile
+ext.privKeyID = privKeyID
 
+// common keypass, priv/pub file(s) missing validation code block
+ext.requireSigningInputs = {
+  if (!keyPassValue?.toString()?.trim()) throw new GradleException("\n*****\nERROR - keypass must be set in: ../userconfig/user.gradle.properties\n*****\n")
+  if (!file(extPrivKeyFile).exists()) throw new GradleException("\n*****\nERROR - Missing private key file: ${extPrivKeyFile} (run genkeys)\n*****\n")
+  if (!file(extPubKeyFile).exists()) throw new GradleException("\n*****\nERROR - Missing public key file: ${extPubKeyFile} (run genkeys)\n*****\n")
+}
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Build a list of Moneydance jars for the classpath – shared by compile + sign (order matters)
@@ -490,8 +501,10 @@ if (file("antmigration.gradle").exists()) {
 tasks.register("ensureDist") {
   group = "TOOLS"
   description = "Makes the dist folder if it doesn't exist"
-  doLast { file(distPath).mkdirs() }
-  if (debug) logger.lifecycle("Ensured 'dist' folder exists (created if missing)")
+  doLast {
+    file(distPath).mkdirs()
+    if (debug) logger.lifecycle("Ensured 'dist' folder exists (created if missing)")
+  }
 }
 
 
@@ -603,9 +616,11 @@ def registerFeature = { String featureName, FileCollection extraClasspath = file
     outputs.file("${distPath}/${featureName}.mxt")
 
     dependsOn("jar_${featureName}")
-    onlyIf { !dontSignJavaKotlin }
 
-    doFirst { if (debug) logger.lifecycle("${path} START") }
+    doFirst {
+      if (debug) logger.lifecycle("${path} START")
+      requireSigningInputs()
+    }
 
     workingDir = file(distPath)
     classpath = configurations.mdClasspath
@@ -635,7 +650,7 @@ def registerFeature = { String featureName, FileCollection extraClasspath = file
     group = "BUILD EXTENSION"
     description = "Build java/kotlin extension: ${featureName}"
     dependsOn("ensureDist", "compile_${featureName}", "jar_${featureName}", "sign_${featureName}")
-    mustRunAfter(tasks.named("clean"), tasks.named("clean${featureName}"))
+    mustRunAfter("clean", "clean${featureName}")
 
     doLast { logger.lifecycle("EXTENSION BUILD (java/kotlin) '${featureName}' ${path} END") }
   }
@@ -747,6 +762,8 @@ def registerPackagePythonExtension = { String feature, String pythonBase, boolea
     doFirst {
       if (debug) logger.lifecycle("${path} START")
 
+      requireSigningInputs()
+
       if (!configurations.mdClasspath.files.any { it.name == "moneydance.jar" && it.exists() && it.length() > 0 }) {
         throw new GradleException("mdClasspath missing readable moneydance.jar")
       }
@@ -822,7 +839,7 @@ def registerPythonModule = { String feature, boolean precompile = false, boolean
     group = "BUILD EXTENSION"
     description = "Build python extension: ${feature}"
     dependsOn("ensureDist")
-    mustRunAfter(tasks.named("clean"), tasks.named("clean${feature}"))
+    mustRunAfter("clean", "clean${feature}")
 
     if (precompile) dependsOn("precompile_${feature}")
     dependsOn("package_python_${feature}")

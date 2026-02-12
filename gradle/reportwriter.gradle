@@ -15,7 +15,7 @@ def mdJars = p.ext.mdJars
 def srcPath  = p.ext.srcPath
 def libPath  = p.ext.libPath
 def distPath = p.ext.distPath
-def dontSignJavaKotlin = p.ext.dontSignJavaKotlin
+def debug = p.ext.debug
 
 def reportwriterLibs = files(
     "${libPath}/h2-1.4.200.jar",
@@ -87,21 +87,24 @@ tasks.register("sign_reportwriter", JavaExec) {
   group = "other"
   description = "sign reportwriter"
   dependsOn("jar_reportwriter")
-  onlyIf { !dontSignJavaKotlin }
 
   workingDir = file(distPath)
   classpath = configurations.mdClasspath
   mainClass.set("com.moneydance.admin.KeyAdmin")
 
-  systemProperty "moneydance_key_pass", p.property("keypass")
+  doFirst {
+    if (debug) logger.lifecycle("${path} START")
 
-  args(
-      "signextjar",
-      p.property("extprivkeyfile"),
-      p.property("privkeyid"),
-      "reportwriter",
-      "${distPath}/reportwriter.mxt"
-  )
+    p.ext.requireSigningInputs()
+
+    args(
+        "signextjar",
+        p.ext.extPrivKeyFile,
+        p.ext.privKeyID,
+        "reportwriter",
+        "${distPath}/reportwriter.mxt"
+    )
+  }
 
   standardInput = System.in
 
@@ -110,6 +113,7 @@ tasks.register("sign_reportwriter", JavaExec) {
     def dst = file("${distPath}/reportwriter.mxt")
     if (dst.exists()) dst.delete()
     if (!src.renameTo(dst)) throw new GradleException("rename failed")
+    if (debug) logger.lifecycle("${path} END")
   }
 }
 tasks.register("reportwriter") {
