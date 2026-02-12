@@ -19,15 +19,29 @@ Notes:
           - kotlin: line numbers are always emitted, source mapping is present for stack traces. Parameter/call assertions are on by default.
 */
 
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
   id 'java'
-  id 'org.jetbrains.kotlin.jvm' version '1.9.21'  // mirror the version that Moneydance is building with
+  id 'org.jetbrains.kotlin.jvm' version '1.9.21'  // plugin version to match Moneydance's build system and also bundled runtime kotlin-stdlib-x.x.x.jar
 }
 
 repositories {
   mavenCentral()
+}
+
+// Using gradle 9.x, with kotlin plugin 1.9.21 (note final release before kotlin 2.0 is 1.9.25 which would have maximum compatibility with gradle 9)
+// - ideally match versions to the Moneydance build system, and bundled runtime jar, but..:
+// - latest gradle is fine as this is a seperate build system, and we lock the kotlin language / api version to 1.9
+// - java / kotlin target versions are set to allow extensions to have maximum possible of backwards compatibility.
+// - we set these value here - rather than using gradle.properties - as these are not really very user configurable.
+ext {
+    compilerJDK       = 21                          // JDK version to execute java/kotlin compile, sign, and packaging tasks
+    targetRelease     = 17                          // equivilent java --release (source/target/bytecode/API) version
+    kotlinLangVersion = KotlinVersion.KOTLIN_1_9    // kotlin language version (lock to plugin version) - match to Moneydance bundled kotlin-stdlib-x.x.x.jar
+    kotlinApiVersion  = KotlinVersion.KOTLIN_1_9    // kotlin API version (lock to plugin version) - match to Moneydance bundled kotlin-stdlib-x.x.x.jar
 }
 
 // set flag to let subordinate gradle scripts know that the master script is executing
@@ -53,7 +67,7 @@ if (localPropsFile.exists()) {
 }
 
 // verify all required properties are set
-["java-kotlin-target", "src", "lib", "dist", "python-src", "keypass", "privkeyid", "extprivkeyfile", "extpubkeyfile"]
+["src", "lib", "dist", "python-src", "keypass", "privkeyid", "extprivkeyfile", "extpubkeyfile"]
     .each {
       if (!project.hasProperty(it)) throw new GradleException("Missing gradle.property: $it")
     }
@@ -66,9 +80,8 @@ def libPath = project.property("lib")
 def srcPath = project.property("src")
 def distPath = project.property("dist")
 def pythonSrcPath = project.property("python-src")
-def javaKotlinTarget = project.property("java-kotlin-target").toString().toInteger()
 def mdbuildlibs = project.findProperty("mdbuildlibs") // note: this is an optional path that will override where the std set of build libs are found
-def dontSignJavaKotlin = project.findProperty("dont_sign_java_kotlin")?.toString()?.toBoolean() ?: false // when true then no package signing will take place
+def dontSignJavaKotlin = project.findProperty("dontSignJavaKotlin")?.toString()?.toBoolean() ?: false // when true then no package signing will take place
 
 // export for imported gradle files
 ext.srcPath = srcPath
@@ -127,12 +140,12 @@ dependencies {
 // --------------------
 java {
   toolchain {
-    languageVersion = JavaLanguageVersion.of(javaKotlinTarget)
+    languageVersion = JavaLanguageVersion.of(compilerJDK)    // JDK version used to execute java compile, package, sign tasks
   }
 }
 tasks.withType(JavaCompile).configureEach {
-  options.incremental = true
-  // performance - incremental build - default in modern Gradle
+  options.release = targetRelease                            // specify the java --release (soource/target/bytecode/API) version
+  options.incremental = true                                 // performance - incremental build - default in modern Gradle
   options.compilerArgs += ["-Xlint:all"]                     // enable all compiler warnings (no impact on build)
 
   if (!debug) {
@@ -150,23 +163,29 @@ tasks.withType(JavaCompile).configureEach {
     }
   }
 }
+////////////////////// end java compiler config ////////////////////////////////////////////////////////////////////////
 
 // ----------------------
 // Kotlin compiler config
 // ----------------------
 kotlin {
-  jvmToolchain(javaKotlinTarget)
+  jvmToolchain(compilerJDK)                                         // JDK version used to execute java compile, package, sign tasks
 }
 tasks.withType(KotlinCompile).configureEach {
   compilerOptions {
-    freeCompilerArgs.add("-Xjvm-default=all")             // interface default methods
-    freeCompilerArgs.add("-Xuse-fast-jar-file-system")    // faster incremental builds
+
+    languageVersion.set(kotlinLangVersion)                          // kotlin language version
+    apiVersion.set(kotlinApiVersion)                                // kotlin API version
+    jvmTarget.set(JvmTarget.valueOf("JVM_${targetRelease}"))        // specify the java --release (soource/target/bytecode/API) version
+
+    freeCompilerArgs.add("-Xjvm-default=all")                       // interface default methods
+    freeCompilerArgs.add("-Xuse-fast-jar-file-system")              // faster incremental builds
 
     // some potentially useful compiler options
-    //freeCompilerArgs.add("-Xdebug")                     // compiler diagnostics only (NOT runtime debugging)
-    //freeCompilerArgs.add("-Xno-param-assertions")       // disable parameter null checks
-    //freeCompilerArgs.add("-Xno-call-assertions")        // disable call-site null checks
-    //jvmTarget.set(JvmTarget.JVM_21)                     // already set elsewhere in this build file via jvmToolchain
+    //freeCompilerArgs.add("-Xdebug")                               // compiler diagnostics only (NOT runtime debugging)
+    //freeCompilerArgs.add("-Xno-param-assertions")                 // disable parameter null checks
+    //freeCompilerArgs.add("-Xno-call-assertions")                  // disable call-site null checks
+    //jvmTarget.set(JvmTarget.JVM_nn)                               // jvmTarget defaults to the configured Kotlin JVM toolchain
   }
 
   doFirst {
@@ -175,6 +194,18 @@ tasks.withType(KotlinCompile).configureEach {
     }
   }
 }
+////////////////////// end kotlin compiler config //////////////////////////////////////////////////////////////////////
+
+// setup JavaExec tasks
+tasks.withType(JavaExec).configureEach {
+  javaLauncher.set(
+    javaToolchains.launcherFor {
+      languageVersion = JavaLanguageVersion.of(compilerJDK)         // JDK version used to execute java compile, package, sign tasks
+    }
+  )
+}
+////////////////////// end JavaExec config /////////////////////////////////////////////////////////////////////////////
+
 
 // add to gradle's inbuilt clean task to also clean up the dist folder and any bit of the python compile left behind.
 // no need to deal with build as gradle handles this...
@@ -249,8 +280,14 @@ tasks.register("verifyConfig") {
     println "Verify Config: configuration + path checks"
     println "------------------------------------------"
 
+    println ""
+    println "CompilerJDK        = ${compilerJDK}"
+    println "target release     = ${targetRelease}"
+    println "kotlin language    = ${kotlinLangVersion}"
+    println "kotlin API version = ${kotlinApiVersion}"
+    println ""
+
     println "debug = ${debug}"
-    println "javaKotlinTarget = ${javaKotlinTarget}"
     println "pythonExec = ${pythonExec}"
 
     if (mdbuildlibs) {
@@ -573,6 +610,8 @@ def registerFeature = { String featureName, FileCollection extraClasspath = file
     group = "BUILD EXTENSION"
     description = "Build java/kotlin extension: ${featureName}"
     dependsOn("ensureDist", "compile_${featureName}", "jar_${featureName}", "sign_${featureName}")
+    mustRunAfter(tasks.named("clean"))
+
     doLast { logger.lifecycle("EXTENSION BUILD (java/kotlin) '${featureName}' ${path} END") }
   }
 }
@@ -748,6 +787,8 @@ def registerPythonModule = { String feature, boolean precompile = false, boolean
     group = "BUILD EXTENSION"
     description = "Build python extension: ${feature}"
     dependsOn("ensureDist")
+    mustRunAfter(tasks.named("clean"))
+
     if (precompile) dependsOn("precompile_${feature}")
     dependsOn("package_python_${feature}")
     doLast { logger.lifecycle("EXTENSION BUILD (python) '${feature}' ${path} END") }
@@ -846,18 +887,21 @@ tasks.register("all") {
   description = "Execute build for all extensions"
   group = "BUILD ALL..."
   dependsOn(allFeatures)
+  mustRunAfter(tasks.named("clean"))
 }
 
 tasks.register("allJavaKotlin") {
   description = "Execute build for all java/kotlin extensions"
   group = "BUILD ALL..."
   dependsOn(allJavaKotlin)
+  mustRunAfter(tasks.named("clean"))
 }
 
 tasks.register("allPython") {
   description = "Execute build for all python extensions"
   group = "BUILD ALL..."
   dependsOn(allPython)
+  mustRunAfter(tasks.named("clean"))
 }
 
 allFeatures.each { registerCleanTask(it) }
