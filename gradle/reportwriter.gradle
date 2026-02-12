@@ -73,8 +73,10 @@ tasks.register("jar_reportwriter", Jar) {
   // resources
   from(srcPath) {
     include "com/moneydance/modules/features/reportwriter/**"
+    include "license.txt"
     exclude "**/*.java"
     exclude "**/*.kt"
+    exclude "**/contact.*"
   }
 
   // embed third-party jars (zipgroupfileset equivalent)
