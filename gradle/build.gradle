@@ -56,7 +56,7 @@ if (!isKotlin2) {
 // - we set these value here - rather than using gradle.properties - as these are not really very user configurable.
 ext {
     compilerJDK       = 21                          // JDK version to execute java/kotlin compile, sign, and packaging tasks
-    targetRelease     = 17                          // equivilent java --release (source/target/bytecode/API) version
+    targetRelease     = 17                          // equivalent java --release (source/target/bytecode/API) version
     kotlinLangVersion = KotlinVersion.KOTLIN_1_9    // kotlin language version (lock to plugin version) - match to Moneydance bundled kotlin-stdlib-x.x.x.jar
     kotlinApiVersion  = KotlinVersion.KOTLIN_1_9    // kotlin API version (lock to plugin version) - match to Moneydance bundled kotlin-stdlib-x.x.x.jar
                                                     // use KotlinVersion.KOTLIN_2_1 (for example) to upgrade
@@ -178,7 +178,7 @@ java {
   }
 }
 tasks.withType(JavaCompile).configureEach {
-  options.release = targetRelease                            // specify the java --release (soource/target/bytecode/API) version
+  options.release = targetRelease                            // specify the java --release (source/target/bytecode/API) version
   options.encoding = "UTF-8"                                 // utf8 encoding for all platforms
   options.incremental = true                                 // performance - incremental build - default in modern Gradle
   options.compilerArgs += ["-Xlint:all"]                     // enable all compiler warnings (no impact on build)
