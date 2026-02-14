@@ -95,7 +95,7 @@ if (localPropsFile.exists()) {
 /*
  * Bridge property names into Gradle variables
  */
-def debug = project.findProperty("debug")?.toString()?.toBoolean() ?: false
+def debug = project.findProperty("debug") == "true"
 def libPath = project.property("lib")
 def srcPath = project.property("src")
 def distPath = project.property("dist")
@@ -405,9 +405,8 @@ def registerCleanTask = { String featureName ->
     group = "CLEAN EXTENSION"
     description = "Clean built artifacts for extension: ${featureName}"
 
-    // Java/Kotlin artifact
-    delete(file("${distPath}/${featureName}.mxt"))
-    delete(file("${distPath}/s-${featureName}.mxt"))
+    // Java/Kotlin artifact (i.e. specifically .mxt and anything else with this extension's name)
+    delete(fileTree(dir: distPath, includes: ["${featureName}.*", "s-${featureName}.*"]))
 
     // compiled java/kotlin class outputs
     delete(
@@ -643,6 +642,17 @@ def registerFeature = { String featureName, FileCollection extraClasspath = file
       def dst = file("${distPath}/${featureName}.mxt")
       if (dst.exists()) dst.delete()
       if (!src.renameTo(dst)) throw new GradleException("rename failed")
+
+      if (debug) {
+        println "\n\n---- ZIP CONTENTS: ${featureName}.mxt ----"
+        def zipFile = new java.util.zip.ZipFile(file("${distPath}/${featureName}.mxt"))
+        zipFile.entries().toList()
+            .sort { it.name }
+            .each { println it.name }
+        zipFile.close()
+        println "---------------------------------------"
+      }
+
       if (debug) logger.lifecycle("${path} END")
     }
   }
@@ -731,7 +741,7 @@ def registerPythonPrecompile = { String feature, String pythonBase ->
   }
   // enforce the correct sequence...
   tasks.named("jython_compile_${feature}") {
-    mustRunAfter(tasks.named("py_compile_${feature}"))
+    mustRunAfter("py_compile_${feature}")
   }
 
   ////////////////////////////////////////////
@@ -769,6 +779,20 @@ def registerPackagePythonExtension = { String feature, String pythonBase, boolea
       if (!configurations.mdClasspath.files.any { it.name == "moneydance.jar" && it.exists() && it.length() > 0 }) {
         throw new GradleException("mdClasspath missing readable moneydance.jar")
       }
+
+      // Validate mandatory extension files
+      def requiredFiles = [
+          file("${pythonBase}/meta_info.dict"),
+          file("${pythonBase}/script_info.dict"),
+          file("${pythonBase}/${feature}.py")
+      ]
+
+      requiredFiles.each { f ->
+        if (!f.exists() || f.length() == 0) {
+          throw new GradleException("Missing required extension file: ${f}")
+        }
+      }
+
     }
 
     if (precompile) {
@@ -795,6 +819,16 @@ def registerPackagePythonExtension = { String feature, String pythonBase, boolea
 
       def out = file("${distPath}/${feature}.mxt")
       if (!out.exists() || out.length() == 0) throw new GradleException("Python extension not created: ${out}")
+
+      if (debug) {
+        println "\n\n---- ZIP CONTENTS: ${feature}.mxt ----"
+        def zipFile = new java.util.zip.ZipFile(file("${distPath}/${feature}.mxt"))
+        zipFile.entries().toList()
+            .sort { it.name }
+            .each { println it.name }
+        zipFile.close()
+        println "---------------------------------------"
+      }
 
       if (debug) logger.lifecycle("${path} END")
     }
@@ -826,6 +860,7 @@ def registerPythonModule = { String feature, boolean precompile = false, boolean
       doFirst {
         copy {
           from(sourceSets.pythonBundled.output)
+          exclude("META-INF/**")
           into(fullPath)
         }
       }
@@ -941,30 +976,30 @@ tasks.register("all") {
   description = "Execute build for all extensions"
   group = "BUILD ALL..."
   dependsOn(allFeatures)
-  mustRunAfter(tasks.named("clean"))
+  mustRunAfter("clean")
 }
 
 tasks.register("allJavaKotlin") {
   description = "Execute build for all java/kotlin extensions"
   group = "BUILD ALL..."
   dependsOn(allJavaKotlin)
-  mustRunAfter(tasks.named("clean"))
+  mustRunAfter("clean")
 }
 
 tasks.register("allPython") {
   description = "Execute build for all python extensions"
   group = "BUILD ALL..."
   dependsOn(allPython)
-  mustRunAfter(tasks.named("clean"))
+  mustRunAfter("clean")
 }
 
 allFeatures.each { registerCleanTask(it) }
 
 
-///////////////////////////////////////////////
+////////////////////////////////////////////////
 // Lastly - tidy up the gradle tools window
-// this is visual hygene, does not affect build
-///////////////////////////////////////////////
+// this is visual hygiene, does not affect build
+////////////////////////////////////////////////
 tasks.configureEach {
   if (group != null && !["INFO", "TOOLS", "GENKEYS", "BUILD ALL...", "BUILD EXTENSION", "CLEAN EXTENSION"].contains(group)) {
     group = "other"
