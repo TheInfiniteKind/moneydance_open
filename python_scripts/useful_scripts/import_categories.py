@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# import_categories.py (build 17) - Author - Stuart Beesley - StuWareSoftSystems 2020-2025
+# import_categories.py (build 18) - Author - Stuart Beesley - StuWareSoftSystems 2020-2026
 
 # READ THIS FIRST:
 #
@@ -45,7 +45,7 @@
 ###############################################################################
 # MIT License
 #
-# Copyright (c) 2020-2025 Stuart Beesley - StuWareSoftSystems
+# Copyright (c) 2020-2026 Stuart Beesley - StuWareSoftSystems
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -85,6 +85,7 @@
 # build: 15 - MyJFrame(v5)
 # build: 16 - MD2024.2(5142) - moneydance_extension_loader was nuked and moneydance_this_fm with getResourceAsStream() was provided.
 # build: 17 - Tweaked to accept input from CategoryDetailsReport extract in data export mode....
+# build: 18 - Tweaked input from CategoryDetailsReport extract to skip header records and check for record_key details..
 
 
 # CUSTOMIZE AND COPY THIS ##############################################################################################
@@ -93,7 +94,7 @@
 
 # SET THESE LINES
 myModuleID = u"import_categories"
-version_build = "17"
+version_build = "18"
 MIN_BUILD_REQD = 1904                                               # Check for builds less than 1904 / version < 2019.4
 _I_CAN_RUN_AS_DEVELOPER_CONSOLE_SCRIPT = True
 
@@ -2693,7 +2694,7 @@ Visit: %s (Author's site)
             _label1.setForeground(getColorBlue())
             aboutPanel.add(_label1)
 
-            _label2 = JLabel(pad("StuWareSoftSystems (2020-2025)", 800))
+            _label2 = JLabel(pad("StuWareSoftSystems (2020-2026)", 800))
             _label2.setForeground(getColorBlue())
             aboutPanel.add(_label2)
 
@@ -3303,6 +3304,11 @@ Visit: %s (Author's site)
                             myPrint("B", "# <comment> row %s detected - (will skip)" %(onOriginalRow))
                             continue
 
+                        if len(row) >= GLOB_VARS.INDEX_KEY:
+                            if row[GLOB_VARS.INDEX_KEY - 1].strip() == "H":
+                                myPrint("B", "Skipping (CategoryDetailsReport) Header row: %s (with 'key' of 'H')" %(onOriginalRow))
+                                continue
+
                         GLOB_VARS.data.append([onOriginalRow] + row)
 
             except:
@@ -3481,11 +3487,10 @@ Visit: %s (Author's site)
 
                 if lDataExportDetected:
                     if len(data[i]) < len(GLOB_VARS.FIELD_NAMES):
-                        _msg = "ERROR: Row %s, - data export format >> found %s data columns, expecting %s!?" % (onFileRow, len(data[i]), len(GLOB_VARS.FIELD_NAMES))
+                        _msg = "ERROR: Row %s, - data export format >> found %s data columns, expecting %s!? (Ensure you have 'Show Comments' enabled when creating this file from MD's CategoryDetailsReport)" %(onFileRow, len(data[i]), len(GLOB_VARS.FIELD_NAMES))
                         myPrint("B", _msg); raise Exception(_msg)
 
-                    data[i][GLOB_VARS.INDEX_KEY] = data[i][GLOB_VARS.INDEX_KEY].lower().strip()
-                    if data[i][GLOB_VARS.INDEX_KEY] != "cd":
+                    if data[i][GLOB_VARS.INDEX_KEY] != "CD":
                         _msg = "ERROR: Row %s, 'key' mandatory field incorrect - expecting 'CD' (found: '%s')" % (onFileRow, data[i][GLOB_VARS.INDEX_KEY])
                         myPrint("B", _msg); raise Exception(_msg)
 
