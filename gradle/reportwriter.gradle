@@ -36,12 +36,10 @@ def reportwriterLibs = files(
     "${libPath}/xmlbeans-3.1.0.jar"
 )
 
-sourceSets {
-  loadsectrans
-  reportwriter {
-    java.srcDir("${srcPath}/com/moneydance/modules/features/reportwriter")
-  }
-}
+sourceSets.maybeCreate("reportwriter")
+    .java
+    .srcDir("${srcPath}/com/moneydance/modules/features/reportwriter")
+
 dependencies {
   mdJars.each { add("reportwriterCompileOnly", it) }
   add("reportwriterImplementation", sourceSets.mrbutil.output)
@@ -51,7 +49,7 @@ dependencies {
 tasks.register("compile_reportwriter") {
   group = "other"
   description = "compile reportwriter"
-  dependsOn("reportwriterClasses", "mrbutilClasses")
+  dependsOn("reportwriterClasses", "mrbutilClasses", "loadsectransClasses")
 }
 tasks.register("jar_reportwriter", Jar) {
   dependsOn("compile_reportwriter")

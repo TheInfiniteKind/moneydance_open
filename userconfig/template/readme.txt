@@ -1,5 +1,5 @@
 Moneydance extension build system
-The /userconfig/ folder and its file(s) belongs to the Moneydance Open project which is used to compile, package, and sign extensions.
+The /userconfig/ folder and its file(s) belongs to the MoneydanceOpen project which is used to compile, package, and sign extensions.
 These files are used by gradle during the build process. The gradle files are contained in the /gradle/ folder.
 user.gradle.properties is a user-specific file that overrides settings used during the gradle build process
 

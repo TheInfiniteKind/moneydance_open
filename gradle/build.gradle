@@ -1,6 +1,8 @@
 /*
 Author: Stuart Beesley - February 2026
 
+This is Groovy DSL file
+
 build.gradle: gradle buildfile for Moneydance extensions
 - can build java, kotlin, mixed java/kotlin, and python extensions
 
@@ -28,10 +30,12 @@ import org.jetbrains.kotlin.config.KotlinCompilerVersion
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+import java.util.zip.ZipFile
+
 
 plugins {
-  id 'java'
-  id 'org.jetbrains.kotlin.jvm' version '1.9.21'    // plugin version to match Moneydance's build system and also bundled runtime kotlin-stdlib-x.x.x.jar
+  id 'java'                                         // configure the java environment
+  id 'org.jetbrains.kotlin.jvm' version '1.9.21'    // configure the kotlin environmentkotlin - plugin version to match Moneydance's build system and also bundled runtime kotlin-stdlib-x.x.x.jar
                                                     // use '2.3.10' to upgrade
 }
 
@@ -39,7 +43,10 @@ repositories {
   mavenCentral()
 }
 
-def isKotlin2 = KotlinCompilerVersion.VERSION.startsWith("2.")  // detect 1.9.x vs 2.x plugin...
+// detect 1.9.x vs 2.x plugin...
+def kotlinPluginVersion = plugins.getPlugin("org.jetbrains.kotlin.jvm").class.package.implementationVersion
+def isKotlin2 = kotlinPluginVersion?.startsWith("2.")
+logger.lifecycle("Kotlin plugin version (${kotlinPluginVersion}) - compiler: ${KotlinCompilerVersion.VERSION}")
 
 // Detect Kotlin 1.9 and run specific commands
 if (!isKotlin2) {
@@ -117,11 +124,27 @@ ext.extPrivKeyFile = extPrivKeyFile
 ext.extPubKeyFile = extPubKeyFile
 ext.privKeyID = privKeyID
 
+ext.moneydanceChecked = false // we use this to check the classpath for moneydance jar class only once
+
 // common keypass, priv/pub file(s) missing validation code block
 ext.requireSigningInputs = {
   if (!keyPassValue?.toString()?.trim()) throw new GradleException("\n*****\nERROR - keypass must be set in: ../userconfig/user.gradle.properties\n*****\n")
   if (!file(extPrivKeyFile).exists()) throw new GradleException("\n*****\nERROR - Missing private key file: ${extPrivKeyFile} (run genkeys)\n*****\n")
   if (!file(extPubKeyFile).exists()) throw new GradleException("\n*****\nERROR - Missing public key file: ${extPubKeyFile} (run genkeys)\n*****\n")
+}
+
+// common list zip contents block
+ext.listZipContents = { File zipFile, String label ->
+  if (!debug) return
+  if (!zipFile.exists() || zipFile.length() == 0) return
+
+  logger.lifecycle("\n\n---- ZIP CONTENTS: ${label} ----")
+  def zf = new ZipFile(zipFile)
+  zf.entries().toList()
+      .sort { it.name }
+      .each { logger.lifecycle(it.name) }
+  zf.close()
+  logger.lifecycle("---------------------------------------")
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -166,6 +189,48 @@ configurations {
 dependencies {
   mdJars.each { add("mdClasspath", it) }
 }
+
+// define common checker to detect moneydance.jar file(s) on classpath
+// specifically look for a known model class, and detect not found, or where multiple found
+def requireMoneydanceClass = { Map args = [:] ->
+  def classPath = args.classPath ?: "com/infinitekind/moneydance/model/AccountBook.class"
+  def failWhenNotFound = args.failWhenNotFound != false
+  def showResults = args.showResults == true
+
+  def foundIn = []
+  def ordered = configurations.mdClasspath.files.toList()
+
+  ordered.each { jar ->
+    if (jar.exists()) {
+      def zip = new ZipFile(jar)
+      if (zip.getEntry(classPath as String) != null) {
+        foundIn << jar
+      }
+      zip.close()
+    }
+  }
+
+  if (failWhenNotFound && foundIn.isEmpty()) { throw new GradleException("Required Moneydance class ${classPath} not found on mdClasspath") }
+
+  if (showResults) {
+    logger.lifecycle("------------------")
+    logger.lifecycle("Classpath resolution order:")
+    ordered.eachWithIndex { jar, i ->
+      logger.lifecycle("  ${i + 1}. ${jar.absolutePath}")
+    }
+    logger.lifecycle("")
+    logger.lifecycle("Found ${classPath} in ${foundIn.size()} jar(s):")
+    foundIn.each { jar ->
+      logger.lifecycle("  -> ${jar.absolutePath}")
+    }
+    if (foundIn.isEmpty()) logger.error("Required Moneydance class: ${classPath} NOT found on classpath")
+    if (foundIn.size() > 1) logger.error("Multiple versions of required Moneydance class: ${classPath} found on classpath")
+    logger.lifecycle("------------------")
+  }
+
+  return foundIn.size()
+}
+ext.requireMoneydanceClass = requireMoneydanceClass
 ////////////////////// end building of mdjars list /////////////////////////////////////////////////////////////////////
 
 
@@ -193,8 +258,9 @@ tasks.withType(JavaCompile).configureEach {
   //options.compilerArgs += ["-Werror"]                      // treat warnings as errors
 
   doFirst {
-    if (!configurations.mdClasspath.files.any { it.name == "moneydance.jar" && it.exists() && it.length() > 0 }) {
-      throw new GradleException("mdClasspath missing moneydance.jar")
+    if (!moneydanceChecked) {
+      requireMoneydanceClass()
+      moneydanceChecked = true
     }
   }
 }
@@ -229,8 +295,9 @@ tasks.withType(KotlinCompile).configureEach {
   }
 
   doFirst {
-    if (!configurations.mdClasspath.files.any { it.name == "moneydance.jar" && it.exists() && it.length() > 0 }) {
-      throw new GradleException("mdClasspath missing moneydance.jar")
+    if (!moneydanceChecked) {
+      requireMoneydanceClass()
+      moneydanceChecked = true
     }
   }
 }
@@ -253,6 +320,9 @@ tasks.withType(JavaExec).configureEach {
 // no need to deal with build as gradle handles this...
 tasks.named("clean", Delete).configure {
   delete(distPath)
+
+  // delete any legacy ANT build folders
+  delete(file("${srcPath}/build"))
 
   // Python generated artefacts
   file(pythonSrcPath).eachDir { pySrcDir ->
@@ -282,11 +352,12 @@ tasks.register("verifyPython27") {
 tasks.register("ensureUserConfig") {
   group = "TOOLS"
   description = "Ensure ../userconfig folder exists (create if missing, does nothing if already exists)"
+  outputs.dir("../userconfig")
   doLast {
     def dir = file("../userconfig")
     if (!dir.exists()) {
       dir.mkdirs()
-      logger.lifecycle("../userconfig folder created...")
+      logger.lifecycle("[INFO] ../userconfig folder created...")
     }
   }
 }
@@ -294,6 +365,7 @@ tasks.register("ensureUserConfig") {
 tasks.register("ensureUserProperties") {
   group = "TOOLS"
   description = "Create new user.gradle.properties file (does nothing if already exists)"
+  outputs.file(file("../userconfig/user.gradle.properties"))
   dependsOn("ensureUserConfig")
   doLast {
     def dir = file("../userconfig")
@@ -303,7 +375,7 @@ tasks.register("ensureUserProperties") {
               "# gradle.user.properties file for building Moneydance extensions\n" +
               "#keypass=your_genkeys_passphrase(set here then run genkeys)\n" +
               "#mdbuildlibs=path_to_your_own_set_of_moneydance_jars(optional)"
-      logger.lifecycle("user.gradle.properties file created...")
+      logger.lifecycle("[INFO] user.gradle.properties file created...")
     }
   }
 }
@@ -318,40 +390,40 @@ tasks.register("verifyConfig") {
 
     printUsage()
 
-    println ""
-    println "Verify Config: configuration + path checks"
-    println "------------------------------------------"
+    logger.lifecycle("")
+    logger.lifecycle("Verify Config: configuration + path checks")
+    logger.lifecycle("------------------------------------------")
 
-    println ""
-    println "Gradle version     = ${gradle.gradleVersion}"
-    println "Kotlin plugin      = ${KotlinCompilerVersion.VERSION}"
-    println "CompilerJDK        = ${compilerJDK}"
-    println "target release     = ${targetRelease}"
-    println "kotlin language    = ${kotlinLangVersion}"
-    println "kotlin API version = ${kotlinApiVersion}"
-    println ""
+    logger.lifecycle("")
+    logger.lifecycle("Gradle version     = ${gradle.gradleVersion}")
+    logger.lifecycle("Kotlin plugin      = ${KotlinCompilerVersion.VERSION}")
+    logger.lifecycle("CompilerJDK        = ${compilerJDK}")
+    logger.lifecycle("target release     = ${targetRelease}")
+    logger.lifecycle("kotlin language    = ${kotlinLangVersion}")
+    logger.lifecycle("kotlin API version = ${kotlinApiVersion}")
+    logger.lifecycle("")
 
-    println "debug = ${debug}"
-    println "pythonExec = ${pythonExec}"
+    logger.lifecycle("debug = ${debug}")
+    logger.lifecycle("pythonExec = ${pythonExec}")
 
     if (mdbuildlibs) {
-      println "mdbuildlibs = ${mdbuildlibs}"
+      logger.lifecycle("mdbuildlibs = ${mdbuildlibs}")
     } else {
-      println "optional mdbuildlibs (library override) <not specified>"
+      logger.lifecycle("optional mdbuildlibs (library override) <not specified>")
     }
 
-    println "src = ${srcPath}"
-    println "lib = ${libPath}"
-    println "dist = ${distPath}"
-    println "pythonSrcPath = ${pythonSrcPath}"
-    println "extprivkeyfile = ${extPrivKeyFile}"
-    println "extpubkeyfile = ${extPubKeyFile}"
+    logger.lifecycle("src = ${srcPath}")
+    logger.lifecycle("lib = ${libPath}")
+    logger.lifecycle("dist = ${distPath}")
+    logger.lifecycle("pythonSrcPath = ${pythonSrcPath}")
+    logger.lifecycle("extprivkeyfile = ${extPrivKeyFile}")
+    logger.lifecycle("extpubkeyfile = ${extPubKeyFile}")
 
     def isPassBlank = !keyPassValue?.toString()?.trim()
     if (!isPassBlank) {
-      println "keypass = <set>"
+      logger.lifecycle("keypass = <set>")
     } else {
-      println "keypass = <not set>"
+      logger.warn("keypass = <not set>")
     }
 
     def mustExist = [
@@ -365,7 +437,7 @@ tasks.register("verifyConfig") {
     mustExist.each { name, path ->
       def f = (path) ? file(path) : null
       if (!f || !f.exists()) throw new GradleException("Missing path/file ${name}: ${f} - have you run genkeys?")
-      println "... EXISTS: ${name}: ${f}"
+      logger.lifecycle("... EXISTS: ${name}: ${f}")
     }
 
     def optExist = [
@@ -375,53 +447,59 @@ tasks.register("verifyConfig") {
     optExist.each { name, path ->
       def f = (path) ? file(path) : null
       if (f && f.exists()) {
-        println "... OPTIONAL EXISTS: ${name}: ${f}"
+        logger.lifecycle("... OPTIONAL EXISTS: ${name}: ${f}")
       } else {
-        println "... OPTIONAL MISSING: ${name}: ${f}"
+        logger.lifecycle("... OPTIONAL MISSING: ${name}: ${f}")
       }
     }
 
-    println "------------------"
-    println "configuration-cache property = ${providers.gradleProperty("org.gradle.configuration-cache").orNull ?: "<not set>"}"
-    println "parallelProjectExecutionEnabled = ${gradle.startParameter.parallelProjectExecutionEnabled}"
-    println "Kotlin incremental compilation enabled = ${providers.gradleProperty("kotlin.incremental").orNull != "false"}"
-    println "Kotlin classpath snapshotting enabled = ${providers.gradleProperty("kotlin.incremental.useClasspathSnapshot").orNull == "true"}"
-    println "------------------"
-    println "mdClasspath order:"
-    configurations.mdClasspath.files.each { println "  ${it.absolutePath}" }
-    println "------------------"
+    logger.lifecycle("------------------")
+    logger.lifecycle("configuration-cache property = ${providers.gradleProperty("org.gradle.configuration-cache").orNull ?: "<not set>"}")
+    logger.lifecycle("parallelProjectExecutionEnabled = ${gradle.startParameter.parallelProjectExecutionEnabled}")
+    logger.lifecycle("Kotlin incremental compilation enabled = ${providers.gradleProperty("kotlin.incremental").orNull != "false"}")
+    logger.lifecycle("Kotlin classpath snapshotting enabled = ${providers.gradleProperty("kotlin.incremental.useClasspathSnapshot").orNull == "true"}")
 
-    if (!configurations.mdClasspath.files.any { it.name == "moneydance.jar" && it.exists() && it.length() > 0 }) {
-      throw new GradleException("mdClasspath missing readable moneydance.jar")
+    requireMoneydanceClass(failWhenNotFound: false, showResults: true)
+
+    if (isPassBlank) {
+      logger.error("\n")
+      logger.error("#################################")
+      logger.error("## Please set keypass property ##")
+      logger.error("#################################")
+      logger.error("\n")
     }
+
   }
 }
 ////////////////////// end verifyConfig ////////////////////////////////////////////////////////////////////////////////
 
 
 // task that can clean extension's buuild files
-def registerCleanTask = { String featureName ->
-  tasks.register("clean${featureName}", Delete) {
+def registerCleanTask = { String feature ->
+  tasks.register("clean${feature}", Delete) {
     group = "CLEAN EXTENSION"
-    description = "Clean built artifacts for extension: ${featureName}"
+    description = "Clean built artifacts for extension: ${feature}"
 
     // Java/Kotlin artifact (i.e. specifically .mxt and anything else with this extension's name)
-    delete(fileTree(dir: distPath, includes: ["${featureName}.*", "s-${featureName}.*"]))
+    delete(fileTree(dir: distPath, includes: ["${feature}.*", "s-${feature}.*"]))
 
     // compiled java/kotlin class outputs
     delete(
-        layout.buildDirectory.dir("classes/java/${featureName}"),
-        layout.buildDirectory.dir("classes/kotlin/${featureName}"),
-        layout.buildDirectory.dir("resources/${featureName}")
+        layout.buildDirectory.dir("classes/java/${feature}"),
+        layout.buildDirectory.dir("classes/kotlin/${feature}"),
+        layout.buildDirectory.dir("resources/${feature}"),
     )
 
     // Python generated artefacts
-    delete(fileTree("${pythonSrcPath}/${featureName}") {
+    delete(fileTree("${pythonSrcPath}/${feature}") {
       include("**/*.pyc")
       include("**/*.class")
     })
 
-    doFirst { if (debug) logger.lifecycle("${path} - cleaning ${featureName}") }
+    // remove python staging
+    delete(layout.buildDirectory.dir("tmp/staging/${feature}"))
+
+    doFirst { if (debug) logger.lifecycle("${path} - cleaning ${feature}") }
   }
 }
 ////////////////////// end clean extension /////////////////////////////////////////////////////////////////////////////
@@ -473,11 +551,10 @@ tasks.register("genkeys", JavaExec) {
     def pub = file(extPubKeyFile)
 
     if (priv.exists() || pub.exists()) {
+      logger.lifecycle("")
+      logger.lifecycle("-------------------------------")
       print "\u0007"; System.out.flush() // beep-beep
-      println ""
-      println "-------------------------------"
-      print "Keys exist. Overwrite? [y/N]: "
-      System.out.flush()  // ensure the message shows...
+      print "Keys exist. Overwrite? [y/N]: "; System.out.flush()  // ensure the message shows...
       def answer = new BufferedReader(new InputStreamReader(System.in)).readLine()
 
       if (!answer?.equalsIgnoreCase("y")) {
@@ -502,6 +579,7 @@ if (file("antmigration.gradle").exists()) {
 tasks.register("ensureDist") {
   group = "TOOLS"
   description = "Makes the dist folder if it doesn't exist"
+  outputs.dir(distPath)
   doLast {
     file(distPath).mkdirs()
     if (debug) logger.lifecycle("Ensured 'dist' folder exists (created if missing)")
@@ -528,13 +606,14 @@ tasks.register("compile_mrbutil") {
   description = "Compiles the mrbutil code for Mike Bray extensions"
   dependsOn("mrbutilClasses")
 }
-
-// Now hook in Mike Bray's special report writer build (from it's own file
-if (file("reportwriter.gradle").exists()) {
-  apply from: rootProject.file("reportwriter.gradle")
-}
-//////////////////////////////////////// end of Mike Bray extension's section //////////////////////////////////////////
-
+tasks.register("cleanmrbutil", Delete) {
+  group = "CLEAN EXTENSION"
+  delete(
+      layout.buildDirectory.dir("classes/java/mrbutil"),
+      layout.buildDirectory.dir("classes/kotlin/mrbutil"),
+      layout.buildDirectory.dir("resources/mrbutil")
+  )
+}//////////////////////////////////////// end of Mike Bray extension's section //////////////////////////////////////////
 
 /*
  * ======================
@@ -542,59 +621,62 @@ if (file("reportwriter.gradle").exists()) {
  * compile -> jar -> sign
  * ======================
  */
-def registerFeature = { String featureName, FileCollection extraClasspath = files(), boolean usesMrbutil = false ->
+def registerFeature = { String feature, FileCollection extraClasspath = files(), boolean usesMrbutil = false ->
 
-  sourceSets {
-    "${featureName}" {
-      java.srcDir(file("${srcPath}/com/moneydance/modules/features/${featureName}"))
-    }
+
+  // define the source folder(s) for this feature's build.
+  // to avoid ide confusion (e.g. java `package` statements), we must set the real source root
+  sourceSets.create(feature) {
+    java.setSrcDirs([file(srcPath)])
+    java.include("com/moneydance/modules/features/${feature}/**")
+    java.exclude("build/**")
   }
 
   dependencies {
-    mdJars.each { add("${featureName}CompileOnly", it) }
+    mdJars.each { add("${feature}CompileOnly", it) }
     if (usesMrbutil) {
-      add("${featureName}Implementation", sourceSets.mrbutil.output)
+      add("${feature}Implementation", sourceSets.mrbutil.output)
     }
   }
 
   if (!extraClasspath.isEmpty()) {
-    sourceSets.named(featureName).configure {
+    sourceSets.named(feature).configure {
       compileClasspath += extraClasspath
       runtimeClasspath += extraClasspath
     }
   }
 
   // compile
-  tasks.register("compile_${featureName}") {
+  tasks.register("compile_${feature}") {
     group = "other"
     description = "Compile feature"
-    dependsOn("${featureName}Classes")
+    dependsOn("${feature}Classes")
 
     doFirst {if (debug) logger.lifecycle("${path} START")}
     doLast { if (debug) logger.lifecycle("${path} END") }
   }
 
   // jar
-  tasks.register("jar_${featureName}", Jar) {
-    dependsOn("${featureName}Classes")
+  tasks.register("jar_${feature}", Jar) {
+    dependsOn("${feature}Classes")
     if (usesMrbutil) dependsOn("mrbutilClasses")
     group = "other"
     description = "Package compiled feature into jar file"
-    archiveBaseName.set(featureName)
+    archiveBaseName.set(feature)
     archiveExtension.set("mxt")
 
     doFirst {
       if (debug) logger.lifecycle("${path} START")
-      delete(file("${distPath}/${featureName}.mxt"))
+      delete(file("${distPath}/${feature}.mxt"))
     }
 
-    from(sourceSets.named(featureName).map { it.output })
+    from(sourceSets.named(feature).map { it.output })
     if (usesMrbutil) {
       from(sourceSets.mrbutil.output)
     }
 
     from(srcPath) {
-      include "com/moneydance/modules/features/${featureName}/**"
+      include "com/moneydance/modules/features/${feature}/**"
       include "license.txt"
       exclude "**/*.java"
       exclude "**/*.kt"
@@ -610,13 +692,13 @@ def registerFeature = { String featureName, FileCollection extraClasspath = file
   }
 
   // sign
-  tasks.register("sign_${featureName}", JavaExec) {
+  tasks.register("sign_${feature}", JavaExec) {
     group = "other"
     description = "Sign extension's packaged mxt file"
 
-    outputs.file("${distPath}/${featureName}.mxt")
+    outputs.file("${distPath}/${feature}.mxt")
 
-    dependsOn("jar_${featureName}")
+    dependsOn("jar_${feature}")
 
     doFirst {
       if (debug) logger.lifecycle("${path} START")
@@ -631,41 +713,38 @@ def registerFeature = { String featureName, FileCollection extraClasspath = file
       "signextjar",
       extPrivKeyFile,
       privKeyID,
-      featureName,
-      "${distPath}/${featureName}.mxt"
+      feature,
+      "${distPath}/${feature}.mxt"
     )
 
     standardInput = System.in   // <-- REQUIRED for keyboard input
 
     doLast {
-      def src = file("${distPath}/s-${featureName}.mxt")
-      def dst = file("${distPath}/${featureName}.mxt")
+      def src = file("${distPath}/s-${feature}.mxt")
+      def dst = file("${distPath}/${feature}.mxt")
       if (dst.exists()) dst.delete()
       if (!src.renameTo(dst)) throw new GradleException("rename failed")
 
-      if (debug) {
-        println "\n\n---- ZIP CONTENTS: ${featureName}.mxt ----"
-        def zipFile = new java.util.zip.ZipFile(file("${distPath}/${featureName}.mxt"))
-        zipFile.entries().toList()
-            .sort { it.name }
-            .each { println it.name }
-        zipFile.close()
-        println "---------------------------------------"
-      }
+      def zipFile = new ZipFile(file("${distPath}/${feature}.mxt"))
+      def hasClass = zipFile.entries().toList().any { it.name.endsWith(".class") }
+      zipFile.close()
+      listZipContents(file("${distPath}/${feature}.mxt"), "${feature}.mxt")
+      if (!hasClass) { throw new GradleException("ERROR - Extension ${feature} contains no .class files") }
 
       if (debug) logger.lifecycle("${path} END")
     }
   }
 
   // top-level feature task
-  tasks.register(featureName) {
+  tasks.register(feature) {
     group = "BUILD EXTENSION"
-    description = "Build java/kotlin extension: ${featureName}"
-    dependsOn("ensureDist", "compile_${featureName}", "jar_${featureName}", "sign_${featureName}")
-    mustRunAfter("clean", "clean${featureName}")
+    description = "Build java/kotlin extension: ${feature}"
+    dependsOn("ensureDist", "compile_${feature}", "jar_${feature}", "sign_${feature}")
+    mustRunAfter("clean", "clean${feature}")
 
-    doLast { logger.lifecycle("EXTENSION BUILD (java/kotlin) '${featureName}' ${path} END") }
+    doLast {logger.lifecycle("EXTENSION BUILD (java/kotlin) '${feature}' ${path} END") }
   }
+  registerCleanTask(feature)
 }
 //////////////////////////////////////// end of java/kotlin extension build ////////////////////////////////////////////
 
@@ -768,6 +847,9 @@ def registerPackagePythonExtension = { String feature, String pythonBase, boolea
     group = "other"
     description = "package python scripts into a signed extension mxt file for ${feature}"
 
+    def stagingDir = layout.buildDirectory.dir("tmp/staging/${feature}").get().asFile
+    def jvmSourceSetName = "${feature}"
+
     outputs.file("${distPath}/${feature}.mxt")
     outputs.upToDateWhen { false }    // always repackage the whole extension - too difficult to use gradle's incremtal system
 
@@ -776,8 +858,9 @@ def registerPackagePythonExtension = { String feature, String pythonBase, boolea
 
       requireSigningInputs()
 
-      if (!configurations.mdClasspath.files.any { it.name == "moneydance.jar" && it.exists() && it.length() > 0 }) {
-        throw new GradleException("mdClasspath missing readable moneydance.jar")
+      if (!moneydanceChecked) {
+        requireMoneydanceClass()
+        moneydanceChecked = true
       }
 
       // Validate mandatory extension files
@@ -793,55 +876,73 @@ def registerPackagePythonExtension = { String feature, String pythonBase, boolea
         }
       }
 
+      // reset staging dir
+      delete(stagingDir)
+      stagingDir.mkdirs()
+
+      // stage python files (exclude unwanted files)
+      copy {
+        from(pythonBase)
+        exclude("*.pyi")
+        exclude("*.mxt")
+        exclude("**/*.kt")
+        exclude("**/*.java")
+        exclude("${feature}_version_requirements.dict")
+        into(stagingDir)
+      }
+
+      // stage compiled JVM classes if they exist
+      sourceSets.matching { it.name == jvmSourceSetName }.configureEach { ss ->
+        copy {
+          from(ss.output)
+          exclude("META-INF/**")
+          into(stagingDir)
+        }
+      }
     }
 
-    if (precompile) {
-      dependsOn("precompile_${feature}")
+    if (precompile) { dependsOn("precompile_${feature}") }
+
+    // ensure JVM classes built before packaging (if present)
+    sourceSets.matching { it.name == jvmSourceSetName }.configureEach {
+      dependsOn("${jvmSourceSetName}Classes")
     }
 
     classpath = configurations.mdClasspath
     mainClass.set("com.moneydance.admin.PythonExtensionPackager")
 
+    // package from staging dir
     args(
         extPrivKeyFile,
         privKeyID,
         feature,
-        pythonBase,
+        stagingDir.absolutePath,
         distPath
     )
 
     doLast {
-      // Python generated artefacts
-      delete(fileTree("${pythonBase}") {
-        include("**/*.pyc")
-        include("**/*.class")
-      })
+      delete(stagingDir)
 
       def out = file("${distPath}/${feature}.mxt")
-      if (!out.exists() || out.length() == 0) throw new GradleException("Python extension not created: ${out}")
+      if (!out.exists() || out.length() == 0) { throw new GradleException("Python extension not created: ${out}") }
 
-      if (debug) {
-        println "\n\n---- ZIP CONTENTS: ${feature}.mxt ----"
-        def zipFile = new java.util.zip.ZipFile(file("${distPath}/${feature}.mxt"))
-        zipFile.entries().toList()
-            .sort { it.name }
-            .each { println it.name }
-        zipFile.close()
-        println "---------------------------------------"
-      }
+      listZipContents(file("${distPath}/${feature}.mxt"), "${feature}.mxt")
 
       if (debug) logger.lifecycle("${path} END")
     }
   }
 }
 
-def registerPythonModule = { String feature, boolean precompile = false, boolean includeBundled = false ->
+def registerPythonModule = { String feature, boolean precompile = false ->
 
   def fullPath = "${pythonSrcPath}/$feature"
+  def jvmSourceSetName = "${feature}"
 
-  if (precompile) {
-    registerPythonPrecompile(feature, fullPath)
-  }
+  // detect JVM sources inside python feature folder
+  def hasJvmSources = fileTree(fullPath) { include("**/*.java", "**/*.kt") }.files.size() > 0
+
+  if (precompile) { registerPythonPrecompile(feature, fullPath) }
+
   registerPackagePythonExtension(feature, fullPath, precompile)
 
   tasks.register("cleanup_python_${feature}", Delete) {
@@ -853,19 +954,13 @@ def registerPythonModule = { String feature, boolean precompile = false, boolean
     })
   }
 
-  if (includeBundled) {
-    tasks.named("package_python_${feature}") {
-      dependsOn(sourceSets.pythonBundled.classesTaskName)
-      inputs.files(sourceSets.pythonBundled.output)
-      doFirst {
-        copy {
-          from(sourceSets.pythonBundled.output)
-          exclude("META-INF/**")
-          into(fullPath)
-        }
-      }
-      finalizedBy("cleanup_python_${feature}")
+  // if JVM sources exist, create sourceSet + compile
+  if (hasJvmSources) {
+    sourceSets.create(jvmSourceSetName) {
+      java.setSrcDirs([file(fullPath)])
+      kotlin.setSrcDirs([file(fullPath)])
     }
+    dependencies { mdJars.each { add("${jvmSourceSetName}CompileOnly", it) } }
   }
 
   if (precompile) {
@@ -880,18 +975,11 @@ def registerPythonModule = { String feature, boolean precompile = false, boolean
 
     if (precompile) dependsOn("precompile_${feature}")
     dependsOn("package_python_${feature}")
+
     doLast { logger.lifecycle("EXTENSION BUILD (python) '${feature}' ${path} END") }
   }
+  registerCleanTask(feature)
 }
-
-def mdRoot = projectDir.parentFile
-sourceSets {
-  pythonBundled {
-    java.srcDir("${mdRoot}/java_code_for_python/src")
-    kotlin.srcDir("${mdRoot}/java_code_for_python/src")
-  }
-}
-dependencies { mdJars.each { add("pythonBundledCompileOnly", it) } }
 ///////////////// end python setup /////////////////////////////////////////////////////////////////////////////////////
 
 
@@ -908,9 +996,9 @@ def moneypieJar = file("${libPath}/moneyPieSupport.jar")
 
 // java/kotlin extensions...
 // Parameters:
-//            featurename:String              mandatory, case sensitive.
-//            extraClasspath:FileCollection   optional, default: files(). Examples: files(tableLayoutJar), files(jsoupJar), files(moneypieJar)
-//            boolean usesMrbutil             optional, default: false
+//            feature         String           mandatory, case sensitive.
+//            extraClasspath  FileCollection   optional, default: files(). Examples: files(tableLayoutJar), files(jsoupJar), files(moneypieJar)
+//            usesMrbutil     boolean          optional, default: false
 //
 // note: 2nd and 3rd parameters are optional, but when used, all must be provided in sequence
 
@@ -932,10 +1020,10 @@ registerFeature("console")
 registerFeature("cmdline")
 registerFeature("moneyPie", files(moneypieJar))
 
-registerFeature("report_test_java")
 registerFeature("mousetester")
 registerFeature("contextmenutools")
 registerFeature("customgraphreports")
+//registerFeature("report_test_java")
 
 // Mike Bray's extensions
 // note: mrbutil is defined as a sourceSet elsewhere in this build file
@@ -947,16 +1035,18 @@ registerFeature("loadsectrans", files(), true)
 registerFeature("budgetgen", files(), true)
 registerFeature("budgetreport", files(), true)
 
+// Now hook in Mike Bray's special report writer build (from it's own file) - after loadsectrans
+if (file("reportwriter.gradle").exists()) { apply from: rootProject.file("reportwriter.gradle")}
+
 // Python extensions
 // Parameters:
-//            featurename:    String   mandatory, case sensitive.
-//            precompile:     boolean  optional, default: false
-//            includeBundled: boolean  optional, default: false
+//            feature        String   mandatory, case sensitive.
+//            precompile     boolean  optional, default: false
 //
 registerPythonModule("toolbox", true)
 registerPythonModule("extract_data", true)
 registerPythonModule("list_future_reminders")
-registerPythonModule("net_account_balances", true, true)
+registerPythonModule("net_account_balances", true)
 registerPythonModule("security_performance_graph", true)
 registerPythonModule("extension_tester")
 registerPythonModule("accounts_categories_mega_search_window")
@@ -992,9 +1082,6 @@ tasks.register("allPython") {
   dependsOn(allPython)
   mustRunAfter("clean")
 }
-
-allFeatures.each { registerCleanTask(it) }
-
 
 ////////////////////////////////////////////////
 // Lastly - tidy up the gradle tools window
