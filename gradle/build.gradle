@@ -198,7 +198,7 @@ def requireMoneydanceClass = { Map args = [:] ->
   def showResults = args.showResults == true
 
   def foundIn = []
-  def ordered = configurations.mdClasspath.files.toList()
+  def ordered = configurations.mdClasspath.incoming.files.toList()
 
   ordered.each { jar ->
     if (jar.exists()) {
