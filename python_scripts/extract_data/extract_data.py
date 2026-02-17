@@ -13030,6 +13030,9 @@ Visit: %s (Author's site)
                                             asOfDate = GlobalVars.saved_securityBalancesDate_ESB
                                             effectiveDateInt = None if (asOfDate == todayInt) else asOfDate
 
+                                        # note: whilst CostCalculation was upgraged in MD2026(5500), this should not affect
+                                        # this usage (i.e. get the cost basis using as-of date). The main fixes were for
+                                        # capital gains and currency conversion.
                                         costCalculationBal = MyCostCalculation(securityAcct, asOfDate, None, False)  # True replicates InvestUtil.getCostBasis(securityAcct) - i.e. Balance (not Current Balance)
 
                                         sharesAndCostBasisForAsOf = costCalculationBal.getSharesAndCostBasisForAsOf()
