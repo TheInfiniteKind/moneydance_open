@@ -474,7 +474,7 @@ public class MRBReportViewer extends JPanel implements PreferencesListener {
 		}
 	}
 
-	private class ReportTableModel extends AbstractTableModel {
+	public class ReportTableModel extends AbstractTableModel {
 		private ReportTableModel() {
 		}
 
