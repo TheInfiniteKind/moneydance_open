@@ -37,8 +37,10 @@ def reportwriterLibs = files(
 )
 
 sourceSets.maybeCreate("reportwriter")
-    .java
-    .srcDir("${srcPath}/com/moneydance/modules/features/reportwriter")
+    .with {
+      java.setSrcDirs([file(srcPath)])
+      java.include("com/moneydance/modules/features/reportwriter/**")
+    }
 
 dependencies {
   mdJars.each { add("reportwriterCompileOnly", it) }

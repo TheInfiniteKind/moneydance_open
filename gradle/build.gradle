@@ -327,12 +327,16 @@ tasks.named("clean", Delete).configure {
   // delete any legacy ANT build folders
   delete(file("${srcPath}/build"))
 
-  // Python generated artefacts
-  file(pythonSrcPath).eachDir { pySrcDir ->
-    delete(fileTree(pySrcDir) {
-      include("**/*.pyc")
-      include("**/*.class")
-    })
+  doFirst {
+
+    // python generated artefacts
+    // due to file scan, put inside doFirst...
+    file(pythonSrcPath).eachDir { pySrcDir ->
+      delete(fileTree(pySrcDir) {
+        include("**/*.pyc")
+        include("**/*.class")
+      })
+    }
   }
 }
 
@@ -429,6 +433,7 @@ tasks.register("verifyConfig") {
       logger.warn("keypass = <not set>")
     }
 
+    def didntExist = [:]
     def mustExist = [
         "src"           : srcPath,
         "lib"           : libPath,
@@ -439,8 +444,12 @@ tasks.register("verifyConfig") {
 
     mustExist.each { name, path ->
       def f = (path) ? file(path) : null
-      if (!f || !f.exists()) throw new GradleException("Missing path/file ${name}: ${f} - have you run genkeys?")
-      logger.lifecycle("... EXISTS: ${name}: ${f}")
+      if (!f || !f.exists()) {
+        didntExist[name] = f
+        logger.error("... MISSING: ${name}: ${f}")
+      } else {
+        logger.lifecycle("... EXISTS: ${name}: ${f}")
+      }
     }
 
     def optExist = [
@@ -472,6 +481,7 @@ tasks.register("verifyConfig") {
       logger.error("\n")
     }
 
+    if (!didntExist.isEmpty()) { throw new GradleException("Missing required paths: ${didntExist}") }
   }
 }
 ////////////////////// end verifyConfig ////////////////////////////////////////////////////////////////////////////////
@@ -595,10 +605,9 @@ tasks.register("ensureDist") {
 //////////////////////////////////////////////////////////////
 sourceSets {
   mrbutil {
-    java {
-      srcDir("${srcPath}/com/moneydance/modules/features/mrbutil")
-      exclude("**/Graph*.java")
-    }
+    java.setSrcDirs([file(srcPath)])
+    java.include("com/moneydance/modules/features/mrbutil/**")
+    java.exclude("**/Graph*.java")
   }
 }
 dependencies {
@@ -609,7 +618,13 @@ tasks.register("compile_mrbutil") {
   description = "Compiles the mrbutil code for Mike Bray extensions"
   dependsOn("mrbutilClasses")
 }
+tasks.register("mrbutil") {
+  group = "BUILD EXTENSION"
+  description = "Build mrbutil classes"
+  dependsOn("mrbutilClasses")
+}
 tasks.register("cleanmrbutil", Delete) {
+  description = "Clean mrbutil classes"
   group = "CLEAN EXTENSION"
   delete(
       layout.buildDirectory.dir("classes/java/mrbutil"),
@@ -1026,7 +1041,6 @@ registerFeature("moneyPie", files(moneypieJar))
 registerFeature("mousetester")
 registerFeature("contextmenutools")
 registerFeature("customgraphreports")
-//registerFeature("report_test_java")
 
 // Mike Bray's extensions
 // note: mrbutil is defined as a sourceSet elsewhere in this build file
