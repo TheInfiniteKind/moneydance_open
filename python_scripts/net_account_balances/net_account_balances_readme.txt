@@ -1,7 +1,10 @@
-Author: Stuart Beesley - StuWareSoftSystems (created March 2021 - last updated: September 2025)
+Author: Stuart Beesley - StuWareSoftSystems (created March 2021 - last updated: February 2026)
 Credit: (slack: @dtd) aka Dan T Davis for his input, testing, patience and suggestions to make a (much) better product..
 
-Custom Balances works with 2021.1(3056) and newer.
+Custom Balances (version 2000 onwards) works with Moneydance 2024(5100) onwards.
+- If you need to run Custom Balances on earlier builds of Moneydance, then you need to install
+  Custom Balances version 1058 (Dec 2025) which works on Moneydance builds 2021.1(3056) onwards.
+
 DISCLAIMER: THIS EXTENSION IS READONLY (IT DOES NOT CHANGE DATA) >> YOU USE AT YOUR OWN RISK!
 
 DEFINITIONS:
@@ -155,14 +158,17 @@ CHOICES/CONFIGURATION FOR A ROW:
 
 - Securities: Return: Value / Cost Basis / Unrealised Gains / Capital Gains option(s):
     - Value:            [DEFAULT] Returns the normal balance (i.e. this does not enable cost basis options)
+                        (values are stored against the account/security in the account's currency - i.e. share holding)
 
     - Cost Basis:       When selected, the cost basis (**as of the balance / asof date) for selected Security
                         accounts will be returned (instead of the normal shareholding value).
+                        (values are stored against the account/security in the parent investment account's currency)
 
     - (CB incl. cash):  The same as 'Cost Basis' but includes Investment account's cash balances...
                         When selected then cash balances on (selected) investment accounts will be included too.
                         .. both this option AND the investment account(s) need to be selected for cash
                         .. if this option is not selected, then any selected investment accounts will generate zero
+                        (values are stored against the account/security in the parent investment account's currency)
 
                         > REMEMBER: Cash is NOT specific to any security, it's just cash in the investment account!
 
@@ -173,6 +179,7 @@ CHOICES/CONFIGURATION FOR A ROW:
 
     - Unrealised Gains: When selected, the calculated unrealised gains (**asof the balance / asof date) for the
                         selected Security accounts will be returned. This is calculated as value less cost basis.
+                        (values are stored against the account/security in the parent investment account's currency)
 
     - Capital Gains:    When selected, the calculated capital gains for the selected Security accounts will be
                         returned. This gains calculation is 'simple' and will not identify short/long term gains
@@ -189,7 +196,7 @@ CHOICES/CONFIGURATION FOR A ROW:
         - Calculated cost basis / unrealised / capital gains values will overwrite normal calculated balances
           ... this is a MUTUALLY EXCLUSIVE option. When enabled, no other calculation type(s) will be included!
           ...... (no reminders, no other non-security/investment(cb incl. cash), no income / expense transactions)
-        - There can in theory be future-dated cost basis / ur / capital gains. Let me know how this works out for you?!
+        - There can in theory be future-dated cost basis / ur / capital gains.
         - Current Balance will derive the cost basis asof today.
         - asof-date Cleared Balance is ILLOGICAL, so uses the calculated asof-date Balance                 ** WARNING **
 
@@ -311,7 +318,7 @@ MATH ON CALCULATED BALANCES:
                    useiflte(value, compare)     - uses the supplied value if value is less than or equal to compare, else 0
                    other/standard functions available are: sum(), abs(), min(), max(), round(), float(), random()
 
-                   Builds MD2023.3(5204) onwards includes Net Worth calculations (calculated by Moneydance):
+                   Builds MD2024.3(5204) onwards includes Net Worth calculations (calculated by Moneydance):
                    nw()   **Net Worth, current balance, all eligible accounts, apply account specific NW exclusion flags
                    nwif()   Net Worth, current balance, all eligible accounts (ignore all NW exclusion flags)
                    nwf()    Net Worth, future balance,  all eligible accounts, apply account specific NW exclusion flags
@@ -320,7 +327,7 @@ MATH ON CALCULATED BALANCES:
                    xnwf()   Net Worth, future balance,  all eligible accounts, only total the excluded accounts (debug)
                           **this is the formula that most people should use for a 'normal' / 'standard' net worth
 
-                   From build MD2025(5500) onwards:
+                   From build MD2026(5500) onwards:
                     >> you can optionally pass an asOfDate parameter to these NW functions (except xnw and xnwf).
                        - the parameter must be integer format yyyymmdd - E.g. nw(20241231)
                        - do not use this parameter if you just want today, current balance, or future balance.

@@ -4,7 +4,7 @@
 from __future__ import division    # Has to occur at the beginning of file... Changes division to always produce a float
 assert isinstance(0/1, float), "LOGIC ERROR: Custom Balances extension assumes that division of integers yields a float! Do you have this statement: 'from __future__ import division'?"
 
-# net_account_balances.py build: 1058 - Sept 2025 - Stuart Beesley - StuWareSoftSystems
+# net_account_balances.py build: 1059 - February 2026 - Stuart Beesley - StuWareSoftSystems
 # Display Name in MD changed to 'Custom Balances' (was 'Net Account Balances') >> 'id' remains: 'net_account_balances'
 
 # Thanks and credit to Dan T Davis and Derek Kent(23) for their suggestions and extensive testing...
@@ -147,15 +147,15 @@ assert isinstance(0/1, float), "LOGIC ERROR: Custom Balances extension assumes t
 # build: 1056 - Fix for 2024.3(5220) onwards... Account::getAncestors() changed to a Kotlin Sequence
 # build: 1057 - Added row value formatting tag: <#cvde> = Value colour: default foreground
 # build: 1057 - Enabled <#cmd:xxx> and <#cvmd:xxx> row tags for internal MDColors names.... ;->
-# build: 1057 - NETWORTH ASOF BUILD FOR MD2025 onwards >>>
+# build: 1057 - NETWORTH ASOF BUILD FOR MD2026 onwards >>>
 # build: 1057 - Enabled magic tags @today, @asof, @@rowcurrency, @@basecurrency - along with the nw() nwif() functions now accepting an optional yyyymmdd asof parameter
 # build: 1057 - Improved networth formula detection (using regex) and cache results (including the expensive versions) for efficient repeated usage
 # build: 1057 - Thicken separator lines for Windows...
 # build: 1057 - fixes for replaceSecurityCostBasisBalances() and HoldBalance() to remove the 'fudge' that converted security values (cb, cg, urg etc) back to the security's share value...
-# build: 1058 - ???
 # build: 1058 - Add formatting code <#fv+> - Apply 1.1 multiplier to mono font for value column (to match MD's HomePageView AccountView widget for totals)...
 # build: 1058 - Fix for root pane opaque setting when using Mac Dark mode, but MD's theme settings are normal (non-dark)...
-# build: 1058 - ???
+# build: 1059 - BUGFIX for gatherRemainingRealBalances() - wasn't properly setEffectiveDateInt() for cost basis options...
+# build: 1059 - removed gatherBalanceAsOfDateBalances_SLOWLY() code - we will never go back to that!
 
 # todo - tweak getConvertXBalanceRecursive() and getXBalance() to also exclude inactives from recursive balances (like apply networth rules)
 # todo - bug. Ref: https://github.com/yogi1967/MoneydancePythonScripts/issues/31 - magic @tags for securities don't handle tickers with dots - e.g. @shop.to
@@ -171,8 +171,8 @@ assert isinstance(0/1, float), "LOGIC ERROR: Custom Balances extension assumes t
 
 # SET THESE LINES
 myModuleID = u"net_account_balances"
-version_build = "1058"
-MIN_BUILD_REQD = 3056  # 2021.1 Build 3056 is when Python extensions became fully functional (with .unload() method for example)
+version_build = "1059"
+MIN_BUILD_REQD = 5100  # 2024(5100) - AppDebug didn't exist before this build, and too many other CC, NW, AcctFIlter changes to deal with...
 _I_CAN_RUN_AS_DEVELOPER_CONSOLE_SCRIPT = False
 
 global moneydance, moneydance_ui, moneydance_extension_loader, moneydance_extension_parameter, moneydance_this_fm
@@ -3154,8 +3154,8 @@ Visit: %s (Author's site)
                 return fm
         return None
 
-    # NOTE: Two bugs were later fixed in the MD CC class from MD2024(5119)
-    GlobalVars.MD_COSTCALCULATION_UPGRADED_BUILD = 5100                                                                 # MD2024(5100)
+    # NOTE: Two bugs were later fixed in the MD CC class from MD2024(5119); and then again from MD2026(5500)
+    GlobalVars.MD_COSTCALCULATION_UPGRADED_BUILD = 5500                                                                 # MD2026(5500)
     def isCostCalculationUpgradedBuild(): return (MD_REF.getBuild() >= GlobalVars.MD_COSTCALCULATION_UPGRADED_BUILD)
     if isCostCalculationUpgradedBuild():
         from com.infinitekind.moneydance.model import CostCalculation
@@ -3180,7 +3180,7 @@ Visit: %s (Author's site)
     if isNetWorthUpgradedBuild():
         from com.infinitekind.moneydance.model import NetWorthCalculator
 
-    GlobalVars.MD_NETWORTH_ASOF_UPGRADED_BUILD = 5500                                                                   # MD2025(5500)
+    GlobalVars.MD_NETWORTH_ASOF_UPGRADED_BUILD = 5500                                                                   # MD2026(5500)
     def isNetWorthAsOfUpgradedBuild(): return (MD_REF.getBuild() >= GlobalVars.MD_NETWORTH_ASOF_UPGRADED_BUILD)
     if isNetWorthAsOfUpgradedBuild(): pass
 
@@ -5840,23 +5840,15 @@ Visit: %s (Author's site)
         thisSectionStartTime = System.currentTimeMillis()
 
         # ------ 4. gather Account balance asof dates balances ---------------------------------------------
-        lFasterWay = True
         if debug: myPrint("DB", ":: Gathering 'Balance asof date' balances...")
-        if lFasterWay:
-            gatherBalanceAsOfDateBalances_FASTER(parallelBalanceTable, swClass, lBuildParallelTable)
-        else:
-            gatherBalanceAsOfDateBalances_SLOWLY(parallelBalanceTable, swClass, lBuildParallelTable)
+        gatherBalanceAsOfDateBalances_FASTER(parallelBalanceTable, swClass, lBuildParallelTable)
 
         if swClass and swClass.isCancelled(): return emptyReturnValue
 
         tookTime = System.currentTimeMillis() - thisSectionStartTime
         if debug or TIMING_DEBUG:
-            if lFasterWay:
-                stage = "2.4"; stageTxt = "::gatherBalanceAsOfDateBalances_FASTER()"
-                myPrint("B", "%s STAGE%s>> TOOK: %s milliseconds (%s seconds)" %(pad(stageTxt, 60), pad(stage,7), tookTime, tookTime / 1000.0))
-            else:
-                stage = "2.4"; stageTxt = "::gatherBalanceAsOfDateBalances_SLOWLY()"
-                myPrint("B", "%s STAGE%s>> TOOK: %s milliseconds (%s seconds)" %(pad(stageTxt, 60), pad(stage,7), tookTime, tookTime / 1000.0))
+            stage = "2.4"; stageTxt = "::gatherBalanceAsOfDateBalances_FASTER()"
+            myPrint("B", "%s STAGE%s>> TOOK: %s milliseconds (%s seconds)" %(pad(stageTxt, 60), pad(stage,7), tookTime, tookTime / 1000.0))
         thisSectionStartTime = System.currentTimeMillis()
 
         if swClass and swClass.isCancelled(): return emptyReturnValue
@@ -6244,6 +6236,7 @@ Visit: %s (Author's site)
 
         NAB = NetAccountBalancesExtension.getNAB()
         todayInt = DateUtil.getStrippedDateInt()
+        baseCurr = NAB.moneydanceContext.getCurrentAccountBook().getCurrencies().getBaseType()
 
         for iRowIdx in range(0, len(_parallelBalanceTable)):
 
@@ -6253,7 +6246,7 @@ Visit: %s (Author's site)
                 asOfDate = getBalanceAsOfDateSelected(NAB.savedBalanceAsOfDateTable[iRowIdx])
                 effectiveDateInt = None if (asOfDate == todayInt) else asOfDate
             else:
-                asOfDate = None             # This tells MyCostCalculation to derive the balance asof date....
+                asOfDate = None             # This tells CostCalculation to derive the balance asof date....
                 effectiveDateInt = None     # Really means no conversion = asof today
 
             for acct in _parallelBalanceTable[iRowIdx]:
@@ -6312,9 +6305,6 @@ Visit: %s (Author's site)
 
                     del sharesAndCostBasisForAsOf
 
-                    # for pos in costCalculationBal.getPositions():
-                    #     if pos.isSellTxn(): myPrint("B", pos.toString())
-
                     if costCalculationBal.isCostBasisInvalid():
                         balObj.setCostBasisInvalid(True)        # In theory costCalculationCurrBal.isCostBasisInvalid() should be the same...
                     else:
@@ -6334,6 +6324,8 @@ Visit: %s (Author's site)
                     capGainsBal = capGainsCurBal = None                                                                 # noqa
                     saleGainsBal = saleGainsCurBal = 0
                     capGainsDr = getCapitalGainsDateRangeSelected(NAB.savedUseCostBasisTable[iRowIdx])
+
+                    thisRowCurr = acct.getParentAccount().getCurrencyType()
 
                     if lRtnCapitalGains:
 
@@ -6366,7 +6358,7 @@ Visit: %s (Author's site)
 
                     balObj.setBalance(valueBal)
                     balObj.setCurrentBalance(valueCurBal)
-                    balObj.setSpecialCurrencyType(acct.getParentAccount().getCurrencyType())
+                    balObj.setSpecialCurrencyType(thisRowCurr)  # could be parent (investment) account's currency, or the row currency (for capital gains)
 
                 # NOTE: asof-dated Cleared Balance is ILLOGICAL, so uses the calculated asof-dated Balance ** WARNING **
                 balObj.setClearedBalance(balObj.getBalance())                                                           # WARNING
@@ -6408,6 +6400,7 @@ Visit: %s (Author's site)
         if debug: myPrint("DB", "In ", inspect.currentframe().f_code.co_name, "()" )
 
         NAB = NetAccountBalancesExtension.getNAB()
+        todayInt = DateUtil.getStrippedDateInt()
 
         for iRowIdx in range(0, len(_parallelBalanceTable)):
 
@@ -6423,7 +6416,17 @@ Visit: %s (Author's site)
 
                 balanceObj = HoldBalance(acct, (True if lBuildParallelTable else NAB.savedAutoSumAccounts[iRowIdx]), NAB.savedApplyNWRules[iRowIdx])
                 balanceObj.setParallelRealBalances(True)
-                balanceObj.setEffectiveDateInt(None)
+
+                #TODO - watch out in case setting this here is causing knock on problems (previously we set None)
+                #       - was causing autosum parent's currency conversions to take place as-of today, not as per the
+                #       - children's dates (especially on cost basis options)
+                if isBalanceAsOfDateSelected(iRowIdx):
+                    asOfDate = getBalanceAsOfDateSelected(NAB.savedBalanceAsOfDateTable[iRowIdx])
+                    effectiveDateInt = None if (asOfDate == todayInt) else asOfDate
+                else:
+                    asOfDate = None             # This CostCalculation to derive the balance asof date....
+                    effectiveDateInt = None     # Really means no conversion = asof today
+                balanceObj.setEffectiveDateInt(effectiveDateInt)
 
                 if isAnyCostBasisOptionTypeSelected(iRowIdx) and not shouldIncludeAccountForCostBasis(iRowIdx, acct):
                     balanceObj.setBalance(0)
@@ -6652,6 +6655,8 @@ Visit: %s (Author's site)
         # NOTE: TxnSet, after sort, is in ASCENDING date order (i.e. oldest first, newest last).
         #       When accessing via index(0 to size), then you get this order.
         #       ... via an iterator (for txn in TxnSet), then you get a REVERSED / DESCENDING order. I.e. newest first!
+        #       - Consider switching to NetWorthCalculator#computeAccountBalancesByAsOfDates - but note that we
+        #         also deal with tax dates
 
         for iRowIdx in range(0, len(asofBalanceTxnTable)):
 
@@ -6721,82 +6726,6 @@ Visit: %s (Author's site)
             stage = " <2.4>"; stageTxt = "GATHER BALANCE ASOF DATES FASTER"
             myPrint("B", "%s STAGE%s>> TOOK: %s milliseconds (%s seconds)" %(pad(stageTxt, 60), pad(stage,7), tookTime, tookTime / 1000.0))
 
-
-    def gatherBalanceAsOfDateBalances_SLOWLY(_parallelBalanceTable, swClass, lBuildParallelTable):
-        # type: ([{Account: HoldBalance}], SwingWorker, bool) -> None
-
-        if debug: myPrint("DB", "In ", inspect.currentframe().f_code.co_name, "()" )
-
-        NAB = NetAccountBalancesExtension.getNAB()
-        book = NAB.moneydanceContext.getCurrentAccountBook()
-
-        todayInt = DateUtil.getStrippedDateInt()
-
-        for iRowIdx in range(0, len(_parallelBalanceTable)):
-
-            if not isBalanceAsOfDateSelected(iRowIdx): continue     # Skip as 'balance asof dates' not requested...
-            balAsOfDate = getBalanceAsOfDateSelected(NAB.savedBalanceAsOfDateTable[iRowIdx])
-
-            for acct in _parallelBalanceTable[iRowIdx]:
-
-                if swClass.isCancelled(): break
-
-                balObj = _parallelBalanceTable[iRowIdx][acct]                                                           # type: HoldBalance
-                if balObj is not None:
-                    if balObj.isParallelIncExpBalances() and balObj.isIncomeExpense(): continue
-                    raise Exception("LOGIC ERROR: gatherBalanceAsOfDateBalances_SLOWLY() HoldBalance obj exists and is not IncExp?! (RowIdx: %s, Acct: %s)" %(iRowIdx, acct), balObj)
-                del balObj
-
-                if isIncomeExpenseAcct(acct): continue      # Skip Income/Expense accounts for 'balance asof dates' - obey I/E All Dates...
-
-                if isAnyCostBasisOptionTypeSelected(iRowIdx):         # When selecting cost basis / ur / capital gains, only allow Invest(when cb & cash)/Security accounts
-                    if not shouldIncludeAccountForCostBasis(iRowIdx, acct): continue
-
-                acctBalLong = AccountUtil.getBalanceAsOfDate(book, acct, balAsOfDate, True)    # NOTE: we have already filtered out rows where asof date is not required above..
-
-                # acctBalLongMyVersion = getBalanceAsOfDate(book, acct, balAsOfDate, True, swClass, None)
-                #
-                # myPrint("B", "***** Original asof bal: %s, my asof bal: %s - asof: %s, Account: %s"
-                #         %(rpad(acctBalLong, 12), rpad(acctBalLongMyVersion, 12), balAsOfDate, acct));
-                # assert acctBalLong == acctBalLongMyVersion, "LOGIC ERROR: asof balances differ?! MD: %s vs Simulant: %s" %(acctBalLong, acctBalLongMyVersion);
-
-                balanceObj = HoldBalance(acct, (True if lBuildParallelTable else NAB.savedAutoSumAccounts[iRowIdx]), NAB.savedApplyNWRules[iRowIdx])
-                balanceObj.setParallelBalanceAsOfDateBalances(True)
-                balanceObj.setEffectiveDateInt(balAsOfDate)
-
-                # NOTES: Balance always uses the calculated asof-dated Balance
-                #        Past asof-dated Current Balance uses the calculated asof-dated Balance
-                #        Today/future asof-dated Current Balance uses the real account's Current Balance
-                #        Past asof-dated Cleared Balance is ILLOGICAL, so uses the calculated asof-dated Balance ** WARNING **
-                #        Today/future asof-dated Cleared Balance uses the real account's Cleared Balance
-
-                balanceObj.setBalance(acctBalLong)
-                balanceObj.setCurrentBalance(acctBalLong if balAsOfDate < todayInt else acct.getCurrentBalance())
-                balanceObj.setClearedBalance(acctBalLong if balAsOfDate < todayInt else acct.getClearedBalance())       # WARNING
-
-                # No need to set start balance - calculated asof balance includes the opening balance
-                balanceObj.setStartBalance(0)       # Do this last!
-
-                # for debug...
-                balanceObj.balAsOf_balance = balanceObj.getBalance()
-                balanceObj.balAsOf_currentBalance = balanceObj.getCurrentBalance()
-                balanceObj.balAsOf_clearedBalance = balanceObj.getClearedBalance()
-
-                balanceObj.setSubAccountsBalanceObjects(_parallelBalanceTable[iRowIdx])
-                _parallelBalanceTable[iRowIdx][acct] = balanceObj
-
-        if debug:
-            myPrint("DB", "-------------------------------------------------------------------------------------------")
-            myPrint("DB", ">> (SLOW METHOD) Analysis of table for updated accounts with 'balances asof date' balances:")
-            myPrint("DB", ">> _parallelBalanceTable Contains: %s rows" %(len(_parallelBalanceTable)))
-            for i in range(0, len(_parallelBalanceTable)):
-                myPrint("DB", "..RowIdx: %s >> " %(i))
-                row = _parallelBalanceTable[i]
-                for acct in row:
-                    holdBal = _parallelBalanceTable[i][acct]                                                            # type: HoldBalance
-                    if acct and holdBal and holdBal.isParallelBalanceAsOfDateBalances():
-                        myPrint("DB", "....", holdBal, "Key:", acct)
-            myPrint("DB", "-------------------------------------------------------------------------------------------")
 
     def convertTableOfIncExpTxnsIntoBalances(_parallelTxnTable, swClass, lBuildParallelTable):
         # type: ([{Account: [AbstractTxn]}], SwingWorker, bool) -> [{Account: HoldBalance}]
@@ -7755,6 +7684,18 @@ Visit: %s (Author's site)
                 #     myPrint("DB", "... (class)loaded bundled java code '%s' into memory too... (%s)" %(GlobalVars.Strings.SWSS_COMMON_CODE_NAME, self.SWSS_CC))
                 # except:
                 #     myPrint("B", "@@@ FAILED to load bundled java code class '%s' into memory! Printing disabled....!" %(GlobalVars.Strings.SWSS_COMMON_CODE_NAME))
+
+                # try:
+                #     _cl = None
+                #     try: _cl = getFieldByReflection(MD_EXTENSION_LOADER, "classloader")
+                #     except: _cl = MD_EXTENSION_LOADER
+                #     CustomUtil = _cl.loadClass(GlobalVars.Strings.SWSS_CODE_NAME_CUSTOM_UTIL)
+                #     myPrint("DB", "... (class)loaded bundled java code '%s' into memory too... (%s)" %(GlobalVars.Strings.SWSS_CODE_NAME_CUSTOM_UTIL, CustomUtil))
+                # except:
+                #     e_type, exc_value, exc_traceback = sys.exc_info()
+                #     myPrint("B", "@@@ FAILED to load bundled java code class(es) ['%s'] into memory!" %([GlobalVars.Strings.SWSS_CODE_NAME_CUSTOM_UTIL]))
+                #     myPrint("B", "Error:", exc_value)
+
             else:
                 self.moneydanceExtensionLoader = None
 
@@ -8073,7 +8014,7 @@ Visit: %s (Author's site)
             # calculations within the eval(formula) later.. Whilst this involves some upfront work, it keeps the eval()
             # code very clean, simple, safe... (but this does involve parsing the formula to obtain the optional parameters)
             # note: NWC's asof calculations are/were slow (relative to CB's own optimised method of using getBalanceAsOfDate()),
-            #       but as of MD2025(5500) they have been optimised (by me) so are OK to use (sensibly)...
+            #       but as of MD2026(5500) they have been optimised (by me) so are OK to use (sensibly)...
 
             NAB = self
             storeNetWorth = NAB.StoreNetWorthValues()
