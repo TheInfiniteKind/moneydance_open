@@ -113,6 +113,7 @@
 # build: 1070 - MD2026 release...
 # build: 1071 - ???
 # build: 1071 - Removed Total Selected Transactions feature / script - moved to new contextmenutools extension
+# build: 1071 - BUGFIX script runner (the classloader issue)
 # build: 1071 - ???
 
 # NOTE: 'The domain/default pair of (kCFPreferencesAnyApplication, AppleInterfaceStyle) does not exist' means that Dark mode is NOT in force
@@ -11634,7 +11635,18 @@ Visit: %s (Author's site)
         if GlobalVars.SCRIPT_RUNNING_LOCK.locked():
             txt = "%s: Sorry - a script is already running with an active Lock" %(_method)
             setDisplayStatus(txt, "R"); myPrint("B", txt)
-            myPopupInformationBox(toolbox_frame_,txt,theMessageType=JOptionPane.ERROR_MESSAGE)
+            myPopupInformationBox(toolbox_frame_, txt, theMessageType=JOptionPane.ERROR_MESSAGE)
+            return False
+
+        classLoader = None
+        if float(MD_REF.getBuild()) >= 3051 and MD_EXTENSION_LOADER is not None:
+            try: classLoader = getFieldByReflection(MD_EXTENSION_LOADER, "classloader")
+            except: pass
+
+        if classLoader is None:
+            txt = "%s: Sorry - Technical error - failed to obtain ClassLoader (speak to developer)!" %(_method)
+            setDisplayStatus(txt, "R"); myPrint("B", txt)
+            myPopupInformationBox(toolbox_frame_, txt, theMessageType=JOptionPane.ERROR_MESSAGE)
             return False
 
         with GlobalVars.SCRIPT_RUNNING_LOCK:
@@ -11643,8 +11655,8 @@ Visit: %s (Author's site)
             myPrint("B","**********************************************************")
             py = MD_REF.getPythonInterpreter()
             py.set("toolbox_script_runner", _runThisScript)
-            py.getSystemState().setClassLoader(MD_EXTENSION_LOADER)
-            py.set("moneydance_extension_loader", MD_EXTENSION_LOADER)
+            py.getSystemState().setClassLoader(classLoader)
+            py.set("moneydance_extension_loader", classLoader)
 
             class ScriptRunnable(Runnable):
 
