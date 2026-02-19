@@ -183,11 +183,15 @@ CHOICES/CONFIGURATION FOR A ROW:
 
     - Capital Gains:    When selected, the calculated capital gains for the selected Security accounts will be
                         returned. This gains calculation is 'simple' and will not identify short/long term gains
-                        (for example). NOTE: when this option is selected then an extra row will appear, that
-                        allows you to select the date range for the capital gains reporting.
+                        (for example). NOTE: when this option is selected an extra config option will appear - that
+                        allows you to define the date range for the capital gains reporting.
 
-                        > WARNING: The date range cannot exceed the 'balance asof date'. Any transactions (gains)
-                                   after the asof date will be excluded from the calculation!
+                        > WARNING: The 'balance asof date' defines the end date for the cost calculation that runs.
+                                   This means that the maximum capital gains date that can be returned will be the asof
+                                   date. Thus the most recent gain that can be returned will be the maximum of the
+                                   asof date and the 'Securities Capital Gains' date range's end date.
+
+                        (values are stored against the account/security in the row's currency using each gain's date)
 
     - (C/Gains Short):  As above, but returns the 'short' capital gains value
     - (C/Gains Long):   As above, but returns the 'long' capital gains value
@@ -198,6 +202,11 @@ CHOICES/CONFIGURATION FOR A ROW:
           ...... (no reminders, no other non-security/investment(cb incl. cash), no income / expense transactions)
         - There can in theory be future-dated cost basis / ur / capital gains.
         - Current Balance will derive the cost basis asof today.
+        - Care should be taken when converting capital gains using currency in conjunction with a  date range.
+          Gains are converted using the gain's txn's date before being totalled. The calculated value is stored for that
+          row/security account in the row's currency (i.e. NOT the parent / investment account's currency). Thus,
+          the asof date will not further revalue the value to a more future date - as the value is already 'locked' into
+          the row's currency. Values should match the result from the Capital Gains Report (from MD2026 onwards).
         - asof-date Cleared Balance is ILLOGICAL, so uses the calculated asof-date Balance                 ** WARNING **
 
         - WARNING: REFER 'PARALLEL BALANCES' BELOW CONCERNING CALCULATION SPEED

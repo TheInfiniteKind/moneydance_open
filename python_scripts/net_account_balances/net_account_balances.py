@@ -4,7 +4,7 @@
 from __future__ import division    # Has to occur at the beginning of file... Changes division to always produce a float
 assert isinstance(0/1, float), "LOGIC ERROR: Custom Balances extension assumes that division of integers yields a float! Do you have this statement: 'from __future__ import division'?"
 
-# net_account_balances.py build: 1059 - February 2026 - Stuart Beesley - StuWareSoftSystems
+# net_account_balances.py build: 2000 - February 2026 - Stuart Beesley - StuWareSoftSystems
 # Display Name in MD changed to 'Custom Balances' (was 'Net Account Balances') >> 'id' remains: 'net_account_balances'
 
 # Thanks and credit to Dan T Davis and Derek Kent(23) for their suggestions and extensive testing...
@@ -46,61 +46,6 @@ assert isinstance(0/1, float), "LOGIC ERROR: Custom Balances extension assumes t
 
 # Built to operate on Moneydance 2021.1 build 3056 onwards (as this is when the Py Extensions became fully functional)
 
-# build: 1024 - Added ability to divide by another row and produce a percentage - known as Use Other Row (UOR)
-#               Moved divide by maths into core calculation engine (rather than on display component(s))
-#               Added CMD-SHIFT-B and R to backup / restore config file
-# build: 1025 - Added UUID per row, ability to name a section against each row, and filter for that section...
-#               Changed parameter load/save routines to use getattr() setattr() etc (rather than hardcode the list)....
-#               Tweaked HideAction() to push a windowClosing event....
-# build: 1026 - also added in CMD-SHIFT-L and the lastResultsBalanceTable... Also used in the Row Selector updater...
-# build: 1027 - Added value color formatting options/codes (refer help file for codes)
-# build: 1027 - Changed hiding of decimals/no hiding of decimals on row...
-#               Tweaked popup help/info screen dimensions...
-#               Added Print widget option... Also now bundle own java class to support .print() etc...
-# build: 1028 - contains 1027 sent for signing...
-# build: 1029 - Added Page Setup to menu...; Tweaked getFileFromAppleScriptFileChooser() to allow 'invisibles'...
-#               Fixed dump_StuWareSoftSystems_parameters_from_memory() losing version_build when saving settings....
-#               Fixed Common Code: genericSwingEDTRunner - <codeblock>: IllegalArgumentException: java.lang.IllegalArgumentException: Cannot create PyString with non-byte value
-#               Tweaked isSyncing checks for main sync task only...
-# build: 1030 - Added adjust final calculation by feature/option. Fixed broken calls to UnloadUninstallSwingWorker() - replaced with call via EDT
-#               Improved visibility of Uninstall and Deactivate extension menu items when toggling debug....
-#               Added ability to select Tax Dates for expense/income category selections... Requested by: avp2(avp2@almont.com)
-# build: 1031 - Added [row] number to widget display when debug mode...;
-#               Added new warning icon to widget and GUI, also menu option to disable. CMD-SHIFT-W & 'Warnings console' popup display
-#               Added CMD-SHIFT-G to enable popup GroupID Filter pre-saved/used selection(s)....
-# build: 1032 - Issuing new build number...
-# build: 1033 - Issuing new build number...
-# build: 1034 - Added .getNewJListCellRenderer() to reset the renderer and the MD Object references it stores....
-# build: 1035 - Help file spelling corrections...
-# build: 1036 - Added extra average options for CalUnits days/weeks/months/years etc....
-#               Applied fix to getIncExpDateRangeSelected() for Last1/30/365 days (which were adding 1 days) - MD issue. Should be fixed in build 5047...
-# build: 1037 - In line with MD build 5051 tweaked last 1/30/365 dates and avg fix again... (last 1 is today + yesterday; last30/365 include today)
-#               Common code - FileFilter fix...
-# build: 1038 - Allow UOR chaining...
-# build: 1039 - Operate using 'sudo' balances for all rows/accounts involved in a row when that row uses parallel balances:
-#               Added Balance asof date option...; Added Use Cost Basis option(s)...; Added Include Reminders option...;
-#               Switched I/E date range to use full/pure DateRangeChooser class
-#               NOTE: Cost Basis and U/R Gains with MyCostCalculation (as CostCalculation not very accessible)
-#               GUI fixes; KeyError tweak; Enhance the Account/Category select filter...; Put UNDO/Reload option on homepage widget
-# build: 1040 - Bumping the build number....
-#               Enhanced MyCostCalculation; Enhanced AsOfDateChooser with skip back periods...; Replaced Inc/Exp DRC with my own...
-# build: 1041 - Bumping the build number.... for new Inc/Exp DRC, also upgraded parameters.... Now offset feature for -past, +future date periods.
-#               Allow all rows used within a UOR chain to calculate (even when always hide or filtered out by GroupID filter)...
-# build: 1042 - Bumping the build number.... for new return capital gains (within range) option...
-#               Added row name insert variables - e.g. <##rn> for row number
-# build: 1043 - Fixed AsOfDateChooser.getAsOfDateInt() to return Integer.intValue() (instead of Integer)
-# build: 1044 - Added long/short-term capital gains calculations; New/enhanced final calculation adjustment features
-#               Address UOR chaining loss of decimal precision...; added (this) row maths calculation (rmc); switched to single format as % option...
-#               Allow RMC when Balance is None... (i.e. no picklist)....; show full decimal precision when debug enabled...
-# build: 1045 - Changed feature so that Hide Decimal Places ALWAYS rounds the result (display only) using RoundingMode.HALF_UP method. NOTE: funky 'roundTowards()' has been dropped.
-#               - Rounding of Java Double / Python float numbers can be problematic. Custom Balances calls Jython's round() method.
-#                 ... Jython internally uses Java's BigDecimal class with RoundingMode.HALF_UP mode (e.g. 0.5 'should' become 1.0)
-#                 ... NOTE: you won't always get what you expect. Refer:
-#                 https://docs.python.org/2.7/library/functions.html#round
-#                 https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/math/RoundingMode.html#HALF_UP
-#               Added format code tag picker to row name field...; added row selector popup; added Tag Name field (etc)....
-#               Switched to using MyHomePageView.calculateUsingSymbol() for all "+-*/" operations using symbol as string...
-#               FMC - absorb into other UORs enabled....
 # build: 1046 - NEW: row formulas... Uses a heavily protected eval...
 #               (changed FMC to PFM / then PUM - post-uor maths). NOTE: variable 'finalMathsCalculationTable' NOT renamed to maintain backwards settings.....
 #               Split old FMC (now PUM) for Dan's Final Display Adjust (FDA)... Thus PUM is always absorbed, FDA is last and never absorbed...
@@ -128,7 +73,6 @@ assert isinstance(0/1, float), "LOGIC ERROR: Custom Balances extension assumes t
 # build: 1050 - Released for MD2024
 # build: 1051 - Fixed some offset periods when not using offset 0 (fixed: DR_LAST_X_MONTHS, DR_LAST_X_YEARS
 # build: 1052 - Fix the bundled CostCalculation code to match the fixed code in MD2024.2(5119+)
-# build: 1053 - ???
 # build: 1053 - Started adding period multiplier to saved DRC settings (ready for MD2024(5118) enhanced DRC.... (not yet used)...
 # build: 1053 - Update MyJFrame to v5....; Fix another myPrint causing IllegalArgumentException
 # build: 1053 - Fix DRC date transformation for fiscal periods and leap years...
@@ -156,6 +100,10 @@ assert isinstance(0/1, float), "LOGIC ERROR: Custom Balances extension assumes t
 # build: 1058 - Fix for root pane opaque setting when using Mac Dark mode, but MD's theme settings are normal (non-dark)...
 # build: 1059 - BUGFIX for gatherRemainingRealBalances() - wasn't properly setEffectiveDateInt() for cost basis options...
 # build: 1059 - removed gatherBalanceAsOfDateBalances_SLOWLY() code - we will never go back to that!
+# build: 2000 - ???
+# build: 2000 - Upgraded CostCalculation to v10 to match MD2026(5500)
+# build: 2000 - BUGFIX for gatherRemainingRealBalances() - now when getting capital gains, we detect and pass the row currency and set setSpecialCurrencyType()
+# build: 2000 - ???
 
 # todo - tweak getConvertXBalanceRecursive() and getXBalance() to also exclude inactives from recursive balances (like apply networth rules)
 # todo - bug. Ref: https://github.com/yogi1967/MoneydancePythonScripts/issues/31 - magic @tags for securities don't handle tickers with dots - e.g. @shop.to
@@ -171,7 +119,7 @@ assert isinstance(0/1, float), "LOGIC ERROR: Custom Balances extension assumes t
 
 # SET THESE LINES
 myModuleID = u"net_account_balances"
-version_build = "1059"
+version_build = "2000"
 MIN_BUILD_REQD = 5100  # 2024(5100) - AppDebug didn't exist before this build, and too many other CC, NW, AcctFIlter changes to deal with...
 _I_CAN_RUN_AS_DEVELOPER_CONSOLE_SCRIPT = False
 
@@ -518,6 +466,7 @@ else:
     from com.moneydance.apps.md.view.gui import MoneydanceGUI, MoneydanceLAF, ConsoleWindow, MainFrame
     from com.moneydance.apps.md.controller import FeatureModule, PreferencesListener, UserPreferences
     from com.infinitekind.moneydance.model import AccountListener, AbstractTxn, CurrencyListener, DateRange, TxnSet
+    from com.infinitekind.moneydance.model import CapitalGainResult
 
     # from com.infinitekind.moneydance.model import TxnIterator
     from com.infinitekind.util import StringUtils, StreamVector
@@ -3159,6 +3108,8 @@ Visit: %s (Author's site)
     def isCostCalculationUpgradedBuild(): return (MD_REF.getBuild() >= GlobalVars.MD_COSTCALCULATION_UPGRADED_BUILD)
     if isCostCalculationUpgradedBuild():
         from com.infinitekind.moneydance.model import CostCalculation
+    else:
+        global CostCalculation
 
     GlobalVars.MD_DATERANGECHOOSER_UPGRADED_BUILD = 5128;                                                                # MD2024.2(5128) - fixes between 5100 and 5128
     # def isDateRangeChooserUpgradedBuild(): return (MD_REF.getBuild() >= GlobalVars.MD_DATERANGECHOOSER_UPGRADED_BUILD)
@@ -3514,6 +3465,12 @@ Visit: %s (Author's site)
                 execfile(_extraCodeFile)
             del _extraCodeFile
         del _extraCodeString
+
+        # switch CostCalculation engines if required...
+        if not isCostCalculationUpgradedBuild():
+            CostCalculation = MyCostCalculation
+        myPrint("DB", "CostCalculation engine in operation: %s (%s)" %(CostCalculation, type(CostCalculation)))
+
     except:
         dump_sys_error_to_md_console_and_errorlog()
     if not GlobalVars.EXTRA_CODE_INITIALISED:
@@ -6236,7 +6193,6 @@ Visit: %s (Author's site)
 
         NAB = NetAccountBalancesExtension.getNAB()
         todayInt = DateUtil.getStrippedDateInt()
-        baseCurr = NAB.moneydanceContext.getCurrentAccountBook().getCurrencies().getBaseType()
 
         for iRowIdx in range(0, len(_parallelBalanceTable)):
 
@@ -6285,15 +6241,11 @@ Visit: %s (Author's site)
                 else:
                     assert isSecurityAcct(acct), ("ERROR: Acct: '%s' is not a security account (type: '%s')?!'" %(acct, acct.getAccountType()))
 
-                    # CostCalculation.DEBUG_COST = True;
-                    # MyCostCalculation.COST_DEBUG = True;
+                    # if (isCostCalculationUpgradedBuild()): CostCalculation.LOG.isEnabled = True
+                    # else: CostCalculation.COST_DEBUG = True
 
-                    if isCostCalculationUpgradedBuild():
-                        costCalculationBal = CostCalculation(acct, asOfDate, None, True)
-                        costCalculationCurrBal = costCalculationBal.getCurrentBalanceCostCalculation()                  # noqa
-                    else:
-                        costCalculationBal = MyCostCalculation(acct, asOfDate, None, True)
-                        costCalculationCurrBal = costCalculationBal.getCurrentBalanceCostCalculation()
+                    costCalculationBal = CostCalculation(acct, asOfDate, None, True)
+                    costCalculationCurrBal = costCalculationBal.getCurrentBalanceCostCalculation()                      # noqa
 
                     sharesAndCostBasisForAsOf = costCalculationBal.getSharesAndCostBasisForAsOf()
                     asofSharesBal = sharesAndCostBasisForAsOf.getSharesOwnedAsOf()
@@ -6329,8 +6281,12 @@ Visit: %s (Author's site)
 
                     if lRtnCapitalGains:
 
-                        capGainsBal = costCalculationBal.getSaleGainsForDateRange(capGainsDr)                           # type: MyCostCalculation.HoldCapitalGainTotal
-                        capGainsCurBal = costCalculationCurrBal.getSaleGainsForDateRange(capGainsDr)                    # type: MyCostCalculation.HoldCapitalGainTotal
+                        # we pass the desired currency as gain's txns are individually converted to the target currency and then totalled
+                        # / returned by the getSaleGainsForDateRange() function. As we only get the total back, we cannot do this
+                        # ourselves... So we also call setSpecialCurrencyType() to trick the system not to double convert...
+                        thisRowCurr = MyHomePageView.getCurrencyByUUID(NAB.savedCurrencyTable[iRowIdx], acct.getParentAccount().getCurrencyType())
+                        capGainsBal = costCalculationBal.getSaleGainsForDateRange(capGainsDr, thisRowCurr)              # type: CapitalGainResult
+                        capGainsCurBal = costCalculationCurrBal.getSaleGainsForDateRange(capGainsDr, thisRowCurr)       # type: CapitalGainResult
 
                         if lRtnCapitalGainsSimple:
                             saleGainsBal = capGainsBal.totSaleGains
@@ -6424,8 +6380,7 @@ Visit: %s (Author's site)
                     asOfDate = getBalanceAsOfDateSelected(NAB.savedBalanceAsOfDateTable[iRowIdx])
                     effectiveDateInt = None if (asOfDate == todayInt) else asOfDate
                 else:
-                    asOfDate = None             # This CostCalculation to derive the balance asof date....
-                    effectiveDateInt = None     # Really means no conversion = asof today
+                    effectiveDateInt = None     # Really means no conversion - ie as-of today
                 balanceObj.setEffectiveDateInt(effectiveDateInt)
 
                 if isAnyCostBasisOptionTypeSelected(iRowIdx) and not shouldIncludeAccountForCostBasis(iRowIdx, acct):
@@ -7684,18 +7639,6 @@ Visit: %s (Author's site)
                 #     myPrint("DB", "... (class)loaded bundled java code '%s' into memory too... (%s)" %(GlobalVars.Strings.SWSS_COMMON_CODE_NAME, self.SWSS_CC))
                 # except:
                 #     myPrint("B", "@@@ FAILED to load bundled java code class '%s' into memory! Printing disabled....!" %(GlobalVars.Strings.SWSS_COMMON_CODE_NAME))
-
-                # try:
-                #     _cl = None
-                #     try: _cl = getFieldByReflection(MD_EXTENSION_LOADER, "classloader")
-                #     except: _cl = MD_EXTENSION_LOADER
-                #     CustomUtil = _cl.loadClass(GlobalVars.Strings.SWSS_CODE_NAME_CUSTOM_UTIL)
-                #     myPrint("DB", "... (class)loaded bundled java code '%s' into memory too... (%s)" %(GlobalVars.Strings.SWSS_CODE_NAME_CUSTOM_UTIL, CustomUtil))
-                # except:
-                #     e_type, exc_value, exc_traceback = sys.exc_info()
-                #     myPrint("B", "@@@ FAILED to load bundled java code class(es) ['%s'] into memory!" %([GlobalVars.Strings.SWSS_CODE_NAME_CUSTOM_UTIL]))
-                #     myPrint("B", "Error:", exc_value)
-
             else:
                 self.moneydanceExtensionLoader = None
 
@@ -7899,6 +7842,8 @@ Visit: %s (Author's site)
 
             self.formula_JTF                          = None
             self.formulaWarning_LBL                   = None
+
+            self.CCEngine_LBL                         = None
 
             self.formatAsPercent_CB                   = None
             self.formatAsPercentMult100_CB            = None
@@ -8962,6 +8907,8 @@ Visit: %s (Author's site)
                               "* Current selected row\n" \
                               "! Invalid 'Use Other Row' reference\n" \
                               "" %(NAB.savedFilterByGroupID)
+
+                if debug: output += "\n\n-----\nCostCalculation engine: %s (%s)\n-----\n" %(CostCalculation, type(CostCalculation))
 
                 QuickJFrame("%sINFO ON ROWS/OTHER ROWS/GROUP IDs/UUIDs" %(showLastTxt), output, lWrapText=False, lAutoSize=True, lAlertLevel=(2 if self.showLast else 1)).show_the_frame()
 
@@ -10434,6 +10381,14 @@ Visit: %s (Author's site)
             NAB.formulaWarning_LBL.setHorizontalAlignment(JLabel.LEFT)
             NAB.formulaWarning_LBL.repaint()
 
+        def setCCEngineLabel(self):
+            NAB = NetAccountBalancesExtension.getNAB()
+            isCustomCC = CostCalculation == MyCostCalculation
+            NAB.CCEngine_LBL.setText("    ...    ")
+            NAB.CCEngine_LBL.setForeground(getColorRed() if (isCustomCC) else NAB.moneydanceContext.getUI().getColors().defaultTextForeground)
+            NAB.CCEngine_LBL.setToolTipText("Using internal Cost Calculation engine" if (isCustomCC) else "Using Moneydance's Cost Calculation engine")
+            NAB.CCEngine_LBL.repaint()
+
         def setCapGainsDateRangeLabel(self, _rowIdx):
             NAB = NetAccountBalancesExtension.getNAB()
 
@@ -10878,6 +10833,8 @@ Visit: %s (Author's site)
             NAB.separatorSelectorAbove_JRB.setSelected( True if NAB.savedRowSeparatorTable[selectRowIndex] == GlobalVars.ROW_SEPARATOR_ABOVE else False)
             NAB.separatorSelectorBelow_JRB.setSelected( True if NAB.savedRowSeparatorTable[selectRowIndex] == GlobalVars.ROW_SEPARATOR_BELOW else False)
             NAB.separatorSelectorBoth_JRB.setSelected(  True if NAB.savedRowSeparatorTable[selectRowIndex] == GlobalVars.ROW_SEPARATOR_BOTH  else False)
+
+            NAB.setCCEngineLabel()
 
             myPrint("DB", "..about to set savedShowWarningsTable..")
             NAB.showWarnings_CB.setSelected(NAB.savedShowWarningsTable[selectRowIndex])
@@ -14323,6 +14280,11 @@ Visit: %s (Author's site)
                         useCostBasis_pnl.add(jrb, GridC.getc(onCbUrgCol, onSepRow).leftInset(0).rightInset(5))
                         onCbUrgCol += 1
 
+                    NAB.CCEngine_LBL = MyJLabel("")
+                    NAB.CCEngine_LBL.putClientProperty("%s.id" %(NAB.myModuleID), "CCEngine_LBL")
+                    NAB.CCEngine_LBL.putClientProperty("%s.collapsible" %(NAB.myModuleID), "true")
+                    useCostBasis_pnl.add(NAB.CCEngine_LBL, GridC.getc(onCbUrgCol, onSepRow).center().leftInset(0).rightInset(5))
+
                     controlPnl.add(useCostBasis_pnl, GridC.getc(onCol, onRow).leftInset(colInsetFiller+2).rightInset(colRightInset).fillx().pady(pady).filly().west().colspan(3))
                     onRow += 1
 
@@ -17582,12 +17544,13 @@ Visit: %s (Author's site)
                                     useTaxDatesText = "" if not NAB.savedUseTaxDates else "*TAX DATES* "
                                     hiddenRowsText = "" if not hiddenRows else "*HIDDEN ROW(s)* "
                                     filteredRowsText = "" if not filteredRows else "*FILTERED ROW(s)* "
+                                    CCEngineText = "" if (CostCalculation != MyCostCalculation) else "" if (not debug and not NAB.isPreview) else "*INT CC ENG* "
                                     filterGroupIDText = "" if NAB.savedFilterByGroupID == "" else "*Filter: '%s'* " %(NAB.savedFilterByGroupID)
                                     combinedTxt = ""
                                     _countTxtAdded = 0
                                     for _txt in [previewText, debugText, migratedText, warningCheckText, warningsTurnedOffText,
                                                  parallelText, balanceAsOfText, includeRemindersText, costBasisText, useTaxDatesText,
-                                                 hiddenRowsText, filteredRowsText, filterGroupIDText]:
+                                                 hiddenRowsText, filteredRowsText, filterGroupIDText, CCEngineText]:
                                         combinedTxt += _txt
                                         if _txt: _countTxtAdded += 1
                                         if _countTxtAdded >= 3:
