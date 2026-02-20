@@ -197,7 +197,7 @@ ext.applyKeyPassToJavaExec = { JavaExec task ->
 ext.requireSigningInputs = {
   if (!resolveKeyPass(true)) throw new GradleException("\n*****\nERROR - keypass must be set in: ${userConfigPath}/user.gradle.properties (or via 'moneydance_key_pass' system property / 'MONEYDANCE_KEY_PASS' env var)\n*****\n")
   if (!file(extPrivKeyFile).exists()) throw new GradleException("\n*****\nERROR - Missing private key file: ${extPrivKeyFile} (run genKeys)\n*****\n")
-  if (!file(extPubKeyFile).exists()) throw new GradleException("\n*****\nERROR - Missing public key file: ${extPubKeyFile} (run genKeys)\n*****\n")
+//  if (!file(extPubKeyFile).exists()) throw new GradleException("\n*****\nERROR - Missing public key file: ${extPubKeyFile} (run genKeys)\n*****\n")
 }
 
 // common list zip contents block
