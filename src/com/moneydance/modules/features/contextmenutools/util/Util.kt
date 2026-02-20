@@ -6,10 +6,6 @@ import com.moneydance.modules.features.contextmenutools.Main
 import java.awt.Color
 import java.awt.Component
 import java.awt.Dialog
-import java.awt.Graphics
-import java.awt.Graphics2D
-import java.awt.RenderingHints
-import java.lang.reflect.Modifier
 
 fun String.prefixExtnID(): String { return "${Main.EXTN_ID}: $this"}
 
@@ -77,7 +73,8 @@ object Util {
   @JvmStatic val String?.blankIfNull: String
     get() = if (isNullOrBlank()) "" else this
   
-  fun getDialog(component: Component?): Dialog? {
+  @JvmStatic
+  fun getComponentDialog(component: Component?): Dialog? {
     var c = component ?: return null
     while(true) {
       if (c is Dialog) { return c }
