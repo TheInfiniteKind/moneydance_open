@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# extract_data.py - build: 1049 - January 2026 - Stuart Beesley
+# extract_data.py - build: 1050 - February 2026 - Stuart Beesley
 #                   You can auto invoke by launching MD with one of the following:
 #                           '-d [datasetpath] -invoke=moneydance:fmodule:extract_data:autoextract:noquit'
 #                           '-d [datasetpath] -invoke=moneydance:fmodule:extract_data:autoextract:quit'
@@ -104,10 +104,11 @@
 # build: 1048 - EAR - tweak code to grab description/memo (especially for splits), also tweak a split's 'real' index (from zero to the parent's index for this split)...
 # build: 1048 - ... now the Description/Memo field contain the parent's data, Cheque/Memo can be [bracket] wrapped when not set and showing parent's data. SplitMemo will show split memo or just ""
 # build: 1048 - Improve stripping of linefeeds and tabs with stripReplaceCharacters()
-# build: 1049 - ???
 # build: 1049 - Tweak Extract Account Register txns (EAR) - add transfer/cat/account (target) currency code...; also to ECI too...
 # build: 1049 - Tweak Extract Account Register txns (EAR) - add Parent and Split UUID fields...
-# build: 1049 - ???
+# build: 1050 - ???
+# build: 1050 - Upgrade MyCostCalculation to v10 for MD2026(5500)
+# build: 1050 - ???
 
 # todo - EAR: Switch to 'proper' usage of DateRangeChooser() (rather than my own 'copy')
 
@@ -122,7 +123,7 @@
 
 # SET THESE LINES
 myModuleID = u"extract_data"
-version_build = "1049"
+version_build = "1050"
 MIN_BUILD_REQD = 1904                                               # Check for builds less than 1904 / version < 2019.4
 _I_CAN_RUN_AS_DEVELOPER_CONSOLE_SCRIPT = True
 
@@ -487,6 +488,7 @@ else:
     from javax.swing.border import CompoundBorder, MatteBorder
     from javax.swing.event import TableColumnModelListener
     from java.lang import Number, Object, StringBuilder
+    from java.util import HashMap, HashSet, Hashtable, LinkedHashSet
     from com.moneydance.apps.md.controller import AppEventListener
     from com.infinitekind.util import StringUtils
     # exec("from java.awt.print import Book")     # IntelliJ doesnt like the use of 'print' (as it's a keyword). Messy, but hey!
@@ -3361,14 +3363,15 @@ Visit: %s (Author's site)
     # Copied from: com.infinitekind.moneydance.model.CostCalculation (quite inaccessible before build 5008, also buggy)
     ####################################################################################################################
     class MyCostCalculation:
-        """CostBasis calculation engine (v8). Copies/enhances/fixes MD CostCalculation() (asof build 5064).
+        """CostBasis calculation engine (v10). Copies/enhances/fixes MD CostCalculation() (asof build 5064).
         Params asof:None or zero = asof the most recent (future)txn date that affected the shareholding/costbasis balance.
         preparedTxns is typically used by itself to recall the class to get the current cost basis
         obtainCurrentBalanceToo is used to request that the class calls itself to also get the current/today balance too
         # (v2: LOT control fixes, v3: added isCostBasisValid(), v4: don't incl. fees on misc inc/exp in cbasis with lots,
         # ...fixes for  capital gains to work, v5: added in short/long term support, v6: added unRealizedSaleTxn parameter
         support, v7: added SharesOwnedAsOf class to match MD's upgraded CostCalculation class), v8: fixed code to match
-        MD2024(5119) - fixed endless loop, buy 60, split 7:1, sell 20, split 4:1, sell all for zero cost basis scenarios"""
+        MD2024(5119) - fixed endless loop, buy 60, split 7:1, sell 20, split 4:1, sell all for zero cost basis scenarios;
+        v10: MD2026(5500) applied latest fixes"""
 
         ################################################################################################################
         # This is used to calculate the cost of a security using either the average cost or lot-based method.
@@ -3394,13 +3397,23 @@ Visit: %s (Author's site)
 
             if self.COST_DEBUG: myPrint("B", "** MyCostCalculation() initialising..... running asof: %s, for account: '%s' (%s) **"%(asOfDate, secAccount, "AvgCost" if secAccount.getUsesAverageCost() else "LotControl"))
 
+            # prevent callers attempting to request impossible / illogical combinations of parameters
+            # if the caller has prepared the txns, then they must also prepare any unRealizedSaleTxn too if they need it etc...
+            # when calling obtainCurrentBalanceToo then cannot use preparedTxns or unRealizedSaleTxn
+            if preparedTxns is not None and unRealizedSaleTxn is not None: raise Exception("Cannot supply both preparedTxns and unRealizedSaleTxn")
+            if obtainCurrentBalanceToo and (preparedTxns is not None or unRealizedSaleTxn is not None): raise Exception("Cannot obtainCurrentBalanceToo when using preparedTxns / unRealizedSaleTxn")
+
             if unRealizedSaleTxn is not None:
                 assert (isinstance(unRealizedSaleTxn, SplitTxn))
                 if self.COST_DEBUG: myPrint("B", "... unrealized (sale txn) gain calculation requested for:", unRealizedSaleTxn)
 
+            if preparedTxns is not None:
+                if self.COST_DEBUG: myPrint("B", "... preparedTxns parameter specified (containing: %s txns)" %(preparedTxns.getSize()))
+
             todayInt = DateUtil.getStrippedDateInt()
             if (asOfDate is None or asOfDate < 19000000): asOfDate = None
             self.asOfDate = asOfDate
+            self.unRealizedSaleTxn = unRealizedSaleTxn
 
             self.positions = ArrayList()            # Use java Class to exactly mirror original code (rather than [list])
             self.positionsByBuyID = HashMap()       # Use java Class to exactly mirror original code (rather than {dict})
@@ -3409,25 +3422,26 @@ Visit: %s (Author's site)
             self.investCurr = secAccount.getParentAccount().getCurrencyType()                                           # type: CurrencyType
             self.secCurr = secAccount.getCurrencyType()                                                                 # type: CurrencyType
             self.usesAverageCost = secAccount.getUsesAverageCost()
-            self.costBasisInvalid = False
 
-            # if isinstance(preparedTxns, TxnSet) and preparedTxns.getSize() > 0:
-            if isinstance(preparedTxns, TxnSet):
-                # Assume cost basis is valid if you are passing a TxnSet (e.g. on the second call for 'Current Balance'.
-                self.txns = preparedTxns                                                                                # type: TxnSet
-            else:
-                # Check isCostBasisValid() here for speed....
-                if InvestUtil.isCostBasisValid(self.getSecAccount()):
-                    self.txns = secAccount.getBook().getTransactionSet().getTransactionsForAccount(secAccount)          # type: TxnSet
-                    if unRealizedSaleTxn is not None: self.txns.addTxn(unRealizedSaleTxn)
-                    self.txns.sortWithComparator(TxnUtil.DATE_THEN_AMOUNT_COMPARATOR.reversed())                        # Newest first by index
-                else:
-                    self.costBasisInvalid = True
-                    self.txns = TxnSet()
-                    myPrint("B", "@@ WARNING: MD reports that the Cost Basis for account: '%s' is invalid! (Probably Lot controlled Security account with Sells not fully Lot Matched to Buys. Will return zero)" %(self.getSecAccount().getFullAccountName()))
+            # now detect invalid cost basis. Use preparedTxns if supplied, otherwise pass null which will analise all transactions...
+            # perform this check before sorting, and before we add any (optional) unRealizedSaleTxn
+            self._unmatchedSellTxns = MyCostCalculation.getInvalidLotMatchSellTxns(secAccount, preparedTxns, False, self.COST_DEBUG)
+            if self.isCostBasisInvalid():
+                myPrint("B", "@@ WARNING: INVALID Cost Basis for lot controlled security account: '%s' (%s sells not fully / properly lot matched to buys) >> - cost basis defaulting to ZERO"
+                        %(self.getSecAccount().getFullAccountName(), len(self.getUnmatchedSellTxns())))
+                invalidStr = "[%s]" % ", ".join("%s, %s, %s, %s" %(
+                            it.getUUID(), it.getParentTxn().getInvestTxnType(),
+                            it.getDateInt(), it.getSplitAmount()) for it in self.getUnmatchedSellTxns())
+                myPrint("B", "... invalid cost basis txns: %s" %(invalidStr))
 
-            self.asOfDate = self.deriveRealBalanceDateInt(self.getTxns())
-            self.isAsOfToday = (asOfDate == todayInt)
+            self.txns = preparedTxns if (isinstance(preparedTxns, TxnSet))\
+                else secAccount.getBook().getTransactionSet().getTransactionsForAccount(secAccount)
+
+            self.txns.sortWithComparator(TxnUtil.DATE_THEN_AMOUNT_COMPARATOR.reversed())        # Most recent date first by index
+            if unRealizedSaleTxn is not None: self.txns.insertTxnAt(unRealizedSaleTxn, 0)       # Always insert as first/most recent txn
+
+            self.asOfDate = self.deriveRealBalanceDateInt()
+            self._isAsOfToday = (self.asOfDate == todayInt)
 
             self.getPositions().add(MyCostCalculation.Position(self))               # Adds a dummy start Position
 
@@ -3448,26 +3462,61 @@ Visit: %s (Author's site)
             else:
                 self.currentBalanceCostCalculation = None                                                               # type: MyCostCalculation
 
-        def isCostBasisInvalid(self): return self.costBasisInvalid
+        def isAsOfToday(self): return self._isAsOfToday
+
+        def getCostBasisAsOfAsOf(self): return 0L if (self.isCostBasisInvalid()) else self.getMostRecentPosition().getRunningCost() # noqa
+
+        def getLongTermCutoffDate(self): return self.longTermCutoffDate
+        def getInvestCurr(self): return self.investCurr
+        def getSecCurr(self): return self.secCurr
+
+        def getUnRealizedSaleTxn(self): return self.unRealizedSaleTxn
+
+        def getUnmatchedSellTxns(self):
+            if (self._unmatchedSellTxns is None or len(self._unmatchedSellTxns) <1): return None
+            return self._unmatchedSellTxns
+
+        def isUnmatchedSellTxn(self, sellTxn): return (self.getUnmatchedSellTxns() is not None and sellTxn in self.getUnmatchedSellTxns())
+
+        def deriveTxnDateRange(self, onlyCostImpactingTxns=True):
+            if (self.getTxns().getSize() == 0): return None     # there can't be a date range with no transactions
+            endDate = self.getAsOfDate()                        # the end / balance date was already pre-determined by `deriveRealBalanceDateInt` (!! should never happen)
+            fields = InvestFields()
+            for txn in self.getTxns():                          # TxnSet - iterates in reverse = oldest first
+                fields.setFieldStatus(txn.getParentTxn())
+                if (onlyCostImpactingTxns and not self.isCostBasisImpactingTxnType(fields.txnType)):
+                    continue                                    # if we only wanted cost-impacting txns, then skip this one.. move on to next...
+                startDate = txn.getDateInt()
+                if (startDate > endDate): break
+                return DateRange(Integer(startDate), Integer(endDate))    # Integer() wrappers needed in Jython to resolve overload ambiguity
+            return None
+
+        def isCostBasisImpactingTxnType(self, txnType):
+            # type: (InvestTxnType) -> bool
+            return txnType in [InvestTxnType.BUY, InvestTxnType.BUY_XFER, InvestTxnType.COVER, InvestTxnType.DIVIDEND_REINVEST,
+                               InvestTxnType.SELL, InvestTxnType.SELL_XFER, InvestTxnType.SHORT, InvestTxnType.MISCINC,
+                               InvestTxnType.MISCEXP]
+
+        def isCostBasisInvalid(self): return (self._unmatchedSellTxns is not None and len(self._unmatchedSellTxns) > 0)
         def getUsesAverageCost(self): return self.usesAverageCost
 
         def getCurrentBalanceCostCalculation(self):
             # type: () -> MyCostCalculation
             return self.currentBalanceCostCalculation
 
-        def getTxns(self): return self.txns                                     # New method
+        def getTxns(self): return self.txns
 
-        def getSecAccount(self): return self.secAccount                         # New method
+        def getSecAccount(self): return self.secAccount
 
-        def getAsOfDate(self): return self.asOfDate                             # New method
+        def getAsOfDate(self): return self.asOfDate
 
-        def deriveRealBalanceDateInt(self, txns):                               # New method
-            # type: (TxnSet) -> int
+        def deriveRealBalanceDateInt(self):
             """When asof is None, you are requesting the Balance.. This determines the future date of that Balance"""
             if self.getAsOfDate() is not None: return self.getAsOfDate()        # If you specify a date, then just use that...
             todayInt = DateUtil.getStrippedDateInt()
             mostRecentDateInt = todayInt
             fields = InvestFields()                                                                                     # type: InvestFields
+            txns = self.getTxns()
             for i in range(0, txns.getSize()):                                  # Iterate by index = newest first
                 txn = txns.getTxnAt(i)
                 dateInt = txn.getDateInt()
@@ -3476,10 +3525,7 @@ Visit: %s (Author's site)
                 fields.setFieldStatus(txn.getParentTxn())
 
                 # ie not [InvestTxnType.BANK, InvestTxnType.DIVIDEND, InvestTxnType.DIVIDENDXFR]
-                if fields.txnType not in [InvestTxnType.BUY, InvestTxnType.BUY_XFER, InvestTxnType.COVER, InvestTxnType.DIVIDEND_REINVEST,
-                                          InvestTxnType.SELL, InvestTxnType.SELL_XFER, InvestTxnType.SHORT,
-                                          InvestTxnType.MISCINC, InvestTxnType.MISCEXP]:
-                    continue    # Skip back in time....
+                if not self.isCostBasisImpactingTxnType(fields.txnType): continue  # Skip back in time....
                 mostRecentDateInt = dateInt
                 break
 
@@ -3487,30 +3533,25 @@ Visit: %s (Author's site)
                                              %(self.getSecAccount(), self.getAsOfDate(), mostRecentDateInt))
             return mostRecentDateInt
 
-        def getPositions(self):                                                 # New method
+        def getPositions(self):
             # type: () -> [MyCostCalculation.Position]
             return self.positions
 
-        def getPositionsByBuyID(self):                                          # New method
+        def getPositionsByBuyID(self):
             # type: () -> {String: MyCostCalculation.Position}
             return self.positionsByBuyID
 
-        def getCurrentPosition(self):                                           # DEPRECATED
+        # DEPRECATED: Please use getMostRecentPosition()
+        def getCurrentPosition(self):
             # type: () -> MyCostCalculation.Position
             return self.getMostRecentPosition()
 
-        def getMostRecentPosition(self):                                        # Renamed method
+        def getMostRecentPosition(self):
             # type: () -> MyCostCalculation.Position
             """Returns the most recent Position. NOTE: This could in theory be future!"""
             return self.getPositions().get(self.getPositions().size() - 1)      # NOTE: There is always a dummy first position
 
-        def getMostRecentCostBasis(self):                                       # New method
-            # type: () -> int
-            """Returns the (long) most recent cost basis. NOTE: This could in theory be future (perhaps not as we don't process txns past the asof date!"""
-            curPosn = self.getMostRecentPosition()                                                                      # type: MyCostCalculation.Position
-            return curPosn.getCostBasis()
-
-        def getPositionForAsOf(self):                                           # New method
+        def getPositionForAsOf(self):
             # type: () -> MyCostCalculation.Position
             """Returns the most recent Position upto/asof requested"""
             rtnPos = self.getPositions().get(0)
@@ -3520,16 +3561,18 @@ Visit: %s (Author's site)
                 if pos.getDate() <= self.asOfDate: break                        # Capture the most recent posn we find before/on asof
             return rtnPos
 
-        def getSharesAndCostBasisForAsOf(self):                                 # New method
+        def getSharesAndCostBasisForAsOf(self):
             # type: () -> (int, int)
             """Returns a tuple containing the (long) shares owned, (long) cost basis upto/asof the date requested"""
+            if self.getAsOfDate() is None: return None
             asofPos = self.getPositionForAsOf()
-            return MyCostCalculation.SharesOwnedAsOf(self.getSecAccount(), self.getAsOfDate(), asofPos.getSharesOwnedAsOfAsOf(), asofPos.getRunningCost())
+            costBasisAsOf = 0L if self.isCostBasisInvalid() else asofPos.getRunningCost()
+            return MyCostCalculation.SharesOwnedAsOf(self.getSecAccount(), self.getAsOfDate(), asofPos.getSharesOwnedAsOfAsOf(), costBasisAsOf, not self.isCostBasisInvalid())
 
         def addTxn(self, txn):
             # type: (AbstractTxn) -> None
-            if txn.getDateInt() <= self.getAsOfDate():
-                previousPos = self.getCurrentPosition()
+            if isinstance(txn, SplitTxn) and txn.getDateInt() <= self.getAsOfDate():
+                previousPos = self.getMostRecentPosition()
                 newPos = MyCostCalculation.Position(self, txn, previousPos)
                 # if self.COST_DEBUG: myPrint("B", "adding position to end of position table:", newPos)
                 self.getPositions().add(newPos)
@@ -3543,7 +3586,8 @@ Visit: %s (Author's site)
             sellIdx = 0
             numPositions = self.getPositions().size()
 
-            # skim through the sell transactions and allocate buys to them on a FIFO basis (used for U.S. IRS short/long-term allocation)
+            # Step through sell transactions and allocate earlier buys to the sell in FIFO order.
+            # This FIFO matching is used only to determine each share’s holding period (short-term vs long-term) under the U.S. IRS single-category average cost method.
             while (sellIdx < numPositions and buyIdx < numPositions):
 
                 if (buyIdx > sellIdx):
@@ -3608,13 +3652,12 @@ Visit: %s (Author's site)
                     # if we are here then... in theory... we are on the same sell, and it has fully consumed enough buys..
                     # repeat the inner-while condition and trap endless loops which should never occur!
                     if (sell.getUnallottedSharesAdded() < 0):  # SCB: MD2024(5118) fix (for avg cost, buy 60, split 7:1, sell 20, split 4:1 issue)
-                        # buyIdx = numPositions + 1
-                        # sellIdx = numPositions + 1
-                        raise Exception("LOGIC ERROR: end of while loop, but sell.unallottedSharesAdded (${sell.unallottedSharesAdded}) < 0L - breaking out of loop... Cost Basis will be wrong!")
+                        buyIdx = numPositions + 1                                                                       # noqa
+                        sellIdx = numPositions + 1                                                                      # noqa
+                        raise Exception("LOGIC ERROR: end of while loop, but sell.unallottedSharesAdded (%s) < 0L - breaking out of loop... Cost Basis will be wrong!" % (sell.getUnallottedSharesAdded()))
 
-                    # end inner-while.. On a sell, consuming buys....
-
-                # end outer-while...
+                    # inner-while.. On a sell, consuming buys....
+                # outer-while..  #changed - removed 'end' and trailing dots to match kotlin
 
             if self.COST_DEBUG:
                 myPrint("B", "-------------------------\npositions and allotments for '%s' (Avg Cost Basis: %s):" %(self.getSecAccount(), self.getUsesAverageCost()))
@@ -3624,23 +3667,31 @@ Visit: %s (Author's site)
         def allocateLots(self):
             #type: () -> None
 
+            # analyse the sell transactions...
             for sellPosition in [position for position in self.getPositions() if (position.getSharesAdded() < 0)]:
+
+                sellTxn = sellPosition.getTxn()
+                if sellTxn is None: continue
 
                 if self.COST_DEBUG: myPrint("B", ">> SELL: date: %s sellPos:" %(sellPosition.getDate()), sellPosition)
 
-                lotMatchedBuyTable = TxnUtil.parseCostBasisTag(sellPosition.getTxn())                                   # type: {String: Long}
-                if self.COST_DEBUG: myPrint("B", "@@ sell date: %s, txn's (lot matching) lotMatchedBuyTable: %s" %(sellPosition.getDate(), lotMatchedBuyTable))
+                lotMatchedBuyTable = TxnUtil.parseCostBasisTag(sellTxn if isinstance(sellTxn, SplitTxn) else None)                                                 # type: {String: Long}
+                if self.COST_DEBUG: myPrint("B", ".. sell date: %s, txn's (lot matching) lotMatchedBuyTable: %s" %(sellPosition.getDate(), lotMatchedBuyTable))
 
+                # parse the "cost_basis" parameter and obtain a table of buy txns matched to this sell txn.
                 if lotMatchedBuyTable is not None:
+                    # iterate each matched buy txn...
                     for lotMatchedBuyID in lotMatchedBuyTable.keySet():
+                        # find the matched buy's position
                         lotMatchedBoughtPos = self.getPositionsByBuyID().get(lotMatchedBuyID)                           # type: MyCostCalculation.Position
-                        if self.COST_DEBUG: myPrint("B", "@@    txn lotMatchedBuyID: %s, (lot matched) lotMatchedBoughtPos: %s" %(lotMatchedBuyID, lotMatchedBoughtPos))
+                        if self.COST_DEBUG: myPrint("B", "      txn lotMatchedBuyID: %s, (lot matched) lotMatchedBoughtPos: %s" %(lotMatchedBuyID, lotMatchedBoughtPos))
                         if (lotMatchedBoughtPos is not None):
                             lotMatchedBoughtShares = lotMatchedBuyTable.get(lotMatchedBuyID)
 
+                            # found the matched buy position.. unadjust the matched sell qty back from the sell's date to the buy's date
                             lotMatchedBoughtSharesAdjusted = self.secCurr.unadjustValueForSplitsInt(lotMatchedBoughtPos.getDate(), lotMatchedBoughtShares, sellPosition.getDate())
 
-                            if self.COST_DEBUG: myPrint("B", "#### lotMatchedBoughtPos.getDate(): %s, lotMatchedBoughtShares: %s, sellPosition.getDate(): %s, lotMatchedBoughtSharesAdjusted: %s"
+                            if self.COST_DEBUG: myPrint("B", ".... lotMatchedBoughtPos.getDate(): %s, lotMatchedBoughtShares: %s, sellPosition.getDate(): %s, lotMatchedBoughtSharesAdjusted: %s"
                                                         %(lotMatchedBoughtPos.getDate(), self.secCurr.getDoubleValue(lotMatchedBoughtShares), sellPosition.getDate(), self.secCurr.getDoubleValue(lotMatchedBoughtSharesAdjusted)))
                             if self.COST_DEBUG: myPrint("B", ".... (lot matched) lotMatchedBoughtShares: %s, (lot matched) lotMatchedBoughtSharesAdjusted: %s"
                                                         %(self.secCurr.getDoubleValue(lotMatchedBoughtShares), self.secCurr.getDoubleValue(lotMatchedBoughtSharesAdjusted)))
@@ -3666,7 +3717,7 @@ Visit: %s (Author's site)
                                                         %(self.secCurr.getDoubleValue(lotMatchedBoughtPos.getUnallottedSharesAdded())))
 
                         else:
-                            myPrint("B", "@@ Warning: Could NOT find: lotMatchedBuyID: '%s' in getPositionsByBuyID() for sellPosition: %s" %(lotMatchedBuyID, sellPosition))
+                            myPrint("B", ">> Warning: Could NOT find: lotMatchedBuyID: '%s' in getPositionsByBuyID() for sellPosition: %s" %(lotMatchedBuyID, sellPosition))
 
             if self.COST_DEBUG:
                 myPrint("B", "-------------------------\npositions and allotments for '%s':" %(self.getSecAccount()))
@@ -3711,31 +3762,77 @@ Visit: %s (Author's site)
 
         def getBasisPrice(self, asOfTxn):
             # type: (AbstractTxn) -> float
-            """Returns the cost (per share) of the shares held as of the given transaction, or as of the last
-               transaction if the given transaction is null. Returns the cost per share"""
+            """Returns the cost (per share) of the shares held as of the given transaction, or as of the last transaction if the given transaction is null.
+            Note: For LOT controlled security accounts, if the cost basis is invalid then zero will be returned"""
 
+            if self.isCostBasisInvalid(): return 0.0
             if asOfTxn is not None:
                 for pos in self.getPositions():                                                                         # type: MyCostCalculation.Position
-                    if pos.getTxn() is not None and pos.getTxn() is asOfTxn:
-                        return pos.getBasisPrice()
-                myPrint("B", "unable to find position for txn :%s; returning cost basis as of last position" %(asOfTxn))
+                    if pos.getTxn() is None: continue
+                    if pos.getTxn() == asOfTxn: return pos.getBasisPrice()
+                myPrint("B", "getBasisPrice: unable to find position for txn :%s; returning cost basis as of last position" %(asOfTxn))
+            return self.getMostRecentPosition().getBasisPrice()                                                         # noqa
 
-            curPos = self.getCurrentPosition()                                                                          # type: MyCostCalculation.Position
-            return curPos.getBasisPrice()
+        def getTxnPos(self, forTxn):
+            for pos in self.getPositions():
+                txn = pos.getTxn()
+                if (txn is None): continue
+                if (txn == forTxn): return pos
+            myPrint("B", "getTxnPos: unable to find position for txn %s; returning null" % (forTxn))
+            return None
 
-        def getSaleGainsForDateRange(self, dateRange):           # New method
-            # type: (DateRange) -> HoldCapitalGainTotal
-            """Calculates / returns CapitalGainResult containing the grand total of all fields within the date requested
-            NOTE: DateRange should not end after the asof date!"""
+        def getTxnCostBasisImpact(self, forTxn):
+            for pos in self.getPositions():
+                txn = pos.getTxn()
+                if (txn is None): continue
+                if (txn != forTxn): continue
+                return pos.actualCostBasisImpact()
+            myPrint("B", "getTxnCostBasisImpact: unable to find position for txn %s; returning null" % (forTxn))
+            return None
+
+        def getListGainsForDateRange(self, dateRange):
+            # type: (DateRange) -> [CapitalGainResult]
+
+            if self.COST_DEBUG: myPrint("B", ">> Calculating list of gains for '%s', DR: '%s'" %(self.getSecAccount(), dateRange))
+
+            listGains = ArrayList()
+            countInvalidGains = 0
+
+            # Add up all the sales gains manually...
+            for pos in self.getPositions():  # iterate oldest to most recent
+                if pos.getDate() > self.asOfDate: break
+                if pos.getDate() > dateRange.getEndDateInt(): break
+                if pos.getDate() < dateRange.getStartDateInt(): continue
+                txn = pos.getTxn()
+
+                if not isinstance(txn, SplitTxn): continue
+                if not pos.isSellTxn(): continue
+                gainInfo = self.calculateGainsForPos(pos)
+                if not gainInfo.isValid(): countInvalidGains += 1
+                listGains.add(gainInfo)
+
+            if self.COST_DEBUG: myPrint("B", ">>>> returning a list of %s CapitalGainResult(s)%s"
+                                        %(listGains.size(), (" - invalid gains count: %s" % (countInvalidGains)) if countInvalidGains > 0 else ""))
+            return list(listGains)
+
+        def getSaleGainsForDateRange(self, dateRange, targetCurrency=None, valuationDate=None):
+            # type: (DateRange, CurrencyType, int) -> CapitalGainResult
+
+            toCurrency = targetCurrency if targetCurrency is not None else self.investCurr
+            localIsTarget = (self.investCurr == toCurrency)
 
             gidv = self.investCurr.getDoubleValue
             gsdv = self.secCurr.getDoubleValue
 
-            if self.COST_DEBUG: myPrint("B", ">> Calculating gains for '%s', DR: '%s'" %(self.getSecAccount(), dateRange))
+            if self.COST_DEBUG: myPrint("B", ">> Calculating gains for '%s', DR: '%s' Investment Currency: '%s' >> toCurrency: '%s' valuationDate: %s (%s)"
+                                        %(self.getSecAccount(), dateRange, self.investCurr, toCurrency, valuationDate,
+                                          "valued by gain/txn date" if valuationDate is None else "constant currency"))
 
             totSaleShares = 0
             totSaleSharesShort = 0
             totSaleSharesLong = 0
+
+            # store values in the investment account's currency
             totSaleValue = 0
             totSaleValueShort = 0
             totSaleValueLong = 0
@@ -3746,73 +3843,147 @@ Visit: %s (Author's site)
             totSaleGainsShort = 0
             totSaleGainsLong = 0
 
-            # Add up all the sales gains manually...
+            # store values in the target currency
+            totSaleValueTarget = 0
+            totSaleValueShortTarget = 0
+            totSaleValueLongTarget = 0
+            totSaleBasisTarget = 0
+            totSaleBasisShortTarget = 0
+            totSaleBasisLongTarget = 0
+            totSaleGainsTarget = 0
+            totSaleGainsShortTarget = 0
+            totSaleGainsLongTarget = 0
+
             for pos in self.getPositions():                             # Iterate oldest to most recent
                 if pos.getDate() > self.asOfDate: break
                 if pos.getDate() > dateRange.getEndDateInt(): break
                 if pos.getDate() < dateRange.getStartDateInt(): continue
                 txn = pos.getTxn()
-                if not isinstance(txn, (AbstractTxn, SplitTxn)): continue
+                if not isinstance(txn, SplitTxn): continue
                 if not pos.isSellTxn(): continue
                 gainInfo = self.calculateGainsForPos(pos)
-                if not gainInfo.isValid(): continue                     # Sell zero shares will be invalid (no gain on this)
+                if not gainInfo.isValid(): continue                     # Skip records flagged as invalid
 
-                saleSharesShort = gainInfo.getShortTermShares()
-                saleSharesLong = gainInfo.getLongTermShares()
-                saleShares = (saleSharesShort + saleSharesLong)
+                saleShares = gainInfo.totSaleShares
+
+                if (gainInfo.totSaleSharesShort + gainInfo.totSaleSharesLong) != saleShares:
+                    myPrint("B", "getSaleGainsForDateRange - WARNING: '%s' (totSaleSharesShort: %s + totSaleSharesLong: %s) = %s != totSaleShares: %s >> txn date: %s"
+                            %(self.getSecAccount(), gainInfo.totSaleSharesShort, gainInfo.totSaleSharesLong,
+                              (gainInfo.totSaleSharesShort + gainInfo.totSaleSharesLong), gainInfo.totSaleShares, txn.getDateInt()))
+
+                if saleShares != abs(txn.getValue()):
+                    myPrint("B", "getSaleGainsForDateRange - WARNING: '%s' saleShares: %s != txn's sell abs(shares): %s >> txn date: %s"
+                            %(self.getSecAccount(), saleShares, abs(txn.getValue()), txn.getDateInt()))
 
                 saleValueGross = txn.getParentAmount()                  # Gross (does not include fee)
-                salePriceGross = self.investCurr.getDoubleValue(saleValueGross) / self.secCurr.getDoubleValue(saleShares)
+                salePriceGross = self.investCurr.getDoubleValue(saleValueGross) / self.secCurr.getDoubleValue(saleShares) if saleShares != 0 else 1.0
+
+                saleValueGrossTarget = CurrencyUtil.convertValue(saleValueGross, self.investCurr, toCurrency, valuationDate if valuationDate is not None else pos.getDate())
+                salePriceGrossTarget = toCurrency.getDoubleValue(saleValueGrossTarget) / self.secCurr.getDoubleValue(saleShares) if saleShares != 0 else 1.0
 
                 # NOTE: MD puts the whole sale fee into short-term if there are any short term sales (this code copies that)
 
-                saleBasis = gainInfo.getBasis()                         # We put the fee into the calculated cb
+                saleBasis = gainInfo.totSaleBasis                     # We put the fee into the calculated cb
                 saleGains = (saleValueGross - saleBasis)
 
-                saleBasisShort = gainInfo.getShortTermBasis()
-                saleBasisLong = gainInfo.getLongTermBasis()
+                saleBasisTarget = CurrencyUtil.convertValue(saleBasis, self.investCurr, toCurrency, valuationDate if valuationDate is not None else pos.getDate())
+                saleGainsTarget = saleValueGrossTarget - saleBasisTarget  # Recalculate to prevent conversion 'drift'
 
-                saleValueLong = 0
-                if saleBasisLong != 0:
-                    saleValueLong = CurrencyUtil.convertValue(gainInfo.getLongTermShares(), self.secCurr, self.investCurr, salePriceGross)
+                saleSharesLong = gainInfo.totSaleSharesLong
+                saleBasisLong = gainInfo.totSaleBasisLong
+                saleBasisLongTarget = CurrencyUtil.convertValue(saleBasisLong, self.investCurr, toCurrency, valuationDate if valuationDate is not None else pos.getDate())
 
-                saleValueShort = (saleValueGross - saleValueLong)
+                # LT gains - treated as authoritative
+                saleValueLong = CurrencyUtil.convertValue(saleSharesLong, self.secCurr, self.investCurr, salePriceGross)
+                saleValueLongTarget = CurrencyUtil.convertValue(saleSharesLong, self.secCurr, toCurrency, salePriceGrossTarget)
+                saleGainsLong = saleValueLong - saleBasisLong
+                saleGainsLongTarget = saleValueLongTarget - saleBasisLongTarget
 
-                saleGainsShort = (saleValueShort - saleBasisShort)
-                saleGainsLong = (saleValueLong - saleBasisLong)
+                # ST gains
+                saleSharesShort = gainInfo.totSaleSharesShort
+                saleBasisShort = gainInfo.totSaleBasisShort
+                saleBasisShortTarget = CurrencyUtil.convertValue(saleBasisShort, self.investCurr, toCurrency, valuationDate if valuationDate is not None else pos.getDate())
+                saleValueShort = CurrencyUtil.convertValue(saleSharesShort, self.secCurr, self.investCurr, salePriceGross)
+                saleValueShortTarget = CurrencyUtil.convertValue(saleSharesShort, self.secCurr, toCurrency, salePriceGrossTarget)
+                saleGainsShort = saleValueShort - saleBasisShort
+                saleGainsShortTarget = saleGainsTarget - saleGainsLongTarget  # Ensures ST/LT total reconciles after conversion
 
-                if self.COST_DEBUG: myPrint("B", "... "
-                                                 "saleShares: %s (short: %s, long: %s), "
-                                                 "saleValueGross: %s (short: %s, long: %s), "
-                                                 "saleBasis: %s (short: %s, long: %s), "
-                                                 "saleGains: %s (short: %s, long: %s)"
-                                            %(gsdv(saleShares),     gsdv(saleSharesShort), gsdv(saleSharesLong),
-                                              gidv(saleValueGross), gidv(saleValueShort),  gidv(saleValueLong),
-                                              gidv(saleBasis),      gidv(saleBasisShort),  gidv(saleBasisLong),
-                                              gidv(saleGains),      gidv(saleGainsShort),  gidv(saleGainsLong)))
+                if self.COST_DEBUG:
+                    myPrint("B", "... GAIN INFO:", gainInfo)
+                    myPrint("B", "... investCurrency: '%s' : "
+                                 "saleShares: %s (short: %s, long: %s), "
+                                 "saleValueGross: %s (short: %s, long: %s), "
+                                 "saleBasis: %s (short: %s, long: %s), "
+                                 "saleGains: %s (short: %s, long: %s)"
+                            %(self.investCurr,
+                              gsdv(saleShares),     gsdv(saleSharesShort), gsdv(saleSharesLong),
+                              gidv(saleValueGross), gidv(saleValueShort),  gidv(saleValueLong),
+                              gidv(saleBasis),      gidv(saleBasisShort),  gidv(saleBasisLong),
+                              gidv(saleGains),      gidv(saleGainsShort),  gidv(saleGainsLong)))
+                    if not localIsTarget:
+                        myPrint("B", "... toCurrency: '%s' valuationDate: %s : "
+                                     "saleShares: %s (short: %s, long: %s), "
+                                     "saleValueGrossTarget: %s (short: %s, long: %s), "
+                                     "saleBasisTarget: %s (short: %s, long: %s), "
+                                     "saleGainsTarget: %s (short: %s, long: %s)"
+                                %(toCurrency, valuationDate,
+                                  gsdv(saleShares),                                gsdv(saleSharesShort),                          gsdv(saleSharesLong),
+                                  toCurrency.getDoubleValue(saleValueGrossTarget), toCurrency.getDoubleValue(saleValueShortTarget), toCurrency.getDoubleValue(saleValueLongTarget),
+                                  toCurrency.getDoubleValue(saleBasisTarget),      toCurrency.getDoubleValue(saleBasisShortTarget), toCurrency.getDoubleValue(saleBasisLongTarget),
+                                  toCurrency.getDoubleValue(saleGainsTarget),      toCurrency.getDoubleValue(saleGainsShortTarget), toCurrency.getDoubleValue(saleGainsLongTarget)))
 
-                if self.COST_DEBUG: myPrint("B", "... GAIN INFO:", gainInfo)
+                totSaleShares += saleShares
+                totSaleSharesShort += saleSharesShort
+                totSaleSharesLong += saleSharesLong
+                totSaleValue += saleValueGross
+                totSaleValueShort += saleValueShort
+                totSaleValueLong += saleValueLong
+                totSaleBasis += saleBasis
+                totSaleBasisShort += saleBasisShort
+                totSaleBasisLong += saleBasisLong
+                totSaleGains += saleGains
+                totSaleGainsShort += saleGainsShort
+                totSaleGainsLong += saleGainsLong
 
-                totSaleShares += (saleShares)
-                totSaleSharesShort += (saleSharesShort)
-                totSaleSharesLong += (saleSharesLong)
-                totSaleValue += (saleValueGross)
-                totSaleValueShort += (saleValueShort)
-                totSaleValueLong += (saleValueLong)
-                totSaleBasis += (saleBasis)
-                totSaleBasisShort += (saleBasisShort)
-                totSaleBasisLong += (saleBasisLong)
-                totSaleGains += (saleGains)
-                totSaleGainsShort += (saleGainsShort)
-                totSaleGainsLong += (saleGainsLong)
+                totSaleValueTarget += saleValueGrossTarget
+                totSaleValueShortTarget += saleValueShortTarget
+                totSaleValueLongTarget += saleValueLongTarget
+                totSaleBasisTarget += saleBasisTarget
+                totSaleBasisShortTarget += saleBasisShortTarget
+                totSaleBasisLongTarget += saleBasisLongTarget
+                totSaleGainsTarget += saleGainsTarget
+                totSaleGainsShortTarget += saleGainsShortTarget
+                totSaleGainsLongTarget += saleGainsLongTarget
 
-            result = self.HoldCapitalGainTotal(self, self.getSecAccount(), self.asOfDate, dateRange,
-                                               totSaleShares, totSaleSharesShort, totSaleSharesLong,
-                                               totSaleValue,  totSaleValueShort,  totSaleValueLong,
-                                               totSaleBasis,  totSaleBasisShort,  totSaleBasisLong,
-                                               totSaleGains,  totSaleGainsShort, totSaleGainsLong)
-            if self.COST_DEBUG: myPrint("B", ">>>> Calculated gains for '%s', DR: '%s' Result:" %(self.getSecAccount(), dateRange), result)
-            return result
+            # no txn as this is grand total of gains for the range...
+            result = CapitalGainResult(
+                self.getSecAccount(), self.asOfDate, dateRange,
+                totSaleShares, totSaleSharesShort, totSaleSharesLong,
+                0, 0, 0,
+                totSaleValue, totSaleValueShort, totSaleValueLong,
+                totSaleBasis, totSaleBasisShort, totSaleBasisLong,
+                totSaleGains, totSaleGainsShort, totSaleGainsLong,
+                not self.isCostBasisInvalid(), False, True, None,
+                "cost_basis_invalid" if self.isCostBasisInvalid() else None)
+
+            resultTarget = CapitalGainResult(
+                self.getSecAccount(), self.asOfDate, dateRange,
+                totSaleShares, totSaleSharesShort, totSaleSharesLong,
+                0, 0, 0,
+                totSaleValueTarget, totSaleValueShortTarget, totSaleValueLongTarget,
+                totSaleBasisTarget, totSaleBasisShortTarget, totSaleBasisLongTarget,
+                totSaleGainsTarget, totSaleGainsShortTarget, totSaleGainsLongTarget,
+                not self.isCostBasisInvalid(), False, True, None,
+                "cost_basis_invalid" if self.isCostBasisInvalid() else None)
+
+            if self.COST_DEBUG:
+                myPrint("B", ">>>> Calculated %sgains for '%s', DR: '%s' Investment Currency: '%s' Result:"
+                        %("(INVALID COST BASIS) " if self.isCostBasisInvalid() else "", self.getSecAccount(), dateRange, self.investCurr), result)
+                if not localIsTarget:
+                    myPrint("B", ">>>> Calculated %sgains for '%s', DR: '%s' >> toCurrency: '%s' valuationDate: %s Result:"
+                            %("(INVALID COST BASIS) " if self.isCostBasisInvalid() else "", self.getSecAccount(), dateRange, toCurrency, valuationDate), resultTarget)
+
+            return result if localIsTarget else resultTarget
 
         def getGainInfo(self, saleTxn):
             # type: (AbstractTxn) -> CapitalGainResult
@@ -3826,10 +3997,10 @@ Visit: %s (Author's site)
                 myPrint("B", "you must supply a sale txn; returning Invalid/Zeros")
                 return CapitalGainResult("sale_txn_not_specified")
             for pos in self.getPositions():                                                                             # type: MyCostCalculation.Position
-                if (pos.getTxn() is not None and pos.getTxn() is saleTxn):
+                if (pos.getTxn() is not None and pos.getTxn() == saleTxn):
                     return self.calculateGainsForPos(pos)
             myPrint("B", "unable to find position for txn :%s; returning Invalid/Zeros" %(saleTxn))
-            return CapitalGainResult("sale_txn_posn_not_found")
+            return CapitalGainResult(saleTxn, "sale_txn_posn_not_found")
 
         def calculateGainsForPos(self, pos):
             # type: (MyCostCalculation.Position) -> CapitalGainResult
@@ -3839,10 +4010,12 @@ Visit: %s (Author's site)
             gidv = self.investCurr.getDoubleValue
             gsdv = self.secCurr.getDoubleValue
 
-            if pos.getSharesAdded() == 0: return CapitalGainResult("sell_zero_shares_assume_no_gain")
+            # Note: we are flagging a sell zero shares txn as invalid (it adjusts the cost basis, and is not a gain)
+            if pos.getSharesAdded() == 0: return CapitalGainResult(pos.getTxn(), "sell_zero_shares_assume_no_gain")
+
+            isUnmatchedSell = self.isUnmatchedSellTxn(pos.getTxn())
 
             messageKey = None
-            # if (pos.getSharesAdded() < 0 and pos.getSharesOwnedAsOfAsOf() <= pos.getSharesAdded()):
             if (pos.getSharesAddedAsOfAsOf() < 0 and pos.getSharesOwnedAsOfAsOf() < 0):
                 messageKey = "sell_short"       # Short sale: sold shares we didn't have
                 if self.COST_DEBUG: myPrint("B", ".... sell_short (sharesAdded: %s, sharesAddedAsOfAsOf: %s, sharesOwnedAsOfAsOf: %s"
@@ -3864,11 +4037,8 @@ Visit: %s (Author's site)
                     longTermCostBasis += buy.getCostBasisAllocated()
 
             # go through all transactions and add up all of the shares that were purchased
-            # posIdx = self.getPositions().indexOf(pos)
-            # previousPosition = self.getPositions().get(posIdx - 1) if (posIdx > 0) else self.getPositions().get(0)      # type: MyCostCalculation.Position
-            # costBasis = self.investCurr.getLongValue(self.secCurr.getDoubleValue(-pos.getSharesAdded()) * pos.getPreviousPos().getBasisPrice()) + pos.getFee()
-
-            longProportion = 0.0 if (pos.getSharesAdded() == 0) else (float(longTermSharesSold) / (longTermSharesSold + shortTermSalesSold))
+            denominator = float(longTermSharesSold + shortTermSalesSold)
+            longProportion = 0.0 if (denominator == 0.0) else float(longTermSharesSold) / denominator
 
             saleFeeLongTermProportion = Math.round(pos.getFee() * longProportion)
             if self.COST_DEBUG: myPrint("B", "...>>>> pos.getSharesAdded(): %s, longTermSharesSold: %s, shortTermSalesSold: %s = longProportion: %s,  pos.getFee(): %s, saleFeeLongTermProportion: %s"
@@ -3880,7 +4050,9 @@ Visit: %s (Author's site)
                 longTermCostBasis = Math.round(-(pos.getCostBasis()) * longProportion)      # Exclude sales fee at this point....
                 if self.COST_DEBUG: myPrint("B", "....... longTermCostBasis (excl. sale fee) recalculated to: %s" %(gidv(longTermCostBasis)))
 
-            # NOTE: MD puts the whole sale fee into short-term if there are any short term sales (this code copies that). Do the same for avg cost too...
+            # NOTE: MD puts the whole sale fee into short-term if there are any short term sales. Do the same for avg cost too.
+            # (this improves the tax position) - otherwise the fee is split according to the short/long-term ratio. Previously,
+            # the old InvestUtil.getLotBasedCostCapGain() would only add the fee to the long-term basis.
             longCostBasis = longTermCostBasis + (saleFeeLongTermProportion if shortTermSalesSold == 0 else 0)
             shortCostBasis = costBasis - longCostBasis
 
@@ -3888,74 +4060,46 @@ Visit: %s (Author's site)
             # longCostBasis = longTermCostBasis + saleFeeLongTermProportion;
             # shortCostBasis = costBasis - longCostBasis
 
+            # st/lt available only used for (the now obsolete) U.S. IRS double-category reporting
+            # only applies to average cost based shares... Use -1 when lot based...
             previousPosShrsOwnedAdjusted = self.secCurr.adjustValueForSplitsInt(pos.getPreviousPos().getDate(), pos.getPreviousPos().getSharesOwnedAsOfThisTxn(), pos.getDate())
-            longTermAvailShares = Math.round(float(previousPosShrsOwnedAdjusted) * longProportion)   # Only used for (the now obsolete) U.S. IRS double-category reporting with avg cost (not currently shown by CB)
-            shortTermAvailShares = previousPosShrsOwnedAdjusted - longTermAvailShares                # Only used for (the now obsolete) U.S. IRS double-category reporting with avg cost (not currently shown by CB)
+            longTermAvailShares = Math.round(float(previousPosShrsOwnedAdjusted) * longProportion) if self.getUsesAverageCost() else -1
+            shortTermAvailShares = (previousPosShrsOwnedAdjusted - longTermAvailShares) if self.getUsesAverageCost() else -1
+
             if self.COST_DEBUG:
                 if self.getUsesAverageCost():
                     if self.COST_DEBUG: myPrint("B", "...... (US IRS 'double-category' st/lt pools prior to this sale (as at the date of this sale): shortTermAvailShares: %s, longTermAvailShares: %s = shares owned: %s)"
                                                       %(gsdv(shortTermAvailShares), gsdv(longTermAvailShares), gsdv(pos.getPreviousPos().getSharesOwnedAsOfThisTxn())))
 
-            result = CapitalGainResult(costBasis, shortCostBasis, longCostBasis, shortTermSalesSold, longTermSharesSold, shortTermAvailShares, longTermAvailShares, messageKey)
+            totSaleSharesAvailable = -1L if (shortTermAvailShares == -1L and longTermAvailShares == -1L) else (shortTermAvailShares + longTermAvailShares)
+
+            result = CapitalGainResult(
+                            None, None, None,
+                            (shortTermSalesSold + longTermSharesSold), shortTermSalesSold, longTermSharesSold,
+                            totSaleSharesAvailable, shortTermAvailShares, longTermAvailShares,
+                            0L, 0L, 0L,
+                            costBasis, shortCostBasis, longCostBasis,
+                            0L, 0L, 0L,
+                            not isUnmatchedSell, True, False, pos.getTxn(),
+                            "cost_basis_invalid" if isUnmatchedSell else messageKey)
+
             if self.COST_DEBUG: myPrint("B", "... calculated gain for '%s' from position " %(self.getSecAccount()), pos, "\nprevious position:", pos.getPreviousPos(), "\n-->", result)
 
             return result
 
         class SharesOwnedAsOf:
-            def __init__(self, secAccount, asOfDate, sharesOwnedAsOf, costBasisAsOf):
+            def __init__(self, secAccount, asOfDate, sharesOwnedAsOf, costBasisAsOf, isCostBasisValid=True):
                 self.secAccount = secAccount
                 self.asOfDate = asOfDate
                 self.sharesOwnedAsOf = sharesOwnedAsOf
                 self.costBasisAsOf = costBasisAsOf
+                self._isCostBasisValid = isCostBasisValid
+
             def getSecAccount(self): return self.secAccount
             def getAsOfDate(self): return self.asOfDate
             def getSharesOwnedAsOf(self): return self.sharesOwnedAsOf
             def getCostBasisAsOf(self): return self.costBasisAsOf
-
-        class HoldCapitalGainTotal:
-            def __init__(self, callingClass,
-                         secAcct, asofDateInt, selectedDateRange,
-                         totSaleShares, totSaleSharesShort, totSaleSharesLong,
-                         totSaleValue,  totSaleValueShort,  totSaleValueLong,
-                         totSaleBasis,  totSaleBasisShort,  totSaleBasisLong,
-                         totSaleGains,  totSaleGainsShort,  totSaleGainsLong):
-                # type: (MyCostCalculation, Account, int, DateRange, int, int, int, int, int, int, int, int, int, int, int, int) -> None
-                self.callingClass = callingClass
-                self.secAcct = secAcct
-                self.asofDateInt = asofDateInt
-                self.selectedDateRange = selectedDateRange
-                self.totSaleShares = totSaleShares
-                self.totSaleSharesShort = totSaleSharesShort
-                self.totSaleSharesLong = totSaleSharesLong
-                self.totSaleValue = totSaleValue
-                self.totSaleValueShort = totSaleValueShort
-                self.totSaleValueLong = totSaleValueLong
-                self.totSaleBasis = totSaleBasis
-                self.totSaleBasisShort = totSaleBasisShort
-                self.totSaleBasisLong = totSaleBasisLong
-                self.totSaleGains = totSaleGains
-                self.totSaleGainsShort = totSaleGainsShort
-                self.totSaleGainsLong = totSaleGainsLong
-
-            def toString(self):
-                gidv = self.callingClass.investCurr.getDoubleValue
-                gsdv = self.callingClass.secCurr.getDoubleValue
-                i = 14
-                strTxt = ("HoldCapitalGainTotal: asof: %s, dateRange: '%s' "
-                          "totSaleShares: %s (short: %s, long: %s), "
-                          "totSaleValue:  %s (short: %s, long: %s), "
-                          "totSaleBasis:  %s (short: %s, long: %s), "
-                          "totSaleGains:  %s (short: %s, long: %s) "
-                          "- secAcct: '%s'"
-                          %(pad(self.asofDateInt, 8),   pad(self.selectedDateRange, 20),
-                            rpad(gsdv(self.totSaleShares),i), rpad(gsdv(self.totSaleSharesShort),i), rpad(gsdv(self.totSaleSharesLong),i),
-                            rpad(gidv(self.totSaleValue),i),  rpad(gidv(self.totSaleValueShort),i),  rpad(gidv(self.totSaleValueLong),i),
-                            rpad(gidv(self.totSaleBasis),i),  rpad(gidv(self.totSaleBasisShort),i),  rpad(gidv(self.totSaleBasisLong),i),
-                            rpad(gidv(self.totSaleGains),i),  rpad(gidv(self.totSaleGainsShort),i),  rpad(gidv(self.totSaleGainsLong),i),
-                            self.secAcct))
-                return strTxt
-            def __str__(self):  return self.toString()
-            def __repr__(self): return self.toString()
+            def isCostBasisValid(self): return self._isCostBasisValid
 
         class Position:
             def __init__(self, callingClass, txn=None, previousPosition=None):
@@ -4013,6 +4157,8 @@ Visit: %s (Author's site)
 
                     # Next two lines.... SCB: MD2024(5118) fix (for avg cost, buy 60, split 7:1, sell 20, split 4:1 issue)
                     sellCost = Math.round(float(txnShares) * runningAvgPrice)
+
+                    # note: previousPosition is always non-None for a SELL (dummy start Position guarantees this)
                     sellCost = self.callingClass.secCurr.unadjustValueForSplitsInt(previousPosition.getDate(), sellCost, self.getDate())
 
                     # SCB: MD2024(5118) fix - previously checked 'if (sellCost == 0L)'
@@ -4052,6 +4198,14 @@ Visit: %s (Author's site)
 
                 if self.callingClass.COST_DEBUG: myPrint("B", "@@ Added Position:", self)
 
+            def actualCostBasisImpact(self):
+                # type: () -> int
+                if self.previousPos is None: return None                        # Probably on the initial 'dummy' position
+                if self.txn is None: return None                                # Should never happen - logic error
+                if self.callingClass.isUnmatchedSellTxn(self.txn): return None  # Sell txn that caused invalid cost basis
+                if not self.sellTxn and not self.buyTxn and self.sharesAdded == 0L and self.costBasis == 0L: return None  # e.g. dividend - has no bearing on cost
+                return self.runningCost - self.previousPos.getRunningCost()
+
             def getPreviousPos(self): return self.previousPos
             def isSellTxn(self): return self.sellTxn
             def isBuyTxn(self): return self.buyTxn
@@ -4068,7 +4222,7 @@ Visit: %s (Author's site)
 
             def getSharesOwnedAsOfThisTxn(self):
                 # type: () -> int
-                """This is the running total of all shares owned adjusted only up to the date of this txn (i.e. not the number of shares adjsted to the asof date)"""
+                """This is the running total of all shares owned adjusted only up to the date of this txn (i.e. not the number of shares adjusted to the asof date)"""
                 return self.sharesOwnedAsOfThisTxn
 
             def getSharesAdded(self):
@@ -4132,18 +4286,19 @@ Visit: %s (Author's site)
             def toString(self):
                 # type: () -> String
                 i = 12
-                isBuy = (self.getSharesAdded() > 0)
                 sb = StringBuilder()
                 sb.append(pad(self.getDate(), 8))
-                sb.append("\t").append(pad("buy:" if isBuy else "sell:",5)).append(rpad(self.callingClass.secCurr.formatSemiFancy(Math.abs(self.getSharesAdded()), '.'), i))
+                sb.append("\t").append(pad("buy:" if self.isBuyTxn() else "sell:",5)).append(rpad(self.callingClass.secCurr.formatSemiFancy(Math.abs(self.getSharesAdded()), '.'), i))
                 sb.append("\tfee:").append(rpad(self.callingClass.investCurr.formatSemiFancy(self.getFee(), '.'), i))
                 sb.append("\tcostBasis: ").append(rpad(self.callingClass.investCurr.formatSemiFancy(self.getCostBasis(), '.'),i))
                 sb.append("\ttotcost: ").append(rpad(self.callingClass.investCurr.formatSemiFancy(self.getRunningCost(), '.'),i))
+                actualCBI = self.actualCostBasisImpact()
+                sb.append("\tactualCostBasisImpact: ").append(rpad(self.callingClass.investCurr.formatSemiFancy(actualCBI, '.') if actualCBI is not None else "null", i))
                 if (self.getSharesAdded() != 0):
                     sb.append("\tprice: ").append(rpad(self.callingClass.investCurr.getDoubleValue(self.getCostBasis()) / self.callingClass.secCurr.getDoubleValue(self.getSharesAdded()),i))
                 else:
                     sb.append("\tprice: ").append(pad("",i))
-                sb.append("\ttotshrs (asof asof): ").append(rpad(self.callingClass.secCurr.formatSemiFancy(self.getSharesOwnedAsOfAsOf(), '.'),i))
+                sb.append("\ttotshrs: ").append(rpad(self.callingClass.secCurr.formatSemiFancy(self.getSharesOwnedAsOfAsOf(), '.'),i))
 
                 if (self.getBuyAllocations().size() > 0):
                     sb.append("\n  buys:\n")
@@ -4221,11 +4376,123 @@ Visit: %s (Author's site)
                           %(pad(self.allocatedPosition.getDate(), 8),
                             rpad(self.callingClass.secCurr.format(self.getSharesAllocated(), '.'), i),
                             rpad(price, i),
-                            rpad(self.callingClass.secCurr.getDoubleValue(self.getSharesAllocated()) * price, i),
+                            rpad(self.callingClass.secCurr.getDoubleValue(self.getSharesAllocated()) * self.allocatedPosition.price(True), i),
                             rpad(self.callingClass.secCurr.format(self.getSharesAllocatedAdjusted(), '.'), i)))
                 return strTxt
             def __str__(self):  return self.toString()
             def __repr__(self): return self.toString()
+
+        @staticmethod
+        def isCostBasisValid(sec, debug=False):                                                                         # noqa
+            # type: (Account, bool) -> bool
+            unmatchedSaleLots = MyCostCalculation.getInvalidLotMatchSellTxns(sec=sec, txns=None, failFast=True, debug=debug)
+            return unmatchedSaleLots is None or len(unmatchedSaleLots) < 1
+
+        @staticmethod
+        def getInvalidLotMatchSellTxns(sec, txns=None, failFast=False, debug=False):                                    # noqa
+            # type: (Account, TxnSet, bool, bool) -> [SplitTxn]
+
+            if debug: myPrint("B", "debugging MyCostCalculation::getInvalidLotMatchSellTxns for '%s' method: '%s' >> validating....."
+                              %(sec, "average cost" if sec.getUsesAverageCost() else "lot control"))
+
+            unmatchedSaleLots = LinkedHashSet()
+            isValid = True
+
+            if not sec.getUsesAverageCost():
+                buyTxnIDtoSellTxnsMap = HashMap()
+                curr = sec.getCurrencyType()
+                buyTxnSet = TxnSet()
+                sellTxnSet = TxnSet()
+                allValidBuysList = Hashtable()
+                tSet = sec.getBook().getTransactionSet()
+                txnSet = txns if isinstance(txns, TxnSet) else tSet.getTransactionsForAccount(sec)
+
+                for i in range(0, txnSet.getSize()):
+                    absTxn = txnSet.getTxn(i)
+                    txnType = absTxn.getParentTxn().getInvestTxnType()
+
+                    if txnType in [InvestTxnType.BUY, InvestTxnType.SELL, InvestTxnType.BUY_XFER, InvestTxnType.SELL_XFER]:
+                        split = TxnUtil.getSecurityPart(absTxn.getParentTxn())
+                        if split is None: continue
+                        if split.getSplitAmount() > 0:
+                            buyTxnSet.addTxn(split)
+                        elif split.getSplitAmount() < 0:
+                            sellTxnSet.addTxn(split)
+                        else:
+                            myPrint("B", "... ignoring '%s' for zero shares.. split.dateInt: %s split.parentAmount: %s" %(txnType, split.getDateInt(), split.getParentAmount()))
+
+                    elif txnType in [InvestTxnType.DIVIDEND, InvestTxnType.DIVIDEND_REINVEST]:
+                        split = TxnUtil.getSecurityPart(absTxn.getParentTxn())
+                        if split is None: continue
+                        if split.getSplitAmount() > 0:
+                            buyTxnSet.addTxn(split)
+
+                for i in range(0, sellTxnSet.getSize()):
+                    stxn = sellTxnSet.getTxn(i)
+                    shares = abs(stxn.getValue())
+
+                    checkNumShares = TxnUtil.getNumShares(txnSet, stxn)
+                    if debug: myPrint("B", "... stxn.dateInt: %s txn shares: %s validated saved matched shares: %s" %(stxn.getDateInt(), shares, checkNumShares))
+
+                    if shares != checkNumShares:
+                        isValid = False
+                        unmatchedSaleLots.add(stxn)
+                        if debug: myPrint("B", "... shares: %s != checkNumShares: %s - result: %s" %(shares, checkNumShares, isValid))
+                        if failFast: return list(unmatchedSaleLots)
+                        continue
+
+                    sellTxnBuyTable = TxnUtil.parseCostBasisTag(stxn)
+                    if sellTxnBuyTable is None:
+                        isValid = False
+                        unmatchedSaleLots.add(stxn)
+                        if debug: myPrint("B", "... sellTxnBuyTable is null...  result: %s" %(isValid))
+                        if failFast: return list(unmatchedSaleLots)
+                        continue
+
+                    for txnID in sellTxnBuyTable.keySet():
+                        plusValue = sellTxnBuyTable.get(txnID)
+                        existingValue = allValidBuysList.get(txnID)
+                        if existingValue is not None:
+                            adjustedShares = curr.adjustValueForSplitsInt(stxn.getDateInt(), plusValue)
+                            newValue = existingValue + adjustedShares                                                   # noqa
+                            allValidBuysList.put(txnID, newValue)
+                        else:
+                            allValidBuysList.put(txnID, curr.adjustValueForSplitsInt(stxn.getDateInt(), sellTxnBuyTable.get(txnID)))
+
+                        existingSells = buyTxnIDtoSellTxnsMap.get(txnID)
+                        if existingSells is None:
+                            existingSells = HashSet()
+                            buyTxnIDtoSellTxnsMap.put(txnID, existingSells)
+                        existingSells.add(stxn)
+
+                for txnID in allValidBuysList.keySet():
+                    numShares = allValidBuysList.get(txnID)
+                    txn = TxnUtil.getTxnByID(buyTxnSet, txnID)
+                    if txn is None:
+                        isValid = False
+                        relatedSells = buyTxnIDtoSellTxnsMap.get(txnID)
+                        if relatedSells is not None:
+                            for s in relatedSells: unmatchedSaleLots.add(s)
+                        if debug: myPrint("B", "... txnID: '%s' from allValidBuysList not found in buyTxnSet...  result: %s" %(txnID, isValid))
+                        if failFast: return list(unmatchedSaleLots)
+                        continue
+
+                    valueAdjusted = curr.adjustValueForSplitsInt(txn.getDateInt(), txn.getValue())
+                    if valueAdjusted < numShares:
+                        isValid = False
+                        relatedSells = buyTxnIDtoSellTxnsMap.get(txnID)
+                        if relatedSells is not None:
+                            for s in relatedSells: unmatchedSaleLots.add(s)
+                        if debug: myPrint("B", "... txnId '%s' from allValidBuysList - txn.date: %s txn.value: %s adjustValueForSplitsInt: %s < numShares: %s result: %s"
+                                          %(txnID, txn.getDateInt(), txn.getValue(), valueAdjusted, numShares, isValid))
+                        if failFast: return list(unmatchedSaleLots)
+                        continue
+
+                    if debug: myPrint("B", "... txn.date: %s txn.value: %s adjustValueForSplitsInt: %s numShares: %s result: %s"
+                                      %(txn.getDateInt(), txn.getValue(), valueAdjusted, numShares, isValid))
+
+            if debug: myPrint("B", "... result: %s" %(isValid))
+            return list(unmatchedSaleLots) if (unmatchedSaleLots.size() > 0) else None
     ####################################################################################################################
 
 
@@ -13030,9 +13297,6 @@ Visit: %s (Author's site)
                                             asOfDate = GlobalVars.saved_securityBalancesDate_ESB
                                             effectiveDateInt = None if (asOfDate == todayInt) else asOfDate
 
-                                        # note: whilst CostCalculation was upgraged in MD2026(5500), this should not affect
-                                        # this usage (i.e. get the cost basis using as-of date). The main fixes were for
-                                        # capital gains and currency conversion.
                                         costCalculationBal = MyCostCalculation(securityAcct, asOfDate, None, False)  # True replicates InvestUtil.getCostBasis(securityAcct) - i.e. Balance (not Current Balance)
 
                                         sharesAndCostBasisForAsOf = costCalculationBal.getSharesAndCostBasisForAsOf()
