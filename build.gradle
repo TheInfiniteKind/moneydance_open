@@ -462,8 +462,8 @@ tasks.register("newUserInit") {
     }
 
     // set key file paths relative to userconfig/
-    def privKeyPath = "${userConfigPath}/${privKeyID}.priv"
-    def pubKeyPath = "${userConfigPath}/${privKeyID}.pub"
+    def privKeyPath = "${userConfigPath}/priv_key"
+    def pubKeyPath = "${userConfigPath}/pub_key"
 
     // write user.gradle.properties with placeholder keypass and key file paths
     propsFile.text =
