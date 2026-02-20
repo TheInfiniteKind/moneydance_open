@@ -73,7 +73,7 @@ ext {
 // set flag to let subordinate gradle scripts know that the master script is executing
 def gradlePath = "${project.rootDir}/gradle"
 ext.executingMainBuild = true
-apply from: rootProject.file("${gradlePath}/usage.gradle")
+apply from: rootProject.file("${gradlePath}/usage.gradle.kts")
 
 defaultTasks "verifyConfig"
 
@@ -112,7 +112,7 @@ if (localPropsFile) {
   p.each { k, v -> project.ext.set(k.toString(), v) }
   ext.userConfigFile = localPropsFile
   ext.userConfigPath = localPropsFile.parent
-  logger.lifecycle(">>> user properties found/loaded - file: ${localPropsFile}")
+  logger.lifecycle(">>> user properties found/loaded - file: ${userConfigFile}")
 } else {
   ext.userConfigFile = null
   ext.userConfigPath = "${project.rootDir}/userconfig"  // default fallback so userConfigPath is always defined
@@ -158,7 +158,6 @@ ext.keyPassValue = keyPassValue
 ext.extPrivKeyFile = extPrivKeyFile
 ext.extPubKeyFile = extPubKeyFile
 ext.privKeyID = privKeyID
-ext.userConfigPath = userConfigPath
 ext.gradlePath = gradlePath.toString()
 
 ext.moneydanceChecked = false // we use this to check the classpath for moneydance jar class only once
@@ -495,11 +494,9 @@ tasks.register("newUserInit") {
 tasks.register("verifyConfig") {
   group = "INFO"
   description = "Show usage, display settings, validate paths"
-  dependsOn("ensureUserConfig")
+  dependsOn("ensureUserConfig", "printUsage")
 
   doLast {
-
-    printUsage()
 
     logger.lifecycle("")
     logger.lifecycle("Verify Config: configuration + path checks")
@@ -522,6 +519,10 @@ tasks.register("verifyConfig") {
     } else {
       logger.lifecycle("optional md_ext_lib_dir (library override) <not specified>")
     }
+
+    logger.lifecycle("")
+    logger.lifecycle(">>> user properties found/loaded - file: ${userConfigFile ?: '<none found>'}")
+    logger.lifecycle("")
 
     logger.lifecycle("src = ${srcPath}")
     logger.lifecycle("lib = ${libPath}")
