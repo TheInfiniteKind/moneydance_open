@@ -52,6 +52,13 @@ tasks.register("compile_reportwriter") {
   group = "other"
   description = "compile reportwriter"
   dependsOn("reportwriterClasses", "mrbutilClasses", "loadsectransClasses")
+  doFirst {
+    logger.lifecycle("${path} - required jar files --------------------------------------")
+    reportwriterLibs.each {
+      logger.lifecycle("required jar: ${it.absolutePath} ${it.exists() ? ' - found' : ' - MISSING'}")
+    }
+    logger.lifecycle("-------------------------------------------------------------------")
+  }
 }
 tasks.register("jar_reportwriter", Jar) {
   dependsOn("compile_reportwriter")

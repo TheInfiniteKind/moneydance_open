@@ -286,7 +286,7 @@ def requireMoneydanceClass = { Map args = [:] ->
     logger.lifecycle("------------------")
     logger.lifecycle("Classpath resolution order:")
     ordered.eachWithIndex { jar, i ->
-      logger.lifecycle("  ${i + 1}. ${jar.absolutePath}")
+      logger.lifecycle("  ${i + 1}. ${jar.absolutePath}${if (jar.exists()) "" else " (MISSING)"}")
     }
     logger.lifecycle("")
     logger.lifecycle("Found ${classPath} in ${foundIn.size()} jar(s):")
