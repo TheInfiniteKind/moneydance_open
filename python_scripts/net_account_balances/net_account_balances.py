@@ -103,6 +103,7 @@ assert isinstance(0/1, float), "LOGIC ERROR: Custom Balances extension assumes t
 # build: 2000 - ???
 # build: 2000 - Upgraded CostCalculation to v10 to match MD2026(5500)
 # build: 2000 - BUGFIX for gatherRemainingRealBalances() - now when getting capital gains, we detect and pass the row currency and set setSpecialCurrencyType()
+# build: 2000 - misc AI fixes...
 # build: 2000 - ???
 
 # todo - tweak getConvertXBalanceRecursive() and getXBalance() to also exclude inactives from recursive balances (like apply networth rules)
@@ -9841,8 +9842,7 @@ Visit: %s (Author's site)
                 return False
 
             result = NAB.FILTER_FORMULA_EXPR_REGEX_WORDS.findall(checkString)        # Check for non-allowed words aka methods
-            if debug:
-                myPrint("B", "@@ confirmEvalExprValid('%s') found %s words: %s" %(checkString, len(result), result))
+            if debug: myPrint("B", "@@ confirmEvalExprValid('%s') found %s words: %s" %(checkString, len(result), result))
             if len(result) < 1: return True
             for foundWord in result:
                 word = foundWord[:-1]
@@ -9911,7 +9911,7 @@ Visit: %s (Author's site)
                 _result = None
                 for arg in args:
                     if not isinstance(arg, (int, float, long)): raise TypeError("CB's abs() requires int, long, float parameters (%s given)" %(type(arg)))
-                    myPrint("B", "... result:", Math.abs(float(arg)))
+                    if debug: myPrint("B", "... result:", Math.abs(float(arg)))
                     _result = Math.abs(float(arg))
                     break
                 # myPrint("B", "_abs result: %s" %(_result))
@@ -9942,7 +9942,7 @@ Visit: %s (Author's site)
                 value = args[0]
                 compare = args[1]
                 if not isinstance(value, (int, float, long)): raise TypeError("CB's useifeq() requires int, long, float value 1st parameter (%s given)" %(type(value)))
-                if not isinstance(value, (int, float, long)): raise TypeError("CB's useifeq() requires int, long, float compare 2nd parameter (%s given)" %(type(compare)))
+                if not isinstance(compare, (int, float, long)): raise TypeError("CB's useifeq() requires int, long, float compare 2nd parameter (%s given)" %(type(compare)))
                 value = float(value)
                 compare = float(compare)
                 _result = value if (value == compare) else 0.0
@@ -9954,7 +9954,7 @@ Visit: %s (Author's site)
                 value = args[0]
                 compare = args[1]
                 if not isinstance(value, (int, float, long)): raise TypeError("CB's useifneq() requires int, long, float value 1st parameter (%s given)" %(type(value)))
-                if not isinstance(value, (int, float, long)): raise TypeError("CB's useifneq() requires int, long, float compare 2nd parameter (%s given)" %(type(compare)))
+                if not isinstance(compare, (int, float, long)): raise TypeError("CB's useifneq() requires int, long, float compare 2nd parameter (%s given)" %(type(compare)))
                 value = float(value)
                 compare = float(compare)
                 _result = value if (value != compare) else 0.0
@@ -9966,7 +9966,7 @@ Visit: %s (Author's site)
                 value = args[0]
                 compare = args[1]
                 if not isinstance(value, (int, float, long)): raise TypeError("CB's useifgt() requires int, long, float value 1st parameter (%s given)" %(type(value)))
-                if not isinstance(value, (int, float, long)): raise TypeError("CB's useifgt() requires int, long, float compare 2nd parameter (%s given)" %(type(compare)))
+                if not isinstance(compare, (int, float, long)): raise TypeError("CB's useifgt() requires int, long, float compare 2nd parameter (%s given)" %(type(compare)))
                 value = float(value)
                 compare = float(compare)
                 _result = value if (value > compare) else 0.0
@@ -9978,7 +9978,7 @@ Visit: %s (Author's site)
                 value = args[0]
                 compare = args[1]
                 if not isinstance(value, (int, float, long)): raise TypeError("CB's useifgte() requires int, long, float value 1st parameter (%s given)" %(type(value)))
-                if not isinstance(value, (int, float, long)): raise TypeError("CB's useifgte() requires int, long, float compare 2nd parameter (%s given)" %(type(compare)))
+                if not isinstance(compare, (int, float, long)): raise TypeError("CB's useifgte() requires int, long, float compare 2nd parameter (%s given)" %(type(compare)))
                 value = float(value)
                 compare = float(compare)
                 _result = value if (value >= compare) else 0.0
@@ -9990,7 +9990,7 @@ Visit: %s (Author's site)
                 value = args[0]
                 compare = args[1]
                 if not isinstance(value, (int, float, long)): raise TypeError("CB's useiflt() requires int, long, float value 1st parameter (%s given)" %(type(value)))
-                if not isinstance(value, (int, float, long)): raise TypeError("CB's useiflt() requires int, long, float compare 2nd parameter (%s given)" %(type(compare)))
+                if not isinstance(compare, (int, float, long)): raise TypeError("CB's useiflt() requires int, long, float compare 2nd parameter (%s given)" %(type(compare)))
                 value = float(value)
                 compare = float(compare)
                 _result = value if (value < compare) else 0.0
@@ -10002,7 +10002,7 @@ Visit: %s (Author's site)
                 value = args[0]
                 compare = args[1]
                 if not isinstance(value, (int, float, long)): raise TypeError("CB's useiflte() requires int, long, float value 1st parameter (%s given)" %(type(value)))
-                if not isinstance(value, (int, float, long)): raise TypeError("CB's useiflte() requires int, long, float compare 2nd parameter (%s given)" %(type(compare)))
+                if not isinstance(compare, (int, float, long)): raise TypeError("CB's useiflte() requires int, long, float compare 2nd parameter (%s given)" %(type(compare)))
                 value = float(value)
                 compare = float(compare)
                 _result = value if (value <= compare) else 0.0
@@ -10023,7 +10023,7 @@ Visit: %s (Author's site)
                 countInts = 0
                 for param in [param1, param2]:
                     if param is None: continue
-                    isParamInt = isinstance(param, int)
+                    isParamInt = isinstance(param, int)  # note: not checking long here as the number should not exceed yyyymmdd type format ints anyway...
                     isParamStr = isinstance(param, basestring)
                     if isParamInt: countInts += 1
                     if isParamStr: countStrs += 1
