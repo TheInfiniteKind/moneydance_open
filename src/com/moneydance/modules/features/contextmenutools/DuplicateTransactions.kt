@@ -17,6 +17,7 @@ import com.moneydance.awt.AwtUtil.getDialog
 import com.moneydance.awt.GridC
 import com.moneydance.awt.JDateField
 import com.moneydance.modules.features.contextmenutools.Main.Companion.mdGUI
+import com.moneydance.modules.features.contextmenutools.util.Util
 import java.awt.Dimension
 import java.awt.GridBagLayout
 import java.awt.event.ActionListener
@@ -233,7 +234,7 @@ class DuplicateTransactions: ContextMenuAction {
     
     win.window.addWindowListener(object : WindowAdapter() {
       override fun windowOpened(e: WindowEvent) {
-        mdGUI.adjustWindow(win, getDialog(win), Dimension(250, 125 + (if (showTaxDate) 50 else 0)), null, null)
+        mdGUI.adjustWindow(win, Util.getDialog(win), Dimension(250, 125 + (if (showTaxDate) 50 else 0)), null, null)
         dupFixedDateField.requestFocusInWindow()
       }
     })
@@ -305,7 +306,7 @@ class DuplicateTransactions: ContextMenuAction {
     
     win.window.addWindowListener(object : WindowAdapter() {
       override fun windowOpened(e: WindowEvent) {
-        mdGUI.adjustWindow(win, getDialog(win), Dimension(300, 200 + (if (showTaxDate) 25 else 0)), null, null)
+        mdGUI.adjustWindow(win, Util.getDialog(win), Dimension(300, 200 + (if (showTaxDate) 25 else 0)), null, null)
       }
     })
     
