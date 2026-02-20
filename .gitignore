@@ -11,7 +11,7 @@ lib/okio*.jar
 lib/plaid*.jar
 lib/commons*.jar
 MoneydanceOpen.iws
-$py.class
+*$py.class
 *.pyc
 !bin/repackage-jython
 .jython_cache
