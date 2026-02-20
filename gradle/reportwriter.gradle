@@ -8,7 +8,7 @@
 final Project p = project
 
 if (!p.ext.has("executingMainBuild")) {
-  throw new GradleException("reportwriter.gradle must be applied from build.gradle, not executed standalone!")
+  throw new GradleException("reportwriter.gradle must be applied from [ROOT]/build.gradle, not executed standalone!")
 }
 
 def mdJars = p.ext.mdJars
@@ -99,10 +99,10 @@ tasks.register("sign_reportwriter", JavaExec) {
 
     args(
         "signextjar",
-        p.ext.extPrivKeyFile,
+        file(p.ext.extPrivKeyFile).absolutePath,
         p.ext.privKeyID,
         "reportwriter",
-        "${distPath}/reportwriter.mxt"
+        file("${distPath}/reportwriter.mxt").absolutePath
     )
   }
 

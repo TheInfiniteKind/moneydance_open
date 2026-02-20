@@ -5,12 +5,12 @@
 */
 final Project p = project
 
-if (!p.ext.has("executingMainBuild")) { throw new GradleException("usage.gradle must be applied from build.gradle, not executed standalone!") }
+if (!p.ext.has("executingMainBuild")) { throw new GradleException("usage.gradle must be applied from [ROOT]/build.gradle, not executed standalone!") }
 
 ext.printUsage = {
   logger.lifecycle("")
   logger.lifecycle("-------------------------------------------------------------------------------------------------------------------------")
-  logger.lifecycle("Moneydance Gradle build - usage")
+  logger.lifecycle("Moneydance Gradle (wrapper) build - usage")
   logger.lifecycle("")
   logger.lifecycle("./gradlew verifyConfig         -> configuration + path checks (default)")
   logger.lifecycle("./gradlew <extensionname>      -> build & sign one extension - e.g. ")
@@ -25,8 +25,8 @@ ext.printUsage = {
   logger.lifecycle("./gradlew migrateAntUserConfig -> performs a one-time migration of ant properties/key file(s) to gradle (prompts to overwrite)")
   logger.lifecycle("")
   logger.lifecycle("Configuration files (in order of precedence):")
-  logger.lifecycle("  userconfig/user.gradle.properties   (user overrides - not committed to git)")
-  logger.lifecycle("  gradle/gradle.properties            (base set of properties - committed to git")
+  logger.lifecycle("  [ROOT]/userconfig/user.gradle.properties   (user overrides - not committed to git)")
+  logger.lifecycle("  [ROOT]/gradle.properties                   (base set of properties - committed to git")
   logger.lifecycle("")
   logger.lifecycle("Signing setup:")
   logger.lifecycle("  Set keypass=<your passphrase> in user.gradle.properties")

@@ -2,12 +2,13 @@
 Author: Stuart Beesley - February 2026
 
 This is Groovy DSL file
+This project uses gradle wrapper - aka gradlew
 
 build.gradle: gradle buildfile for Moneydance extensions
 - can build java, kotlin, mixed java/kotlin, and python extensions
 
-** REVIEW PROPERTIES IN /gradle/gradle.properties file
-** SET LOCAL/USER OVERRIDING PROPERTIES in /userconfig/user.gradle.properties
+** REVIEW PROPERTIES IN [ROOT]/gradle.properties file
+** SET LOCAL/USER OVERRIDING PROPERTIES in [ROOT]/userconfig/user.gradle.properties
 
 Execute ./gradlew                       to show usage
         ./gradlew extensionname         to build extension
@@ -16,7 +17,7 @@ Execute ./gradlew                       to show usage
         ./gradlew migrateAntUserConfig  to attempt to migrate legacy Ant settings to gradle user properties
 
 Notes:
-        - TO START either run migrateAntUserConfig, or create/edit user.gradle.properties and set keypass=xxx and then run genkeys
+        - TO START either run "migrateAntUserConfig", or create/edit "user.gradle.properties" and set "keypass=xxx" and then run task "genkeys"
 
         - Python packaging (with precompile) requires python2.7 installed
 
@@ -70,8 +71,9 @@ ext {
 }
 
 // set flag to let subordinate gradle scripts know that the master script is executing
+def gradlePath = "${project.rootDir}/gradle"
 ext.executingMainBuild = true
-apply from: rootProject.file("usage.gradle")
+apply from: rootProject.file("${gradlePath}/usage.gradle")
 
 defaultTasks "verifyConfig"
 
@@ -85,8 +87,10 @@ if (gradle.startParameter.configurationCacheRequested) {
   throw new GradleException("Configuration cache must be disabled in gradle.properties for this build - use: org.gradle.configuration-cache=false")
 }
 
+def userConfigPath = "${project.rootDir}/userconfig"
+
 // load user specific properties..
-def localPropsFile = file("../userconfig/user.gradle.properties")
+def localPropsFile = file("${userConfigPath}/user.gradle.properties")
 if (localPropsFile.exists()) {
   def p = new Properties()
   localPropsFile.withInputStream { p.load(it) }
@@ -113,7 +117,6 @@ def extPubKeyFile = project.property("extpubkeyfile")
 def privKeyID = project.property("privkeyid")
 def keyPassValue = project.findProperty("keypass")    // don't force keypass= to exist
 
-
 // export for imported gradle files
 ext.debug = debug
 ext.srcPath = srcPath
@@ -123,12 +126,14 @@ ext.keyPassValue = keyPassValue
 ext.extPrivKeyFile = extPrivKeyFile
 ext.extPubKeyFile = extPubKeyFile
 ext.privKeyID = privKeyID
+ext.userConfigPath = userConfigPath
+ext.gradlePath = gradlePath
 
 ext.moneydanceChecked = false // we use this to check the classpath for moneydance jar class only once
 
 // common keypass, priv/pub file(s) missing validation code block
 ext.requireSigningInputs = {
-  if (!keyPassValue?.toString()?.trim()) throw new GradleException("\n*****\nERROR - keypass must be set in: ../userconfig/user.gradle.properties\n*****\n")
+  if (!keyPassValue?.toString()?.trim()) throw new GradleException("\n*****\nERROR - keypass must be set in: ${userConfigPath}/user.gradle.properties\n*****\n")
   if (!file(extPrivKeyFile).exists()) throw new GradleException("\n*****\nERROR - Missing private key file: ${extPrivKeyFile} (run genkeys)\n*****\n")
   if (!file(extPubKeyFile).exists()) throw new GradleException("\n*****\nERROR - Missing public key file: ${extPubKeyFile} (run genkeys)\n*****\n")
 }
@@ -358,13 +363,13 @@ tasks.register("verifyPython27") {
 
 tasks.register("ensureUserConfig") {
   group = "TOOLS"
-  description = "Ensure ../userconfig folder exists (create if missing, does nothing if already exists)"
-  outputs.dir("../userconfig")
+  description = "Ensure ${userConfigPath} folder exists (create if missing, does nothing if already exists)"
+  outputs.dir("${userConfigPath}")
   doLast {
-    def dir = file("../userconfig")
+    def dir = file("${userConfigPath}")
     if (!dir.exists()) {
       dir.mkdirs()
-      logger.lifecycle("[INFO] ../userconfig folder created...")
+      logger.lifecycle("[INFO] ${userConfigPath} folder created...")
     }
   }
 }
@@ -372,10 +377,10 @@ tasks.register("ensureUserConfig") {
 tasks.register("ensureUserProperties") {
   group = "TOOLS"
   description = "Create new user.gradle.properties file (does nothing if already exists)"
-  outputs.file(file("../userconfig/user.gradle.properties"))
+  outputs.file(file("${userConfigPath}/user.gradle.properties"))
   dependsOn("ensureUserConfig")
   doLast {
-    def dir = file("../userconfig")
+    def dir = file("${userConfigPath}")
     def propsFile = new File(dir, "user.gradle.properties")
     if (!propsFile.exists()) {
       propsFile.text =
@@ -538,8 +543,8 @@ tasks.register("genkeys", JavaExec) {
 
   args(
       "genkey",
-      extPrivKeyFile,
-      extPubKeyFile
+      file(extPrivKeyFile).absolutePath,
+      file(extPubKeyFile).absolutePath
   )
 
   standardInput = System.in   // <-- REQUIRED for keyboard input
@@ -584,8 +589,8 @@ tasks.register("genkeys", JavaExec) {
 ////////////////////// end genkeys /////////////////////////////////////////////////////////////////////////////////////
 
 // wire in the ANT migration task
-if (file("antmigration.gradle").exists()) {
-  apply from: rootProject.file("antmigration.gradle")
+if (file("${gradlePath}/antmigration.gradle").exists()) {
+  apply from: rootProject.file("${gradlePath}/antmigration.gradle")
 }
 
 // task to ensure dist folder exists (or create it)
@@ -728,11 +733,11 @@ def registerFeature = { String feature, FileCollection extraClasspath = files(),
     mainClass.set("com.moneydance.admin.KeyAdmin")
 
     args(
-      "signextjar",
-      extPrivKeyFile,
-      privKeyID,
-      feature,
-      "${distPath}/${feature}.mxt"
+        "signextjar",
+        file(extPrivKeyFile).absolutePath,
+        privKeyID,
+        feature,
+        file("${distPath}/${feature}.mxt").absolutePath
     )
 
     standardInput = System.in   // <-- REQUIRED for keyboard input
@@ -931,11 +936,11 @@ def registerPackagePythonExtension = { String feature, String pythonBase, boolea
 
     // package from staging dir
     args(
-        extPrivKeyFile,
+        file(extPrivKeyFile).absolutePath,
         privKeyID,
         feature,
         stagingDir.absolutePath,
-        distPath
+        file(distPath).absolutePath
     )
 
     doLast {
@@ -1053,7 +1058,7 @@ registerFeature("budgetgen", files(), true)
 registerFeature("budgetreport", files(), true)
 
 // Now hook in Mike Bray's special report writer build (from it's own file) - after loadsectrans
-if (file("reportwriter.gradle").exists()) { apply from: rootProject.file("reportwriter.gradle")}
+if (file("${gradlePath}/reportwriter.gradle").exists()) { apply from: rootProject.file("${gradlePath}/reportwriter.gradle")}
 
 // Python extensions
 // Parameters:

@@ -10,17 +10,18 @@ import java.nio.file.StandardCopyOption
 final Project p = project
 
 if (!p.ext.has("executingMainBuild")) {
-  throw new GradleException("antmigration.gradle must be applied from build.gradle, not executed standalone!")
+  throw new GradleException("antmigration.gradle must be applied from [ROOT]/build.gradle, not executed standalone!")
 }
 
 def srcPath  = p.ext.srcPath
+def userConfigPath  = p.ext.userConfigPath
 
 // task that can transform / resolve strings with embedded ${xxx} type commands to full paths
 // Whilst ANT allowed this, gradle does not
 def resolveAntProps = { String valStr ->
   valStr
       .replace("\${user.home}", System.getProperty("user.home"))
-      .replace("\${basedir}", p.projectDir.parentFile.absolutePath)
+      .replace("\${basedir}", p.projectDir.absolutePath)
       .replace("\${src}", file(srcPath).absolutePath)
 }
 
@@ -37,7 +38,7 @@ tasks.register("migrateAntUserConfig") {
     }
 
     def antUserProps = file("${srcPath}/user.properties")
-    def gradleUserProps = file("../userconfig/user.gradle.properties")
+    def gradleUserProps = file("${userConfigPath}/user.gradle.properties")
 
     def privKey = file(p.property("extprivkeyfile"))
     def pubKey  = file(p.property("extpubkeyfile"))
