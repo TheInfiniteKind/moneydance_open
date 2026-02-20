@@ -15,4 +15,4 @@ To communicate with the developers and other Moneydance community members, pleas
 * kotlin plugin should ideally be 1.9 with the same for API and language (match to the versions being used by Moneydance)
 * Add `extadmin.jar` and `moneydance-dev.jar` from the devkit to the lib folder
 * Some of the projects use the non-public api's. For those you need to copy the moneydance jar file to the lib directory
-* Create keys as explained in the developer kit documentation (set keypass= in properties, and execute genkeys task)
+* Create keys as explained in the developer kit documentation (set keypass= in properties, and execute genKeys task)

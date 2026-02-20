@@ -25,5 +25,5 @@ IntelliJ IDEA CE environment
 Execute ./gradlew to show usage
 
 TO START:
-- edit "user.gradle.properties" and set "keypass=xxx" and then run task "genkeys"; then build an extension
+- edit "user.gradle.properties" and set "keypass=xxx" and then run task "genKeys"; then build an extension
 - Python packaging (with precompile) requires python2.7 installed

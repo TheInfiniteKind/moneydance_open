@@ -121,3 +121,15 @@ tasks.register("reportwriter") {
   description = "Build extension: reportwriter"
   dependsOn("ensureDist", "compile_reportwriter", "jar_reportwriter", "sign_reportwriter")
 }
+tasks.register("cleanreportwriter") {
+  def feature = "reportwriter"
+  group = "CLEAN EXTENSION"
+  description = "Clean built artifacts for extension: ${feature}"
+  delete(fileTree(dir: distPath, includes: ["${feature}.*", "s-${feature}.*"]))
+  delete(
+      layout.buildDirectory.dir("classes/java/${feature}"),
+      layout.buildDirectory.dir("classes/kotlin/${feature}"),
+      layout.buildDirectory.dir("resources/${feature}"),
+  )
+  doFirst { if (debug) logger.lifecycle("${path} - cleaning ${feature}") }
+}

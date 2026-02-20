@@ -5,10 +5,6 @@ dist
 build
 bin
 classes
-user.properties
-src/priv_key
-src/pub_key
-src/user.properties
 lib/moneydance.jar
 lib/jdk*.jar
 lib/okio*.jar
@@ -25,3 +21,8 @@ userconfig/*
 !userconfig/template/
 /mdbuildlibs/
 /python_scripts/*/META-INF/*
+user.properties
+user.gradle.properties
+priv_key
+pub_key
+

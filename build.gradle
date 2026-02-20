@@ -10,14 +10,14 @@ build.gradle: gradle buildfile for Moneydance extensions
 ** REVIEW PROPERTIES IN [ROOT]/gradle.properties file
 ** SET LOCAL/USER OVERRIDING PROPERTIES in [ROOT]/userconfig/user.gradle.properties
 
-Execute ./gradlew                       to show usage
-        ./gradlew extensionname         to build extension
-        ./gradlew cleanextensionname    to cleanup a single extension's build files
-        ./gradlew genkeys               to generate private/public signing keyfile(s) - set keypass= first
-        ./gradlew migrateAntUserConfig  to attempt to migrate legacy Ant settings to gradle user properties
+Execute ./gradlew                       -> show usage
+        ./gradlew extensionname         -> build extension
+        ./gradlew cleanextensionname    -> cleanup a single extension's build files
+        ./gradlew genKeys               -> generate private/public signing keyfile(s) - set keypass= first
+        ./gradlew newUserInit           -> create new user properties config
 
 Notes:
-        - TO START either run "migrateAntUserConfig", or create/edit "user.gradle.properties" and set "keypass=xxx" and then run task "genkeys"
+        - TO START either run "newUserInit", or create/edit "user.gradle.properties" and set "keypass=xxx" and then run task "genKeys"
 
         - Python packaging (with precompile) requires python2.7 installed
 
@@ -87,14 +87,36 @@ if (gradle.startParameter.configurationCacheRequested) {
   throw new GradleException("Configuration cache must be disabled in gradle.properties for this build - use: org.gradle.configuration-cache=false")
 }
 
-def userConfigPath = "${project.rootDir}/userconfig"
+// The build system will attempt to locate the user properties file using the following resolution order (first found wins):
+//  1. project root     (user.properties)        - legacy filename, project-level             (gitignored)
+//  2. src/             (user.properties)        - legacy filename, source directory          (gitignored)
+//  3. GRADLE_USER_HOME (user.gradle.properties) - machine-level, applies across all projects (~/.gradle by default)
+//  4. project root     (user.gradle.properties) - project-level override                     (gitignored)
+//  5. src/             (user.gradle.properties) - source directory override                  (gitignored)
+//  6. userconfig/      (user.gradle.properties) - fallback/legacy location                   (gitignored)
 
-// load user specific properties..
-def localPropsFile = file("${userConfigPath}/user.gradle.properties")
-if (localPropsFile.exists()) {
+def searchPaths = [
+    "${project.rootDir}/user.properties",
+    "${project.rootDir}/src/user.properties",
+    "${gradle.gradleUserHomeDir}/user.gradle.properties",
+    "${project.rootDir}/user.gradle.properties",
+    "${project.rootDir}/src/user.gradle.properties",
+    "${project.rootDir}/userconfig/user.gradle.properties"
+]
+
+def localPropsFile = searchPaths.collect { file(it) }.find { it.exists() }
+
+if (localPropsFile) {
   def p = new Properties()
   localPropsFile.withInputStream { p.load(it) }
-  p.each { k, v -> project.ext.set(k.toString(), v)}
+  p.each { k, v -> project.ext.set(k.toString(), v) }
+  ext.userConfigFile = localPropsFile
+  ext.userConfigPath = localPropsFile.parent
+  logger.lifecycle(">>> user properties found/loaded - file: ${localPropsFile}")
+} else {
+  ext.userConfigFile = null
+  ext.userConfigPath = "${project.rootDir}/userconfig"  // default fallback so userConfigPath is always defined
+  logger.error("!!! user properties NOT FOUND - using default userConfigPath: ${userConfigPath}")
 }
 
 // verify all required properties are set
@@ -111,11 +133,21 @@ def libPath = project.property("lib")
 def srcPath = project.property("src")
 def distPath = project.property("dist")
 def pythonSrcPath = project.property("python-src")
-def mdbuildlibs = project.findProperty("mdbuildlibs") // note: this is an optional path that will override where the std set of build libs are found
+def mdbuildlibs = project.findProperty("md_ext_lib_dir") // note: this is an optional path that will override where the std set of build libs are found
 def extPrivKeyFile = project.property("extprivkeyfile")
 def extPubKeyFile = project.property("extpubkeyfile")
 def privKeyID = project.property("privkeyid")
 def keyPassValue = project.findProperty("keypass")    // don't force keypass= to exist
+
+// if key files not found at configured path, check src/ as legacy fallback
+if (!file(extPrivKeyFile).exists() && file("${srcPath}/${file(extPrivKeyFile).name}").exists()) {
+  extPrivKeyFile = "${srcPath}/${file(extPrivKeyFile).name}"
+  logger.lifecycle("[INFO] extprivkeyfile not found at configured path, using legacy src/ location: ${extPrivKeyFile}")
+}
+if (!file(extPubKeyFile).exists() && file("${srcPath}/${file(extPubKeyFile).name}").exists()) {
+  extPubKeyFile = "${srcPath}/${file(extPubKeyFile).name}"
+  logger.lifecycle("[INFO] extpubkeyfile not found at configured path, using legacy src/ location: ${extPubKeyFile}")
+}
 
 // export for imported gradle files
 ext.debug = debug
@@ -127,15 +159,45 @@ ext.extPrivKeyFile = extPrivKeyFile
 ext.extPubKeyFile = extPubKeyFile
 ext.privKeyID = privKeyID
 ext.userConfigPath = userConfigPath
-ext.gradlePath = gradlePath
+ext.gradlePath = gradlePath.toString()
 
 ext.moneydanceChecked = false // we use this to check the classpath for moneydance jar class only once
 
-// common keypass, priv/pub file(s) missing validation code block
+// passphrase resolution - three-way precedence (mirrors getPassphrase() logic in Java):
+//   1. JVM system property  'moneydance_key_pass'  (set via -D or <sysproperty>)
+//   2. environment variable 'MONEYDANCE_KEY_PASS'  (set externally)
+//   3. gradle property      'keypass'              (set in user.gradle.properties)
+ext.resolveKeyPass = { boolean includeGradleProperty ->
+  System.getProperty("moneydance_key_pass")?.trim() ?:
+      System.getenv("MONEYDANCE_KEY_PASS")?.trim() ?:
+          (includeGradleProperty ? keyPassValue?.toString()?.trim() : null)
+}
+
+ext.resolveKeyPassSource = {
+  System.getProperty("moneydance_key_pass")?.trim() ? "system property (moneydance_key_pass)" :
+      System.getenv("MONEYDANCE_KEY_PASS")?.trim() ? "environment variable (MONEYDANCE_KEY_PASS)" :
+          "gradle property (${userConfigFile})"
+}
+
+// forwards keypass to child JVM only as needed:
+//   - sys prop (-D): not inherited by child JVM, must forward explicitly (-D wins over env)
+//   - env var: inherited automatically, skip forwarding to avoid exposing in logs
+//   - keypass=: not inherited, must forward explicitly
+ext.applyKeyPassToJavaExec = { JavaExec task ->
+  def sysProp = System.getProperty("moneydance_key_pass")?.trim()
+  def envVar = System.getenv("MONEYDANCE_KEY_PASS")?.trim()
+  if (sysProp) {
+    task.systemProperty "moneydance_key_pass", sysProp   // -D set, forward to child JVM
+  } else if (!envVar) {
+    task.systemProperty "moneydance_key_pass", keyPassValue  // no env var, use keypass=
+  }
+  // else: env var set, child inherits silently - nothing added to command line
+}
+
 ext.requireSigningInputs = {
-  if (!keyPassValue?.toString()?.trim()) throw new GradleException("\n*****\nERROR - keypass must be set in: ${userConfigPath}/user.gradle.properties\n*****\n")
-  if (!file(extPrivKeyFile).exists()) throw new GradleException("\n*****\nERROR - Missing private key file: ${extPrivKeyFile} (run genkeys)\n*****\n")
-  if (!file(extPubKeyFile).exists()) throw new GradleException("\n*****\nERROR - Missing public key file: ${extPubKeyFile} (run genkeys)\n*****\n")
+  if (!resolveKeyPass(true)) throw new GradleException("\n*****\nERROR - keypass must be set in: ${userConfigPath}/user.gradle.properties (or via 'moneydance_key_pass' system property / 'MONEYDANCE_KEY_PASS' env var)\n*****\n")
+  if (!file(extPrivKeyFile).exists()) throw new GradleException("\n*****\nERROR - Missing private key file: ${extPrivKeyFile} (run genKeys)\n*****\n")
+  if (!file(extPubKeyFile).exists()) throw new GradleException("\n*****\nERROR - Missing public key file: ${extPubKeyFile} (run genKeys)\n*****\n")
 }
 
 // common list zip contents block
@@ -154,7 +216,7 @@ ext.listZipContents = { File zipFile, String label ->
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Build a list of Moneydance jars for the classpath – shared by compile + sign (order matters)
-// Note: we prefer the jars in mdbuildlibs when specified, otherwise the 'normal' jars in the lib folder
+// Note: we prefer the jars in md_ext_lib_dir when specified, otherwise the 'normal' jars in the lib folder
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 def mdJars = []
 if (mdbuildlibs) {
@@ -314,13 +376,17 @@ tasks.withType(KotlinCompile).configureEach {
 // setup JavaExec tasks
 tasks.withType(JavaExec).configureEach {
   javaLauncher.set(
-    javaToolchains.launcherFor {
-      languageVersion = JavaLanguageVersion.of(compilerJDK)         // JDK version used to execute java compile, package, sign tasks
-    }
+      javaToolchains.launcherFor {
+        languageVersion = JavaLanguageVersion.of(compilerJDK)
+        // JDK version used to execute java compile, package, sign tasks
+      }
   )
   systemProperty "file.encoding", "UTF-8"
-  systemProperty "moneydance_key_pass", keyPassValue
+  doFirst {
+    applyKeyPassToJavaExec(it)
+  }
 }
+
 ////////////////////// end JavaExec config /////////////////////////////////////////////////////////////////////////////
 
 
@@ -329,8 +395,10 @@ tasks.withType(JavaExec).configureEach {
 tasks.named("clean", Delete).configure {
   delete(distPath)
 
-  // delete any legacy ANT build folders
+  // delete all possible build dirs
   delete(file("${srcPath}/build"))
+  delete(file("${project.rootDir}/build"))
+  delete(file("${project.rootDir}/gradle/build"))
 
   doFirst {
 
@@ -374,23 +442,54 @@ tasks.register("ensureUserConfig") {
   }
 }
 
-tasks.register("ensureUserProperties") {
+tasks.register("newUser") {
   group = "TOOLS"
-  description = "Create new user.gradle.properties file (does nothing if already exists)"
-  outputs.file(file("${userConfigPath}/user.gradle.properties"))
-  dependsOn("ensureUserConfig")
+  description = "First time setup of user configuration files for new user (prompts to overwrite if pre-existing)"
+  dependsOn("ensureDist", "ensureUserConfig")
+
   doLast {
-    def dir = file("${userConfigPath}")
-    def propsFile = new File(dir, "user.gradle.properties")
-    if (!propsFile.exists()) {
-      propsFile.text =
-              "# gradle.user.properties file for building Moneydance extensions\n" +
-              "#keypass=your_genkeys_passphrase(set here then run genkeys)\n" +
-              "#mdbuildlibs=path_to_your_own_set_of_moneydance_jars(optional)"
-      logger.lifecycle("[INFO] user.gradle.properties file created...")
+
+    def propsFile = file("${userConfigPath}/user.gradle.properties")
+
+    // prompt to overwrite if user.gradle.properties already exists
+    if (propsFile.exists()) {
+      logger.lifecycle("")
+      logger.lifecycle("------------------------------------------------------------------------")
+      print "\u0007"; System.out.flush() // beep-beep
+      print "user.gradle.properties already exists. Overwrite? [y/N]: "; System.out.flush()
+      def ans = new BufferedReader(new InputStreamReader(System.in)).readLine()
+      if (!ans?.equalsIgnoreCase("y")) { throw new GradleException("newUser aborted - user.gradle.properties already exists") }
     }
+
+    // set key file paths relative to userconfig/
+    def privKeyPath = "${userConfigPath}/${privKeyID}.priv"
+    def pubKeyPath = "${userConfigPath}/${privKeyID}.pub"
+
+    // write user.gradle.properties with placeholder keypass and key file paths
+    propsFile.text =
+        "# user.gradle.properties - generated by gradle's 'newUser' task\n" +
+            "# TODO: replace 'secret' with your own passphrase, then run: ./gradlew genKeys\n" +
+            "keypass=secret\n" +
+            "extprivkeyfile=${privKeyPath}\n" +
+            "extpubkeyfile=${pubKeyPath}\n" +
+            "#md_ext_lib_dir=path_to_your_own_set_of_moneydance_jars(optional)\n"
+
+    logger.lifecycle("")
+    logger.lifecycle("========================================================================")
+    logger.lifecycle("  newUser setup complete!")
+    logger.lifecycle("  Config file written: ${propsFile}")
+    logger.lifecycle("")
+    logger.lifecycle("  NEXT STEPS:")
+    logger.lifecycle("  1. Edit ${propsFile}")
+    logger.lifecycle("     - Replace keypass=secret with your own passphrase")
+    logger.lifecycle("  2. Run: ./gradlew genKeys")
+    logger.lifecycle("     - This will generate your signing key files in ${userConfigPath}")
+    logger.lifecycle("========================================================================")
+    logger.lifecycle("")
+    print "\u0007"; System.out.flush() // beep-beep
   }
 }
+
 
 // task to verify settings / validate key paths...
 tasks.register("verifyConfig") {
@@ -419,9 +518,9 @@ tasks.register("verifyConfig") {
     logger.lifecycle("pythonExec = ${pythonExec}")
 
     if (mdbuildlibs) {
-      logger.lifecycle("mdbuildlibs = ${mdbuildlibs}")
+      logger.lifecycle("md_ext_lib_dir = ${mdbuildlibs}")
     } else {
-      logger.lifecycle("optional mdbuildlibs (library override) <not specified>")
+      logger.lifecycle("optional md_ext_lib_dir (library override) <not specified>")
     }
 
     logger.lifecycle("src = ${srcPath}")
@@ -431,11 +530,11 @@ tasks.register("verifyConfig") {
     logger.lifecycle("extprivkeyfile = ${extPrivKeyFile}")
     logger.lifecycle("extpubkeyfile = ${extPubKeyFile}")
 
-    def isPassBlank = !keyPassValue?.toString()?.trim()
+    def isPassBlank = !resolveKeyPass(true)
     if (!isPassBlank) {
-      logger.lifecycle("keypass = <set>")
+      logger.lifecycle("keypass = <set> (source: ${resolveKeyPassSource()})")
     } else {
-      logger.warn("keypass = <not set>")
+      logger.error("keypass = <not set>")
     }
 
     def didntExist = [:]
@@ -455,11 +554,12 @@ tasks.register("verifyConfig") {
       } else {
         logger.lifecycle("... EXISTS: ${name}: ${f}")
       }
+      return
     }
 
     def optExist = [
-        "dist"       : distPath,
-        "mdbuildlibs": mdbuildlibs
+        "dist"           : distPath,
+        "md_ext_lib_dir" : mdbuildlibs
     ]
     optExist.each { name, path ->
       def f = (path) ? file(path) : null
@@ -492,7 +592,7 @@ tasks.register("verifyConfig") {
 ////////////////////// end verifyConfig ////////////////////////////////////////////////////////////////////////////////
 
 
-// task that can clean extension's buuild files
+// task that can clean extension's build files
 def registerCleanTask = { String feature ->
   tasks.register("clean${feature}", Delete) {
     group = "CLEAN EXTENSION"
@@ -527,7 +627,7 @@ def registerCleanTask = { String feature ->
 // NOTE: please only run this from a terminal session
 //       if you need to type the key using keyboard
 ////////////////////////////////////////////////////////
-tasks.register("genkeys", JavaExec) {
+tasks.register("genKeys", JavaExec) {
   group = "GENKEYS"
   description = "Generate Moneydance extension signing keys"
 
@@ -550,17 +650,19 @@ tasks.register("genkeys", JavaExec) {
   standardInput = System.in   // <-- REQUIRED for keyboard input
 
   doFirst {
-    def isPassBlank = !keyPassValue?.toString()?.trim()
+
+    def isPassBlank = !resolveKeyPass(true)
+
     logger.lifecycle("")
     logger.lifecycle("########################################################################")
-    logger.lifecycle("# genkeys running....")
+    logger.lifecycle("# genKeys running....")
     logger.lifecycle("# - you may be prompted to overwrite existing key file(s)")
     if (!isPassBlank) {
-      logger.lifecycle("# - your passphrase as defined in ${localPropsFile} will be used")
+      logger.lifecycle("# - your passphrase (source: ${resolveKeyPassSource()}) will be used")
       logger.lifecycle("# - existing passphrase: ******")
     } else {
       logger.lifecycle("# - you will need to enter a passphrase to create new keyfiles")
-      logger.lifecycle("# - please save this passphrase in file ${localPropsFile}")
+      logger.lifecycle("# - please save this passphrase in file ${userConfigPath}/user.gradle.properties")
       logger.lifecycle("#   using the format keypass=yourpassphrase")
     }
     logger.lifecycle("########################################################################")
@@ -586,7 +688,7 @@ tasks.register("genkeys", JavaExec) {
     if (!file(extPubKeyFile).exists()) throw new GradleException("Public key not created")
   }
 }
-////////////////////// end genkeys /////////////////////////////////////////////////////////////////////////////////////
+////////////////////// end genKeys /////////////////////////////////////////////////////////////////////////////////////
 
 // wire in the ANT migration task
 if (file("${gradlePath}/antmigration.gradle").exists()) {
