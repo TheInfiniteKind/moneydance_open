@@ -542,8 +542,7 @@ tasks.register("verifyConfig") {
         "src"           : srcPath,
         "lib"           : libPath,
         "python src"    : pythonSrcPath,
-        "extprivkeyfile": extPrivKeyFile,
-        "extpubkeyfile" : extPubKeyFile
+        "extprivkeyfile": extPrivKeyFile
     ]
 
     mustExist.each { name, path ->
@@ -558,6 +557,7 @@ tasks.register("verifyConfig") {
     }
 
     def optExist = [
+        "extpubkeyfile" : extPubKeyFile,
         "dist"           : distPath,
         "md_ext_lib_dir" : mdbuildlibs
     ]
