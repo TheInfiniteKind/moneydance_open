@@ -1,6 +1,7 @@
 package com.moneydance.modules.features.contextmenutools
 
 import com.infinitekind.moneydance.model.*
+import com.infinitekind.util.AppDebug
 import com.infinitekind.util.StringUtils
 import com.infinitekind.util.labelify
 import com.infinitekind.util.nullIfBlank
@@ -22,7 +23,7 @@ import kotlin.math.roundToLong
 class ValueSelectedTxns: ContextMenuAction {
   
   private val string_value_selected_txns = "Show value of selected transactions"
-  
+
   override fun getActions(menuContext:MDActionContext, listAccts:List<Account>, listTxns:List<AbstractTxn>):List<Action> {
     val actions = mutableListOf<Action>()
     
@@ -30,22 +31,13 @@ class ValueSelectedTxns: ContextMenuAction {
     if (listTxns.isEmpty() && listAccts.isEmpty()) return actions
     
     // build menu options for allowed types
-    when (menuContext.type) {
-      ActionContextType.register, ActionContextType.home_search -> {
-        
-        if (listTxns.size > 1) {
-          
-          listTxns.firstOrNull()?.account?.let {
-            val duplicateTxnSameDateAction = addAction(label = string_value_selected_txns, cmd = "total_selected_txns")
-            { valueSelectedTxns(menuContext = menuContext, txns = listTxns) }
-            
-            actions.add(duplicateTxnSameDateAction)
-          }
-        }
-      }
+    if (listTxns.size > 1) {
       
-      else -> {}
+      val valueAction = addAction(label = string_value_selected_txns, cmd = "value_selected_txns")
+      { valueSelectedTxns(menuContext = menuContext, txns = listTxns) }
+      actions.add(valueAction)
     }
+
     return actions
   }
   

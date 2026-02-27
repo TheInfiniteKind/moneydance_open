@@ -43,6 +43,7 @@ class DuplicateTransactions: ContextMenuAction {
     private val string_duplicate = "Duplicate transactions"
     private val string_duplicate_same_date = "With the same date(s)"
     private val string_duplicate_adjust_date = "Adjust duplicated date(s)"
+    private val string_duplicate_adjust_date_one_month = "Adjust duplicated date(s) by one month"
     private val string_duplicate_adjust_date_tip = "Existing tax dates will also be adjusted..."
     private val string_duplicate_enter_date = "Enter new date"
     private val string_duplicate_enter_tax_date = "Enter new tax date"
@@ -58,34 +59,34 @@ class DuplicateTransactions: ContextMenuAction {
       // quick do-nothing exit if there are no items/accounts to process...
       if (listTxns.isEmpty() && listAccts.isEmpty()) return actions
       
-      // build menu options for allowed types
-      when (menuContext.type) {
-        ActionContextType.register -> {
-
-          if (listTxns.size > 1) {
+      if (listTxns.isNotEmpty()) {
+        
+        // check that all accounts are the same - otherwise, suspect running from home screen search, and reject
+        // we only need this check for versions prior to MD2026(5500)
+        listTxns.firstOrNull()?.account?.let { firstAcct ->
+          val allSameAccount = listTxns.size == 1 || listTxns.all { it.account == firstAcct }
+          if (allSameAccount) {
             
-            // check that all accounts are the same - otherwise, suspect running from home screen search, and reject
-            listTxns.firstOrNull()?.account?.let { firstAcct ->
-              val allSameAccount = listTxns.all { it.account == firstAcct }
-              if (allSameAccount) {
-
-                val duplicateTxnSameDateAction = addAction(label = "$string_duplicate - $string_duplicate_same_date", cmd = "duplicate_same_date")
-                  { duplicateTxns(adjustOption = DuplicateTxnDateOption.SAME, menuContext = menuContext, txns = listTxns) }
-                val duplicateTxnEnterDateAction = addAction(label = "$string_duplicate - $string_duplicate_enter_date", cmd = "duplicate_enter_date")
-                  { duplicateTxns(adjustOption = DuplicateTxnDateOption.ENTER, menuContext = menuContext, txns = listTxns) }
-                val duplicateTxnAdjustDateAction = addAction(label = "$string_duplicate - $string_duplicate_adjust_date", cmd = "duplicate_adjust_date")
-                  { duplicateTxns(adjustOption = DuplicateTxnDateOption.ADJUST, menuContext = menuContext, txns = listTxns) }
-                
-                actions.add(duplicateTxnSameDateAction)
-                actions.add(duplicateTxnEnterDateAction)
-                actions.add(duplicateTxnAdjustDateAction)
-              }
+            if (listTxns.size > 1) {
+              val duplicateTxnSameDateAction = addAction(label = "$string_duplicate - $string_duplicate_same_date", cmd = "duplicate_same_date")
+              { duplicateTxns(adjustOption = DuplicateTxnDateOption.SAME, menuContext = menuContext, txns = listTxns) }
+              val duplicateTxnEnterDateAction = addAction(label = "$string_duplicate - $string_duplicate_enter_date", cmd = "duplicate_enter_date")
+              { duplicateTxns(adjustOption = DuplicateTxnDateOption.ENTER, menuContext = menuContext, txns = listTxns) }
+              val duplicateTxnAdjustDateAction = addAction(label = "$string_duplicate - $string_duplicate_adjust_date", cmd = "duplicate_adjust_date")
+              { duplicateTxns(adjustOption = DuplicateTxnDateOption.ADJUST, menuContext = menuContext, txns = listTxns) }
+              actions.add(duplicateTxnSameDateAction)
+              actions.add(duplicateTxnEnterDateAction)
+              actions.add(duplicateTxnAdjustDateAction)
             }
+            
+            // always add this option
+            val duplicateTxnAdjustOneMonthAction = addAction(label = "$string_duplicate - $string_duplicate_adjust_date_one_month", cmd = "duplicate_adjust_date_one_month")
+            { duplicateTxns(adjustOption = DuplicateTxnDateOption.ADJUST_ONE_MONTH, menuContext = menuContext, txns = listTxns) }
+            actions.add(duplicateTxnAdjustOneMonthAction)
           }
         }
-        
-        else -> {}
       }
+      
       return actions
     }
   
@@ -94,7 +95,7 @@ class DuplicateTransactions: ContextMenuAction {
   }
 
 
-  private enum class DuplicateTxnDateOption { SAME, ENTER, ADJUST }
+  private enum class DuplicateTxnDateOption { SAME, ENTER, ADJUST, ADJUST_ONE_MONTH }
   @JvmRecord data class DateAdjustments(val years: Int, val months: Int, val days: Int)
   @JvmRecord private data class DateIntPair(val firstDateInt: Int, val secondDateInt: Int)
   
@@ -112,7 +113,12 @@ class DuplicateTransactions: ContextMenuAction {
       DuplicateTxnDateOption.SAME -> {}
       DuplicateTxnDateOption.ADJUST -> {                                  // user wants to adjust by years/months/days
         if (txns.size < 2) return
-        dateAdjustments = duplicateTxnsAdjustDate(showTaxDate, menuContext) ?: return
+        dateAdjustments = duplicateTxnsAdjustDate(showTaxDate = showTaxDate, menuContext = menuContext) ?: return
+      }
+
+      DuplicateTxnDateOption.ADJUST_ONE_MONTH -> {
+        if (txns.isEmpty()) return
+        dateAdjustments = DateAdjustments(years = 0, months = 1, days = 0)
       }
       
       DuplicateTxnDateOption.ENTER -> {                                   // user wants to enter a new date for all txns being duplicated
@@ -142,13 +148,13 @@ class DuplicateTransactions: ContextMenuAction {
       duplicatedTxnPairs.add(duplicatedParentTxn to txnToEdit)
     }
     
-    if (adjustOption == DuplicateTxnDateOption.ENTER || adjustOption == DuplicateTxnDateOption.ADJUST) {
+    if (adjustOption == DuplicateTxnDateOption.ENTER || adjustOption == DuplicateTxnDateOption.ADJUST || adjustOption == DuplicateTxnDateOption.ADJUST_ONE_MONTH) {
       for ((txn, _) in duplicatedTxnPairs) {
         val parent = txn as ParentTxn // this is the duplicated txn (parent)
         val txnDate = parent.dateInt
         val taxDate = parent.taxDateInt
         val changeTaxDate = (taxDate != 0)
-        if (adjustOption == DuplicateTxnDateOption.ADJUST) {
+        if (adjustOption == DuplicateTxnDateOption.ADJUST || adjustOption == DuplicateTxnDateOption.ADJUST_ONE_MONTH) {
           dateAdjustments!!
           val newTxnDate = incrementDate(txnDate, dateAdjustments.years, dateAdjustments.months, dateAdjustments.days)
           parent.dateInt = newTxnDate

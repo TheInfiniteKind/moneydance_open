@@ -3,6 +3,7 @@ package com.moneydance.modules.features.contextmenutools
 import com.infinitekind.moneydance.model.AbstractTxn
 import com.infinitekind.moneydance.model.Account
 import com.infinitekind.moneydance.model.CurrencyType
+import com.infinitekind.util.AppDebug
 import com.infinitekind.util.labelify
 import com.moneydance.apps.md.controller.*
 import com.moneydance.apps.md.view.gui.*
@@ -67,22 +68,42 @@ class Main : FeatureModule(), PreferencesListener {
 
     val listAccts = context.accounts
     val listTxns = context.items.filterIsInstance<AbstractTxn>()
-
-    // quick do-nothing exit if there are no items/accounts to process...
-    if (listTxns.isEmpty() && listAccts.isEmpty()) return actions
     
     val prefs = mdMain?.preferences ?: return actions
     val dupMenuEnabled = prefs.getBoolSetting(EXTN_ID + SETTING_MENU_DUP_ENABLED, true)
     val vstMenuEnabled = prefs.getBoolSetting(EXTN_ID + SETTING_MENU_VST_ENABLED, true)
-
-    when (context.type) {
-      ActionContextType.register, ActionContextType.home_search -> {
-        if (vstMenuEnabled) actions += ValueSelectedTxns().getActions(menuContext = context, listAccts = listAccts, listTxns = listTxns)
-        if (dupMenuEnabled) actions += DuplicateTransactions().getActions(menuContext = context, listAccts = listAccts, listTxns = listTxns)
+    val debugMenuEnabled = prefs.getBoolSetting(EXTN_ID + SETTING_MENU_DEBUG_ENABLED, false)
+    
+    if (debugMenuEnabled) {
+      AppDebug.ALL.log {
+        ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n" +
+        "ContextMenuTools#getActionsForContext >>\n" +
+        "type:      ${context.type.let { "${it::class.simpleName}.${it.name}" }}\n" +
+        "obj:       ${context.contextObject?.let { "${it::class.qualifiedName} ${if (it is Account) (it.getAccountType().toString() + " " + it.fullAccountName) else it}" }}\n" +
+        "comp:      ${context.component?.let { "${it::class.qualifiedName} $it" }}\n" +
+        "dateRange: ${context.dateRange}\n" +
+        "accts:     ${listAccts.let { "${it.size} $it" }}\n" +
+        "txns:      ${listTxns.let { "${it.size} $it" }}\n" +
+        "items:     ${context.items.let { "${it.size} $it" }}\n" +
+        ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n"
       }
-      
-      else -> return actions
     }
+    
+    // quick do-nothing exit if there are no items/accounts to process...
+    if (listTxns.isEmpty() && listAccts.isEmpty()) return actions
+    
+    val isSearchActionType = context.type in setOf(ActionContextType.home_search, advancedSearchType)
+
+    val isDataEntryRegisterActionType = context.type in setOf(ActionContextType.register, ActionContextType.invest_register, ActionContextType.loan_register)
+    
+    if (isDataEntryRegisterActionType || isSearchActionType) {
+      if (vstMenuEnabled) actions += ValueSelectedTxns().getActions(menuContext = context, listAccts = listAccts, listTxns = listTxns)
+    }
+    
+    if (isDataEntryRegisterActionType) {
+      if (dupMenuEnabled) actions += DuplicateTransactions().getActions(menuContext = context, listAccts = listAccts, listTxns = listTxns)
+    }
+    
     return actions
   }
   
@@ -154,11 +175,15 @@ class Main : FeatureModule(), PreferencesListener {
     private val enableMenuDupCheckbox = JCheckBox(STRING_MENU_DUP_ENABLED).apply {
       isSelected = prefs.getBoolSetting(EXTN_ID + SETTING_MENU_DUP_ENABLED, true)
     }
-    
+
     private val enableMenuVSTCheckbox = JCheckBox(STRING_MENU_VST_ENABLED).apply {
       isSelected = prefs.getBoolSetting(EXTN_ID + SETTING_MENU_VST_ENABLED, true)
     }
 
+    private val enableMenuDebugCheckbox = JCheckBox(STRING_DEBUG_ENABLED).apply {
+      isSelected = prefs.getBoolSetting(EXTN_ID + SETTING_MENU_DEBUG_ENABLED, false)
+    }
+    
     private val vstBaseCurrLabel = JLabel(STRING_MENU_VST_DISP_CURR.labelify)
     
     var currencyModel:CurrencyModel? = null
@@ -194,6 +219,8 @@ class Main : FeatureModule(), PreferencesListener {
       
       form.add(currPanel, GridC.getc(0, y++).west().insets(0, 24, 4, 4))
       
+      form.add(enableMenuDebugCheckbox, GridC.getc(0, y++).west().insets(4, 4, 4, 4))
+
       add(form, BorderLayout.CENTER)
       
       add(OKButtonPanel(mdGUI, this, OKButtonPanel.QUESTION_OK_CANCEL), BorderLayout.SOUTH)
@@ -215,6 +242,7 @@ class Main : FeatureModule(), PreferencesListener {
         OKButtonPanel.ANSWER_OK -> {
           prefs.setSetting(EXTN_ID + SETTING_MENU_DUP_ENABLED, enableMenuDupCheckbox.isSelected)
           prefs.setSetting(EXTN_ID + SETTING_MENU_VST_ENABLED, enableMenuVSTCheckbox.isSelected)
+          prefs.setSetting(EXTN_ID + SETTING_MENU_DEBUG_ENABLED, enableMenuDebugCheckbox.isSelected)
           
           val book = mdMain?.currentAccountBook
           val base = mdMain?.currentAccountBook?.currencies?.baseType
@@ -275,9 +303,18 @@ class Main : FeatureModule(), PreferencesListener {
     const val STRING_MENU_DUP_ENABLED = "Enable context menu: 'Duplicate'"
     const val STRING_MENU_VST_ENABLED = "Enable context menu: 'Value Selected Transactions'"
     const val STRING_MENU_VST_DISP_CURR = "Display Currency"
+    const val STRING_DEBUG_ENABLED = "Enable debug messages"
 
     const val SETTING_MENU_DUP_ENABLED = "menu.enabled.duplicate"
     const val SETTING_MENU_VST_ENABLED = "menu.enabled.valueseltxns"
+    const val SETTING_MENU_DEBUG_ENABLED = "menu.enabled.debug"
+    
+    // advanced_search is new for MD2026(5500)
+    internal val advancedSearchType:ActionContextType? by lazy {
+      try { ActionContextType::class.java.getField("advanced_search").get(null) as ActionContextType
+      } catch (_:NoSuchFieldException) { null }
+    }
+    
   } // end companion object
 }
 
