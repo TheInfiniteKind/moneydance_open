@@ -1,11 +1,9 @@
 package com.moneydance.modules.features.contextmenutools
 
 import com.infinitekind.moneydance.model.*
-import com.infinitekind.util.AppDebug
 import com.infinitekind.util.StringUtils
 import com.infinitekind.util.labelify
 import com.infinitekind.util.nullIfBlank
-import com.moneydance.apps.md.controller.ActionContextType
 import com.moneydance.apps.md.controller.MDActionContext
 import com.moneydance.apps.md.controller.UserPreferences
 import com.moneydance.apps.md.view.gui.MDAction
@@ -32,10 +30,21 @@ class ValueSelectedTxns: ContextMenuAction {
     
     // build menu options for allowed types
     if (listTxns.size > 1) {
-      
-      val valueAction = addAction(label = string_value_selected_txns, cmd = "value_selected_txns")
-      { valueSelectedTxns(menuContext = menuContext, txns = listTxns) }
-      actions.add(valueAction)
+
+      // check for the investment/security details register - these are all security accounts
+      // mixed would be a logic error
+      val securityCount = listTxns.count { it.account.getAccountType() == Account.AccountType.SECURITY }
+      val allSecAccount = securityCount == listTxns.size
+      val allNotSecAccount = securityCount == 0
+      val mixedNormalSecurity = !allSecAccount && !allNotSecAccount
+
+      if (!mixedNormalSecurity) {
+
+        val valueAction = addAction(label = string_value_selected_txns, cmd = "value_selected_txns")
+        { valueSelectedTxns(menuContext = menuContext, txns = listTxns) }
+        actions.add(valueAction)
+
+      }
     }
 
     return actions
@@ -84,7 +93,12 @@ class ValueSelectedTxns: ContextMenuAction {
     var sells = 0L
     val fields = InvestFields()
     
-    for (txn in txns) {
+
+    for (realTxn in txns) {
+
+      // special tweak for iterating a security (only) register (i.e. investment account, security details screen)...
+      val txn = if (realTxn.account.getAccountType() == Account.AccountType.SECURITY) realTxn.parentTxn else realTxn
+
       val txnAcct = txn.account
       val txnAcctCurr = txnAcct.currencyType
 
@@ -100,7 +114,7 @@ class ValueSelectedTxns: ContextMenuAction {
           if (primaryAcctCurr != txnAcctCurr) multiCurrency = true
         }
       }
-
+      
       if (txnAcct.getAccountType() == Account.AccountType.INVESTMENT) {
 
         investments = true
@@ -127,6 +141,7 @@ class ValueSelectedTxns: ContextMenuAction {
           }
         }
       }
+
       totalsByTxnCurrency[txnAcctCurr] = totalsByTxnCurrency.getOrPut(txnAcctCurr) { 0L } + txn.value
 
     }
@@ -152,8 +167,7 @@ class ValueSelectedTxns: ContextMenuAction {
       } else ""
 
     val fxLine =
-      if (primaryCurr != base || multiCurrency) "${pad(strings.bal_popup_selection_base_value.labelify, 18)}" +
-                                                "${base.formatFancy(totalInBaseCurrency, dec)}\n"
+      if (primaryCurr != base || multiCurrency) "${pad(strings.bal_popup_selection_base_value.labelify, 18)}${base.formatFancy(totalInBaseCurrency, dec)}\n"
       else ""
     
     val investLine = if (investments) {
