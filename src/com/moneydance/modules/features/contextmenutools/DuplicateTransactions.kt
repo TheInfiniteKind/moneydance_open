@@ -110,7 +110,9 @@ class DuplicateTransactions: ContextMenuAction {
     var dateAdjustments: DateAdjustments? = null
     
     when (adjustOption) {
+
       DuplicateTxnDateOption.SAME -> {}
+
       DuplicateTxnDateOption.ADJUST -> {                                  // user wants to adjust by years/months/days
         if (txns.size < 2) return
         dateAdjustments = duplicateTxnsAdjustDate(showTaxDate = showTaxDate, menuContext = menuContext) ?: return
@@ -239,7 +241,9 @@ class DuplicateTransactions: ContextMenuAction {
     
     win.window.addWindowListener(object : WindowAdapter() {
       override fun windowOpened(e: WindowEvent) {
-        mdGUI.adjustWindow(win, Util.getComponentDialog(win), Dimension(250, 125 + (if (showTaxDate) 50 else 0)), null, null)
+        win.pack()
+        val preferredWidth = max(250, win.preferredSize.width)
+        mdGUI.adjustWindow(win, Util.getComponentDialog(win), Dimension(preferredWidth, 125 + (if (showTaxDate) 50 else 0)), null, null)
         dupFixedDateField.requestFocusInWindow()
       }
     })
