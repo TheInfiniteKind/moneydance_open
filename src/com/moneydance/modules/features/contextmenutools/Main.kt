@@ -92,20 +92,27 @@ class Main : FeatureModule(), PreferencesListener {
     // quick do-nothing exit if there are no items/accounts to process...
     if (listTxns.isEmpty() && listAccts.isEmpty()) return actions
     
-    val isSearchActionType = context.type in setOf(ActionContextType.home_search, advancedSearchType)
-
-    val isDataEntryRegisterActionType = context.type in setOf(ActionContextType.register, ActionContextType.invest_register, ActionContextType.loan_register)
-    
-    if (isDataEntryRegisterActionType || isSearchActionType) {
+    if (isDataEntryRegisterActionType(contextType = context.type, includeSecReg = true) || isSearchActionType(contextType = context.type)) {
       if (vstMenuEnabled) actions += ValueSelectedTxns().getActions(menuContext = context, listAccts = listAccts, listTxns = listTxns)
     }
     
-    if (isDataEntryRegisterActionType) {
+    if (isDataEntryRegisterActionType(contextType = context.type, includeSecReg = false)) {
       if (dupMenuEnabled) actions += DuplicateTransactions().getActions(menuContext = context, listAccts = listAccts, listTxns = listTxns)
     }
     
     return actions
   }
+  
+  private fun isSearchActionType(contextType:ActionContextType):Boolean =
+    contextType == ActionContextType.home_search || contextType == advancedSearchType
+  
+  private fun isDataEntryRegisterActionType(contextType:ActionContextType, includeSecReg:Boolean):Boolean =
+    contextType in buildSet {
+      add(ActionContextType.register)
+      add(ActionContextType.invest_register)
+      add(ActionContextType.loan_register)
+      if (includeSecReg) add(ActionContextType.security_register)
+    }
   
   override fun cleanup() {
     // never actually called by Moneydance!?

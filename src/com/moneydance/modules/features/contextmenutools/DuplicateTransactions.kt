@@ -104,7 +104,7 @@ class DuplicateTransactions: ContextMenuAction {
 
     val showTaxDate = mdGUI.preferences.getBoolSetting(UserPreferences.GEN_SEPARATE_TAX_DATE, false)
     
-    if (txns.size > 20 && !mdGUI.askQuestion(string_duplicate_are_you_sure.replace("{num}", "$txns.size"))) return
+    if (txns.size > 20 && !mdGUI.askQuestion(string_duplicate_are_you_sure.replace("{num}", "${txns.size}"))) return
     
     var newDates: DateIntPair? = null
     var dateAdjustments: DateAdjustments? = null
@@ -168,8 +168,8 @@ class DuplicateTransactions: ContextMenuAction {
         } else {                                // we are entering a fixed date
           newDates!!
           parent.dateInt = newDates.firstDateInt
-          val taxDate = if (showTaxDate && newDates.secondDateInt > 0) newDates.secondDateInt else newDates.firstDateInt
-          parent.taxDateInt = taxDate
+          val newTaxDate = if (showTaxDate && newDates.secondDateInt > 0) newDates.secondDateInt else newDates.firstDateInt
+          parent.taxDateInt = newTaxDate
 
         }
       }
