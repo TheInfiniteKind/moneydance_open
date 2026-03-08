@@ -1612,7 +1612,7 @@ Visit: %s (Author's site)
                 self.status = _status; self.color = _color
 
             def run(self):
-                GlobalVars.STATUS_LABEL.setText((_theStatus))
+                GlobalVars.STATUS_LABEL.setText(self.status)
                 if self.color is None or self.color == "": self.color = "X"
                 self.color = self.color.upper()
                 if self.color == "R":    GlobalVars.STATUS_LABEL.setForeground(getColorRed())
