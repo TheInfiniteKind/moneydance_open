@@ -23,7 +23,7 @@ interface ContextMenuAction {
 /**
  * A collection of context menu (right click) tools that hook into Moneydance's context menu...
  *
- * @author Stuart Beesley - February 2026
+ * @author Stuart Beesley - March 2026
  * @since MD2024.4(5253)
  */
 class Main : FeatureModule(), PreferencesListener {
@@ -72,6 +72,7 @@ class Main : FeatureModule(), PreferencesListener {
     val prefs = mdMain?.preferences ?: return actions
     val dupMenuEnabled = prefs.getBoolSetting(EXTN_ID + SETTING_MENU_DUP_ENABLED, true)
     val vstMenuEnabled = prefs.getBoolSetting(EXTN_ID + SETTING_MENU_VST_ENABLED, true)
+    val jumpMenuEnabled = prefs.getBoolSetting(EXTN_ID + SETTING_MENU_JUMP_ENABLED, true)
     val debugMenuEnabled = prefs.getBoolSetting(EXTN_ID + SETTING_MENU_DEBUG_ENABLED, false)
     
     if (debugMenuEnabled) {
@@ -98,6 +99,10 @@ class Main : FeatureModule(), PreferencesListener {
     
     if (isDataEntryRegisterActionType(contextType = context.type, includeSecReg = false)) {
       if (dupMenuEnabled) actions += DuplicateTransactions().getActions(menuContext = context, listAccts = listAccts, listTxns = listTxns)
+    }
+    
+    if (isDataEntryRegisterActionType(contextType = context.type, includeSecReg = false) || isSearchActionType(contextType = context.type)) {
+      if (jumpMenuEnabled) actions += JumpToDate().getActions(menuContext = context, listAccts = listAccts, listTxns = listTxns)
     }
     
     return actions
@@ -187,6 +192,10 @@ class Main : FeatureModule(), PreferencesListener {
       isSelected = prefs.getBoolSetting(EXTN_ID + SETTING_MENU_VST_ENABLED, true)
     }
 
+    private val enableMenuJumpCheckbox = JCheckBox(STRING_MENU_JUMP_ENABLED).apply {
+      isSelected = prefs.getBoolSetting(EXTN_ID + SETTING_MENU_JUMP_ENABLED, true)
+    }
+
     private val enableMenuDebugCheckbox = JCheckBox(STRING_DEBUG_ENABLED).apply {
       isSelected = prefs.getBoolSetting(EXTN_ID + SETTING_MENU_DEBUG_ENABLED, false)
     }
@@ -226,6 +235,8 @@ class Main : FeatureModule(), PreferencesListener {
       
       form.add(currPanel, GridC.getc(0, y++).west().insets(0, 24, 4, 4))
       
+      form.add(enableMenuJumpCheckbox, GridC.getc(0, y++).west().insets(4, 4, 4, 4))
+
       form.add(enableMenuDebugCheckbox, GridC.getc(0, y++).west().insets(4, 4, 4, 4))
 
       add(form, BorderLayout.CENTER)
@@ -249,6 +260,7 @@ class Main : FeatureModule(), PreferencesListener {
         OKButtonPanel.ANSWER_OK -> {
           prefs.setSetting(EXTN_ID + SETTING_MENU_DUP_ENABLED, enableMenuDupCheckbox.isSelected)
           prefs.setSetting(EXTN_ID + SETTING_MENU_VST_ENABLED, enableMenuVSTCheckbox.isSelected)
+          prefs.setSetting(EXTN_ID + SETTING_MENU_JUMP_ENABLED, enableMenuJumpCheckbox.isSelected)
           prefs.setSetting(EXTN_ID + SETTING_MENU_DEBUG_ENABLED, enableMenuDebugCheckbox.isSelected)
           
           val book = mdMain?.currentAccountBook
@@ -310,10 +322,12 @@ class Main : FeatureModule(), PreferencesListener {
     const val STRING_MENU_DUP_ENABLED = "Enable context menu: 'Duplicate'"
     const val STRING_MENU_VST_ENABLED = "Enable context menu: 'Value Selected Transactions'"
     const val STRING_MENU_VST_DISP_CURR = "Display Currency"
+    const val STRING_MENU_JUMP_ENABLED = "Enable context menu: 'Jump to date'"
     const val STRING_DEBUG_ENABLED = "Enable debug messages"
 
     const val SETTING_MENU_DUP_ENABLED = "menu.enabled.duplicate"
     const val SETTING_MENU_VST_ENABLED = "menu.enabled.valueseltxns"
+    const val SETTING_MENU_JUMP_ENABLED = "menu.enabled.jump"
     const val SETTING_MENU_DEBUG_ENABLED = "menu.enabled.debug"
     
     // advanced_search is new for MD2026(5500)
