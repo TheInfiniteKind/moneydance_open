@@ -114,7 +114,9 @@
 # build: 1071 - Removed Total Selected Transactions feature / script - moved to new contextmenutools extension
 # build: 1071 - BUGFIX script runner (the classloader issue)
 # build: 2000 - ???
-# build: 2000 - relocate more code to extra_code py script file; Bump version number
+# build: 2000 - relocate more code to extra_code py script file; Bump version number; update to 2026 license
+# build: 2000 - Handle MD2026 change to security schemes - now new api calls and multiple IDs per scheme...
+# build: 2000 - Added merge_security_identifier_stores(), and relocated / upgraded all fiscal scheme/ID management code to extra code...
 # build: 2000 - ???
 
 # NOTE: 'The domain/default pair of (kCFPreferencesAnyApplication, AppleInterfaceStyle) does not exist' means that Dark mode is NOT in force
@@ -130,7 +132,6 @@
 # todo - add SwingWorker Threads as appropriate (on heavy duty methods)
 # todo - change from str() to unicode() where appropriate...
 # todo - com.moneydance.apps.md.controller.olb.MoneybotURLStreamHandlerFactory.REQUEST_LOG_BASE = File("/Users/xxx/moneydance_http_logs")
-# todo - consider removing toolbox.py source code now that it's compiled and we launch a .class file...
 # todo - advanced_clone_dataset() - consider whether to provide options to zap md+ settings, reset password etc...
 
 # NOTE: Toolbox will connect to the internet to gather some data. IT WILL NOT SEND ANY OF YOUR DATA OUT FROM YOUR SYSTEM....:
@@ -589,6 +590,10 @@ else:
     GlobalVars.SCRIPT_RUNNING_LOCK = threading.Lock()
 
     GlobalVars.globalShowDisabledMenuItems = True       # set to False to hide menu items when Update Mode disabled
+
+    GlobalVars.Strings.PARAM_SEC_SCHEMEID_CURRID  = "curr_id."    # pre-MD2026 (now deprecated)
+    GlobalVars.Strings.PARAM_SEC_SCHEMEIDS_CURRIDS = "curr_ids."  # MD2026+
+    GlobalVars.Strings.CURR_ID_FOR_SCHEME_SEPARATOR = "|"         # MD2026+
 
     GlobalVars.Strings.OFX_LAST_TXN_UPDATE = "ofx_last_txn_update"
     GlobalVars.Strings.MD_KEY_ASOF_PREF = "gen.rec_asof_enabled"
@@ -3325,6 +3330,9 @@ Visit: %s (Author's site)
     GlobalVars.MD_MEMREPORTS_UPGRADED_BUILD = 5142                                                                      # MD2024.2(5142)
     def isMemReportsUpgradedBuild(): return (MD_REF.getBuild() >= GlobalVars.MD_MEMREPORTS_UPGRADED_BUILD)
 
+    GlobalVars.MD_SECURITY_SCHEMES_UPGRADED_BUILD = 5501                                                                # MD2026.0(5501)
+    def isSecuritySchemesUpgradedBuild(): return (MD_REF.getBuild() >= GlobalVars.MD_SECURITY_SCHEMES_UPGRADED_BUILD)
+
     GlobalVars.MD_NETWORTH_UPGRADED_BUILD = 5204                                                                        # MD2024.3(5204)
     def isNetWorthUpgradedBuild(): return (MD_REF.getBuild() >= GlobalVars.MD_NETWORTH_UPGRADED_BUILD)
     if isNetWorthUpgradedBuild():
@@ -3442,6 +3450,8 @@ Visit: %s (Author's site)
         global advanced_options_edit_parameter_keys, view_reports_record_keys, showMDLaunchParameters
         global list_potentially_duplicate_securities
         global merge_duplicate_securities, move_merge_investment_txns, thin_price_history, diagnose_currencies
+        global manage_security_identifiers, merge_security_identifier_stores, OFX_view_security_identifier_settings, output_old_new_scheme_id_info
+        global _getLegacyIDForScheme, _getIDsForScheme, _getLegacySchemesForSecurity, _getSchemesForSecurity, _addIDForScheme, _setIDsForScheme
 
         _extraCodeString = myModuleID + "_extra_code" + ".py"
         if MD_EXTENSION_LOADER is not None:
@@ -4673,9 +4683,10 @@ Visit: %s (Author's site)
                 self.updateWithLatestToolboxVersionRequirements()
 
                 lAbort = False
+                _mdVersionStr = StringUtils.stripNonNumbers(MD_REF.getVersion(), '.')
                 if (GlobalVars.TOOLBOX_STOP_NOW
-                        or (float(MD_REF.getVersion()) < GlobalVars.TOOLBOX_MINIMUM_TESTED_MD_VERSION)
-                        or (int(float(MD_REF.getVersion())) > int(GlobalVars.TOOLBOX_MAXIMUM_TESTED_MD_VERSION))):
+                        or (float(_mdVersionStr) < GlobalVars.TOOLBOX_MINIMUM_TESTED_MD_VERSION)
+                        or (int(float(_mdVersionStr)) > int(GlobalVars.TOOLBOX_MAXIMUM_TESTED_MD_VERSION))):
                     lAbort = True
                 else:
                     if (float(MD_REF.getBuild()) > GlobalVars.TOOLBOX_MAXIMUM_TESTED_MD_BUILD):
@@ -5674,7 +5685,7 @@ Visit: %s (Author's site)
         textArray.append(u"Moneydance updater version to track: %s" %MD_REF.getPreferences().getSetting(u"updater.version_to_track",u""))
         textArray.append(u"")
 
-        currLicense = MD_REF.getPreferences().getSetting(u"gen.lic_key2025",
+        currLicense = MD_REF.getPreferences().getSetting(u"gen.lic_key2026",
                                                                 MD_REF.getPreferences().getSetting(u"gen.lic_key2024",
                                                                 MD_REF.getPreferences().getSetting(u"gen.lic_key2023",
                                                                 MD_REF.getPreferences().getSetting(u"gen.lic_key2022",
@@ -5691,7 +5702,7 @@ Visit: %s (Author's site)
                                                                 MD_REF.getPreferences().getSetting(u"gen.lic_key2004",
                                                                 MD_REF.getPreferences().getSetting(u"gen.lic_key", u"????"))))))))))))))))
 
-        # license2025 = MD_REF.getPreferences().getSetting(u"gen.lic_key2025", None)
+        # license2026 = MD_REF.getPreferences().getSetting(u"gen.lic_key2026", None)
         license2024 = MD_REF.getPreferences().getSetting(u"gen.lic_key2024", None)
         license2023 = MD_REF.getPreferences().getSetting(u"gen.lic_key2023", None)
         license2022 = MD_REF.getPreferences().getSetting(u"gen.lic_key2022", None)
@@ -6371,7 +6382,7 @@ Visit: %s (Author's site)
                     if _url is None: return "unknown"
                     _path = _url.toString()
                     if "!" not in _path: return "unknown"
-                    _beforeBang = _path[:_path.rfind("!")]
+                    _beforeBang = _path[:_path.rfind("!")]                                                              # noqa
                     _jarName = _beforeBang[_beforeBang.rfind("/") + 1:]
                     return URLDecoder.decode(_jarName, "UTF-8")
 
@@ -7116,79 +7127,6 @@ Visit: %s (Author's site)
 
         QuickJFrame(_THIS_METHOD_NAME, output, copyToClipboard=GlobalVars.lCopyAllToClipBoard_TB, lWrapText=False, lAutoSize=True).show_the_frame()
         txt = "OFX: Your active accounts' calculated reconcile as_of dates have been displayed...."
-        setDisplayStatus(txt, "B")
-
-    def OFX_view_security_identifier_settings():
-        if MD_REF.getCurrentAccountBook() is None: return
-
-        _THIS_METHOD_NAME = "OFX: View Security's hidden Security Identifier settings"
-
-        PARAM_CURRID = "curr_id."
-
-        output = "%s:\n" \
-                 "%s\n\n" %(_THIS_METHOD_NAME, " "*len(_THIS_METHOD_NAME))
-
-        output += "The hidden link between your Financial Institution's Investments' Securities and your MD Securities when downloading\n" \
-                  "is stored as hidden data against your security in a key known as the Security's 'Identifier Scheme'. In the USA this\n" \
-                  "scheme is commonly 'CUSIP', and all Securities have a unique identifier. Elsewhere 'ISIN' or 'SEDOL' (etc) might be used.\n" \
-                  "When matching Securities on Download, this setting needs to be blank or match the scheme. Your OFX download will contain\n" \
-                  "the tags '<UNIQUEIDTYPE>' (which normally contains the scheme type) and '<UNIQUEID>' (which contains the scheme type's ID).\n" \
-                  "If your MD Security already contains a different scheme ID, then it will NOT appear in the match list.\n" \
-                  "You can edit your hidden Security Identifier Scheme data in Update Mode.\n\n" \
-                  "Refer: 'MENU: Currency & Security tools' > 'DIAG - Produce a quick report of potentially duplicate securities' for a useful reference report.\n\n"
-
-        output += " SECURITIES\n" \
-                  " ==========\n\n"
-
-        output += "%s %s %s %s %s\n" % (pad("Security", 45),
-                                        pad("ID", 15),
-                                        pad("Ticker Symbol", 15),
-                                        pad("SCHEME", 12),
-                                        pad("IDENTIFIER", 20))
-
-        output += "%s %s %s %s %s\n" % ("-" * 45,
-                                        "-" * 15,
-                                        "-" * 15,
-                                        "-" * 12,
-                                        "-" * 20)
-
-        output += "\n"
-
-        securities = sorted(MD_REF.getCurrentAccountBook().getCurrencies().getAllCurrencies(), key=lambda x: (x.getCurrencyType(), x.getName().upper()))
-
-        iCountFound = 0
-        lastSec = None
-        for sec in securities:
-            if sec.getCurrencyType() != CurrencyType.Type.SECURITY: continue                                            # noqa
-            for key in sec.getParameterKeys():
-                if key.startswith(PARAM_CURRID):
-                    theScheme = key[len(PARAM_CURRID):]
-                    theSchemeID = sec.getIDForScheme(theScheme)
-
-                    if not theSchemeID:
-                        theSchemeID = "<INVALID SCHEME ID: blank or null for Scheme: '%s'!>" %(theScheme)
-                        # raise Exception("ERROR: %s - empty Scheme returned? Security: '%s', Scheme: %s" %(_THIS_METHOD_NAME, sec, theScheme))
-
-                    iCountFound += 1
-                    if lastSec is not None and sec != lastSec: output += "\n"
-                    output += "%s %s %s %s %s\n"\
-                                                  %(pad("..." if sec == lastSec else sec.getName(), 45),
-                                                    pad("" if sec == lastSec else sec.getIDString(), 15),
-                                                    pad("" if sec == lastSec else sec.getTickerSymbol(), 15),
-                                                    pad(theScheme, 12),
-                                                    theSchemeID)
-                    lastSec = sec
-
-        if not iCountFound:
-            output += "\nNONE FOUND!\n"
-        else:
-            output += "\n\n%s Security hidden Security Identifier record(s) found\n" %(iCountFound)
-
-        output += "\n<END>"
-
-        QuickJFrame(_THIS_METHOD_NAME.upper(), output,copyToClipboard=GlobalVars.lCopyAllToClipBoard_TB,lWrapText=False,lAutoSize=True).show_the_frame()
-
-        txt = "OFX: Your Security's hidden Security Identifier settings have been retrieved and displayed...."
         setDisplayStatus(txt, "B")
 
     def OFX_view_online_txns_payees_payments():
@@ -11776,272 +11714,6 @@ Visit: %s (Author's site)
     #     setDisplayStatus(txt, "B")
     #     myPopupInformationBox(toolbox_frame_, txt, "TOGGLE MONEYDANCE INTERNAL OFX DEBUG", JOptionPane.WARNING_MESSAGE)
 
-    # noinspection PyUnresolvedReferences
-    def fix_security_identifiers():
-        currID = "curr_id."
-
-        # Credit to: Finite Mobius, LLC / Jason R. Miller" for original code (https://github.com/finitemobius/moneydance-py)
-        # change-security-cusip.py
-        # Variant of remove_ofx_security_bindings.py
-
-        # Pre 2021.2(3089) there were internal code issues with old CurrencyType records (from pre 2019.4) with missing 'rrate' fields. Fixed in build 3089 onwards
-        if not isRRateCurrencyIssueFixedBuild() and not check_all_currency_raw_rates_ok(CurrencyType.Type.SECURITY):
-            myPrint("B","@@ Error: failed check_all_currency_raw_rates_ok(SECURITY) check... Exiting fix_security_identifiers() without any changes...")
-            txt = "ERROR: You have old format Security record(s). Consider running 'MENU: Currency & Security tools>Diag/Fix Currencies/Securities' option first"
-            myPopupInformationBox(toolbox_frame_, txt, theMessageType=JOptionPane.ERROR_MESSAGE)
-            setDisplayStatus(txt, "R")
-            return
-
-        # Find Securities with Security Identifiers (e.g. CUSIP, SEDOL, ISIN etc) set...
-        dropdownSecs = ArrayList()
-        allSecs = ArrayList()
-        currencies = MD_REF.getCurrentAccountBook().getCurrencies().getAllCurrencies()
-        for curr in currencies:
-            if curr.getCurrencyType() != CurrencyType.Type.SECURITY: continue
-            allSecs.append(curr)
-            for key in curr.getParameterKeys():
-                if key.startswith(currID):
-                    dropdownSecs.add(curr)
-                    break
-
-        theSchemes = None
-        selectedSecurity = None
-        selectedSecurityMoveTo = None
-        lReset = lEdit = lMove = lAdd = False
-
-        if len(dropdownSecs)<1:
-            x = "You have no existing Security Identifier(s) (e.g. CUSIP, SEDOL, ISIN); Would you like to add one?"
-        else:
-            x = "You have %s securities with Security Identifier(s) set; Would you like to manually add one? (No brings up more options)" %(len(dropdownSecs))
-
-        if not myPopupAskQuestion(toolbox_frame_, "FIX Security Identifiers", x, theMessageType=JOptionPane.WARNING_MESSAGE):
-            if len(dropdownSecs)<1:
-                txt = "FIX Security Identifiers - You have no existing Security Identifier(s) set on Securities - No changes made..."
-                setDisplayStatus(txt, "B")
-                return
-        else:
-            allSecs = sorted(allSecs, key=lambda sort_x: (sort_x.getName().upper()))
-            selectedSecurity = JOptionPane.showInputDialog(toolbox_frame_,
-                                                           "Select the security to add Security Identifier data",
-                                                           "FIX Security Identifiers",
-                                                           JOptionPane.INFORMATION_MESSAGE,
-                                                           getMDIcon(lAlwaysGetIcon=True),
-                                                           allSecs,
-                                                           None)
-
-            if not selectedSecurity:
-                txt = "FIX Security Identifiers - No Security was selected - no changes made.."
-                setDisplayStatus(txt, "B")
-                return
-
-            lAdd = True
-
-        if not lAdd:
-            dropdownSecs = sorted(dropdownSecs, key=lambda sort_x: (sort_x.getName().upper()))
-            selectedSecurity = JOptionPane.showInputDialog(toolbox_frame_,
-                                                           "Select the security with Security Identifier data to view/change",
-                                                           "FIX Security Identifiers",
-                                                           JOptionPane.INFORMATION_MESSAGE,
-                                                           getMDIcon(lAlwaysGetIcon=True),
-                                                           dropdownSecs,
-                                                           None)
-
-            if not selectedSecurity:
-                txt = "FIX Security Identifiers - No Security was selected - no changes made.."
-                setDisplayStatus(txt, "B")
-                return
-
-            del dropdownSecs
-
-            schemeText = ""
-            theSchemes = []
-            for key in selectedSecurity.getParameterKeys():
-                if key.startswith(currID):
-                    findScheme = key[len(currID):]
-                    theSchemes.append([selectedSecurity, findScheme, selectedSecurity.getIDForScheme(findScheme)])
-                    schemeText+="Scheme: %s ID: %s\n" %(findScheme, selectedSecurity.getIDForScheme(findScheme))
-
-            if len(theSchemes) < 1:
-                txt = "FIX Security Identifiers - error iterating keys on '%s' for Security Identifier(s) - NO CHANGES MADE!" %(selectedSecurity)
-                setDisplayStatus(txt, "R"); myPrint("B",txt)
-                return
-
-            ask = MyPopUpDialogBox(toolbox_frame_,"Showing Security Identifier data for Security: '%s'" %(selectedSecurity),schemeText,theTitle="FIX Security Identifiers",OKButtonText="NEXT STEP",lCancelButton=True)
-            if not ask.go():
-                txt = "FIX Security Identifiers - no changes made.."
-                setDisplayStatus(txt, "B")
-                return
-
-            options = ["EXIT", "RESET Security Identifier(s)", "EDIT ONE Security Identifier", "MOVE ALL TO DIFFERENT SECURITY", "ADD NEW Security Identifier KEY"]
-            selectedOption = JOptionPane.showInputDialog(toolbox_frame_,
-                                                         "Select Security Identifier Option you want to action",
-                                                         "FIX Security Identifiers",
-                                                         JOptionPane.INFORMATION_MESSAGE,
-                                                         getMDIcon(lAlwaysGetIcon=True),
-                                                         options,
-                                                         None)
-
-            if not selectedOption or options.index(selectedOption) == 0:
-                txt = "FIX Security Identifiers - No Security Identifier option selected - no changes made.."
-                setDisplayStatus(txt, "R")
-                return
-
-            if options.index(selectedOption) == 1: lReset = True
-            elif options.index(selectedOption) == 2: lEdit = True
-            elif options.index(selectedOption) == 3: lMove = True
-            elif options.index(selectedOption) == 4: lAdd = True
-            else:
-                txt = "FIX Security Identifiers - Unknown option selected - no changes made"
-                setDisplayStatus(txt, "R")
-                return
-
-            dropdownSecsMoveTo = selectedSecurityMoveTo = None                                                          # noqa
-
-        if lMove:
-            dropdownSecsMoveTo = ArrayList()
-            currencies = MD_REF.getCurrentAccountBook().getCurrencies().getAllCurrencies()
-            for curr in currencies:
-                if curr.getCurrencyType() != CurrencyType.Type.SECURITY: continue                                       # noqa
-                if curr == selectedSecurity: continue
-                dropdownSecsMoveTo.add(curr)
-
-            if len(dropdownSecsMoveTo) < 1:
-                txt = "FIX Security Identifiers - You have no other Securities to move to - No changes made..."
-                setDisplayStatus(txt, "R")
-                myPopupInformationBox(toolbox_frame_,txt, "FIX Security Identifiers", JOptionPane.ERROR_MESSAGE)
-                return
-
-            dropdownSecsMoveTo = sorted(dropdownSecsMoveTo, key=lambda sort_x: (sort_x.getName().upper()))
-            selectedSecurityMoveTo = JOptionPane.showInputDialog(toolbox_frame_,
-                                                                 "Select the security to move the Security Identifier data to:",
-                                                                 "FIX Security Identifiers",
-                                                                 JOptionPane.INFORMATION_MESSAGE,
-                                                                 getMDIcon(lAlwaysGetIcon=True),
-                                                                 dropdownSecsMoveTo,
-                                                                 None)
-
-            if not selectedSecurityMoveTo:
-                txt = "FIX Security Identifiers - No Move to Security was selected - no changes made.."
-                setDisplayStatus(txt, "R")
-                return
-
-            lAlreadyHasData = False
-            for key in selectedSecurityMoveTo.getParameterKeys():
-                if key.startswith(currID):
-                    lAlreadyHasData=True
-                    break
-            if lAlreadyHasData:
-                if not myPopupAskQuestion(toolbox_frame_,
-                                          "FIX Security Identifiers",
-                                          "Security: '%s' already has Security Identifier data. OK will overwrite matching Security Identifier key(s) (Cancel to exit)" %(selectedSecurityMoveTo),
-                                          theMessageType=JOptionPane.WARNING_MESSAGE):
-                    txt = "FIX Security Identifiers - Security: '%s' already has Security Identifier data. User asked to Exit..." %(selectedSecurityMoveTo)
-                    setDisplayStatus(txt, "R")
-                    return
-                myPrint("B", "FIX Security Identifiers - User selected to overwrite existing Security Identifier data for Security: '%s'" %selectedSecurityMoveTo)
-
-        if confirm_backup_confirm_disclaimer(toolbox_frame_, "FIX Security Identifiers", "Are you sure you want to change Security Identifier data on security: '%s'?" %(selectedSecurity)):
-            if lReset:
-                selectedSecurity.setEditingMode()
-                for key in list(selectedSecurity.getParameterKeys()):
-                    if key.startswith(currID):
-                        findScheme = key[len(currID):]
-                        # noinspection PyUnresolvedReferences
-                        oldData = selectedSecurity.getIDForScheme(findScheme)
-                        # noinspection PyUnresolvedReferences
-                        selectedSecurity.setIDForScheme(findScheme, None)
-                        myPrint("B","FIX Security Identifiers: Deleted Security Identifier on Security: '%s' (Was: Scheme: %s ID: %s)" %(selectedSecurity, findScheme, oldData) )
-                selectedSecurity.syncItem()
-                myPopupInformationBox(toolbox_frame_, "Security Identifier data on Security: '%s' Reset/Deleted!" %(selectedSecurity), "FIX Security Identifiers", JOptionPane.WARNING_MESSAGE)
-
-            elif lMove:
-                selectedSecurity.setEditingMode()
-                selectedSecurityMoveTo.setEditingMode()
-                for key in list(selectedSecurity.getParameterKeys()):
-                    if key.startswith(currID):
-                        findScheme = key[len(currID):]
-                        moveData = selectedSecurity.getIDForScheme(findScheme)
-
-                        moveToOldData = selectedSecurityMoveTo.getIDForScheme(findScheme)
-                        if moveToOldData:
-                            myPrint("B", "FIX Security Identifiers: Overwriting old data on destination security: '%s' (Was: Scheme: %s ID: %s)" %(selectedSecurityMoveTo, findScheme, moveToOldData))
-
-                        myPrint("B","FIX Security Identifiers: Moving Security Identifier data for '%s' to '%s' Scheme: %s ID: %s" %(selectedSecurity, selectedSecurityMoveTo, findScheme, moveData))
-                        selectedSecurityMoveTo.setIDForScheme(findScheme, moveData)
-                        selectedSecurity.setIDForScheme(findScheme, None)
-
-                selectedSecurity.syncItem()
-                selectedSecurityMoveTo.syncItem()
-                myPopupInformationBox(toolbox_frame_,"Security Identifier data on Security: '%s' Moved to Security: '%s'!" %(selectedSecurity,selectedSecurityMoveTo), "FIX Security Identifiers", JOptionPane.WARNING_MESSAGE)
-
-            elif lEdit:
-
-                listData=[]
-                for x in theSchemes:
-                    listData.append(x[1])
-
-                selectedSchemeToChange = JOptionPane.showInputDialog(toolbox_frame_,
-                                                                     "Select the Security Identifier to edit:",
-                                                                     "FIX Security Identifiers",
-                                                                     JOptionPane.INFORMATION_MESSAGE,
-                                                                     getMDIcon(lAlwaysGetIcon=True),
-                                                                     listData,
-                                                                     None)
-
-                if not selectedSchemeToChange:
-                    txt = "FIX Security Identifiers - No Security Identifier selected to edit - no changes made.."
-                    setDisplayStatus(txt, "R")
-                    return
-
-                newID = myPopupAskForInput(toolbox_frame_, "FIX Security Identifiers", "ENTER NEW ID DATA:", "Enter the new Security Identifier data for Security: '%s' Scheme: %s"
-                                           %(selectedSecurity, selectedSchemeToChange), selectedSecurity.getIDForScheme(selectedSchemeToChange))
-
-                if not newID or newID == selectedSecurity.getIDForScheme(selectedSchemeToChange):
-                    txt = "FIX Security Identifiers - EDIT - new data not entered - no changes made"
-                    setDisplayStatus(txt, "R")
-                    return
-
-                myPrint("B","FIX Security Identifiers - EDIT. Changing Security: '%s' Scheme: %s from %s to %s"
-                        %(selectedSecurity, selectedSchemeToChange, selectedSecurity.getIDForScheme(selectedSchemeToChange),newID))
-
-                selectedSecurity.setIDForScheme(selectedSchemeToChange,newID)
-                selectedSecurity.syncItem()
-                myPopupInformationBox(toolbox_frame_, "Security Identifier data on Security: '%s' Scheme: %s changed to: %s"
-                                      %(selectedSecurity, selectedSchemeToChange,newID), "FIX Security Identifiers", JOptionPane.WARNING_MESSAGE)
-
-            elif lAdd:
-
-                newScheme = myPopupAskForInput(toolbox_frame_, "FIX Security Identifiers", "NEW Security Identifier Scheme/Key:", "Enter Scheme Type to add (commonly 'CUSIP', 'SEDOL', 'ISIN' etc): %s"
-                                               %(selectedSecurity), defaultValue="CUSIP")
-
-                if not newScheme or newScheme == "":
-                    txt = "FIX Security Identifiers - EDIT - new Security Identifier Scheme Type not entered - no changes made"
-                    setDisplayStatus(txt, "R")
-                    return
-
-                newID = myPopupAskForInput(toolbox_frame_, "FIX Security Identifiers", "NEW ID:", "Enter the new ID for Scheme Type: %s to add to Security: '%s'" %(newScheme, selectedSecurity))
-
-                if not newID or newID == "":
-                    txt = "FIX Security Identifiers - EDIT - new ID not entered for new Scheme: %s to add to Security: '%s' - no changes made" %(newScheme, selectedSecurity)
-                    setDisplayStatus(txt, "R")
-                    return
-
-                myPrint("B","FIX Security Identifiers - ADD. Adding Scheme: %s ID %s to Security: '%s'" %(newScheme, newID, selectedSecurity))
-
-                selectedSecurity.setIDForScheme(newScheme,newID)
-                selectedSecurity.syncItem()
-                myPopupInformationBox(toolbox_frame_, "Security Identifier Scheme/Key: %s ID: %s added to Security: '%s'" %(newScheme, newID, selectedSecurity),
-                                      "FIX Security Identifiers",JOptionPane.WARNING_MESSAGE)
-
-            else:
-                txt = "FIX Security Identifiers - Unknown option selected - no changes made"
-                setDisplayStatus(txt, "R")
-                return
-
-            txt = "FIX Security Identifiers - Changes successfully applied to Security: '%s'" %(selectedSecurity)
-            setDisplayStatus(txt, "R"); myPrint("B", txt)
-            logToolboxUpdates("fix_security_identifiers", txt)
-            play_the_money_sound()
 
     class StoreService():
         def __init__(self, obj):
@@ -23984,8 +23656,6 @@ after saving the file, restart Moneydance
 
     def detect_duplicate_securities():
 
-        PARAM_CURRID = "curr_id."
-
         try:
             _startTimeMs = System.currentTimeMillis()
 
@@ -24033,16 +23703,17 @@ after saving the file, restart Moneydance
 
                 output += "\n" \
                           "--- Unique list of Securities with potential duplicates:\n"
+
                 for sec in sorted(securitiesInvolved, key=lambda _x: (_x.getName().lower())):
-
                     hiddenSchemes = []
-                    for key in sec.getParameterKeys():
-                        if key.startswith(PARAM_CURRID):
-                            theScheme = key[len(PARAM_CURRID):]
-                            hiddenSchemes.append("%s:%s" %(theScheme, sec.getIDForScheme(theScheme)))
+                    for _scheme in sorted(_getLegacySchemesForSecurity(sec) | _getSchemesForSecurity(sec)):
+                        for _theID in _getIDsForScheme(sec, _scheme):
+                            hiddenSchemes.append("%s:%s" %(_scheme, _theID))
 
-                    output += ("%s(Ticker: %s, ID: %s, dpc: %s, splits: %s, rate: %s, hidden schemes: %s, uuid: %s)\n"
+                    output += ("%s(Ticker: %s, ID: %s, dpc: %s, splits: %s, rate: %s, hidden Identifiers (Scheme:ID): %s, uuid: %s)\n"
                               %(sec.getName(), sec.getTickerSymbol(), sec.getIDString(), sec.getDecimalPlaces(), sec.getSplits().size(), safeInvertRate(sec.getRelativeRate()), hiddenSchemes, sec.getUUID()))
+
+                output += output_old_new_scheme_id_info(securitiesInvolved)
                 output += "\n<END>"
 
                 myPrint("DB", "detect_duplicate_securities() took %s seconds..." %((System.currentTimeMillis() - _startTimeMs) / 1000.0))
@@ -24145,7 +23816,7 @@ after saving the file, restart Moneydance
                     GlobalVars.TOOLBOX_UNLOCK = False
                     self.theFrame.setTitle(self.saveTitle)
                 else:
-                    v = int(float(MD_REF.getVersion())); b = int(float(MD_REF.getBuild())); c = v+b
+                    v = int(float(StringUtils.stripNonNumbers(MD_REF.getVersion(), '.'))); b = int(float(MD_REF.getBuild())); c = v+b
                     response = myPopupAskForInput(self.theFrame,"@@ UNLOCK TOOLBOX @@", "PASSWORD:", "Enter the password to unlock powerful features",
                                           defaultValue=None,isPassword=True,theMessageType=JOptionPane.ERROR_MESSAGE)
                     lCorrect = False
@@ -24398,8 +24069,8 @@ after saving the file, restart Moneydance
                     user_viewListALLMDServices = MenuJRadioButton("View list of MD's Bank dynamic OFX/DC setup profiles (then select one)", False)
                     user_viewListALLMDServices.setToolTipText("This will display Moneydance's dynamic setup profiles for all banks - pulled from Infinite Kind's website..")
 
-                    user_view_security_identifier_settings = MenuJRadioButton("View your Security's hidden 'Identifiers' / schemes (e.g. CUSIP, ISIN, SEDOL etc) (the internal link for downloaded securities....)", False)
-                    user_view_security_identifier_settings.setToolTipText("This will show your Security's hidden identifiers (e.g. CUSIP, ISIN, SEDOL etc). These link your downloads on Investment Securities to MD Securities")
+                    user_view_security_identifier_settings = MenuJRadioButton("View your Security's hidden 'Identifiers' (e.g. CUSIP, ISIN, SEDOL, TICKER) - the internal link for downloaded Investment Securities", False)
+                    user_view_security_identifier_settings.setToolTipText("Shows your Security's hidden Identifier Schemes and IDs (e.g. CUSIP, ISIN, SEDOL, TICKER). These link downloaded Investment Securities to your MD Securities")
 
                     user_viewOnlineTxnsPayeesPayments = MenuJRadioButton("View your Online Txns/Payees/Payments", False)
                     user_viewOnlineTxnsPayeesPayments.setToolTipText("This will show you your cached Online Txns (there should be none) and also your saved online payees and payments")
@@ -24413,8 +24084,11 @@ after saving the file, restart Moneydance
                     user_forgetOFXBankingLink = MenuJRadioButton("Forget OFX Banking File Import Link (remove_ofx_account_bindings.py) (MD versions < MD2022)", False, updateMenu=True, secondaryEnabled=(not isMDPlusEnabledBuild() or isToolboxUnlocked()))
                     user_forgetOFXBankingLink.setToolTipText("Force MD to forget OFX Banking Import link attributed to an Account. Moneydance will ask you to recreate the link on next import.. THIS CHANGES DATA! (remove_ofx_account_bindings.py)")
                     
-                    user_manage_security_identifier_settings = MenuJRadioButton("Reset/Fix/Edit/Add your Security's hidden 'Identifiers' / schemes (e.g. CUSIP, ISIN, SEDOL etc). (remove_ofx_security_bindings.py and change-security-cusip.py)", False, updateMenu=True)
-                    user_manage_security_identifier_settings.setToolTipText("Allows you to reset/add/edit/move your Security's hidden 'Identifiers' / schemes (e.g. CUSIP, ISIN, SEDOL etc). These link your downloads on Investment Securities to MD Securities. THIS CHANGES DATA! (remove_ofx_security_bindings.py and change-security-cusip.py)")
+                    user_merge_security_identifier_data = MenuJRadioButton("Merge/Sync Security hidden Identifier data stores (pre-MD2026 and MD2026+) - ensures both stores are consistent (e.g. CUSIP, ISIN, SEDOL, TICKER)", False, updateMenu=True)
+                    user_merge_security_identifier_data.setToolTipText("Merges Security hidden Identifier data (e.g. CUSIP, ISIN, SEDOL, TICKER) between pre-MD2026 and MD2026+ stores. Nothing is lost. NOTE: pre-MD2026 store holds only one ID per scheme. THIS CHANGES DATA!")
+
+                    user_manage_security_identifier_settings = MenuJRadioButton("Manage your Security's hidden Identifiers (e.g. CUSIP, ISIN, SEDOL, TICKER) - add, edit, reset, move; and even nuke options. (remove_ofx_security_bindings.py and change-security-cusip.py)", False, updateMenu=True)
+                    user_manage_security_identifier_settings.setToolTipText("Add, edit, reset, move or nuke your Security's hidden Identifiers (e.g. CUSIP, ISIN, SEDOL, TICKER). These link downloaded Investment Securities to your MD Securities. THIS CHANGES DATA!")
 
                     user_updateOFXLastTxnUpdate = MenuJRadioButton("Update OFX Last Txn Update Date (Downloaded) field for an account (MD versions >= 2022 use Online menu)", False, updateMenu=True)
                     user_updateOFXLastTxnUpdate.setToolTipText("Allows you to edit the last download txn date which is used to set the start date for txn downloads - THIS CHANGES DATA!")
@@ -24484,7 +24158,7 @@ after saving the file, restart Moneydance
                     # userFilters.add(user_toggleOFXDebug)
 
                     if GlobalVars.globalShowDisabledMenuItems or ToolboxMode.isUpdateMode():
-                        rows += 13
+                        rows += 14
                         userFilters.add(JLabel(" "))
                         userFilters.add(ToolboxMode.DEFAULT_MENU_UPDATE_TXT_LBL)
                         if not ToolboxMode.isUpdateMode():
@@ -24492,6 +24166,7 @@ after saving the file, restart Moneydance
                             userFilters.add(ToolboxMode.getMenuLabel())
 
                         userFilters.add(user_forgetOFXBankingLink)
+                        userFilters.add(user_merge_security_identifier_data)
                         userFilters.add(user_manage_security_identifier_settings)
                         userFilters.add(user_updateOFXLastTxnUpdate)
                         userFilters.add(user_reset_OFXLastTxnUpdate_dates)
@@ -24541,7 +24216,8 @@ after saving the file, restart Moneydance
                         if user_forgetOFXBankingLink.isSelected():                      forgetOFXImportLink()
                         if user_deleteOFXBankingLogonProfile.isSelected():              deleteOFXService()
                         if user_cleanupMissingOnlineBankingLinks.isSelected():          cleanupMissingOnlineBankingLinks(lAutoPurge=False)
-                        if user_manage_security_identifier_settings.isSelected():       fix_security_identifiers()
+                        if user_merge_security_identifier_data.isSelected():            merge_security_identifier_stores()
+                        if user_manage_security_identifier_settings.isSelected():       manage_security_identifiers()
                         if user_UNLOCKMDPlusDiagnostic.isSelected():                    UNLOCKMDPlusDiagnostic()
                         if user_authenticationManagement.isSelected():                  OFX_authentication_management()
                         if user_forceMDPlusNameCacheAccessTokensRebuild.isSelected():   forceMDPlusNameCacheAccessTokensRebuild()

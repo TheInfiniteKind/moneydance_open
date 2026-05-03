@@ -135,7 +135,7 @@ Read-Only Mode (Default at launch) - Use ALT-M to toggle between Read-Only and U
         - View online banking configuration / connection data (OFX/DC and MD+) - VERY USEFUL, START HERE!
         - Search for stored OFX/MD+ related data
         - View full list of all MD's Bank dynamic OFX/DC setup profiles (and then select one to view specific details)
-        - View your Security's hidden 'Identifiers' / schemes (e.g. CUSIP, ISIN, SEDOL etc) (the internal link for downloaded securities....)
+        - View your Security's hidden Identifiers (e.g. CUSIP, ISIN, SEDOL, TICKER) (the internal link for downloaded securities....)
         - View your Online saved Txns, Payees, Payments
         - View your active accounts' calculated reconcile window auto 'as of' dates (Bank/Credit Cards/Investment)
         - View your accounts' calculated reconcile window auto 'as of' date (active accounts only)
@@ -220,7 +220,9 @@ ALT-M - Update Mode (** NOTE: Some menu items will disable if currency / securit
 
     - MENU: Online (OFX) Banking Tools:
         - Forget OFX Banking Import Link (so it asks which account when importing ofx files) (remove_ofx_account_bindings.py) (MD versions < 2022)
-        - Reset/Fix/Edit/Add your Security's hidden 'Identifiers' / schemes (e.g. CUSIP, ISIN, SEDOL etc). Internal links between security records. (remove_ofx_security_bindings.py and change-security-cusip.py)
+        - Merge/Sync Security hidden Identifier data stores (e.g. CUSIP, ISIN, SEDOL, TICKER) (pre-MD2026 and MD2026+): ensures both stores are consistent.
+          NOTE: pre-MD2026 store holds only one ID per scheme; MD2026+ store can hold many IDs per scheme. THIS CHANGES DATA!
+        - Manage your Security's hidden 'Identifiers' / schemes (e.g. CUSIP, ISIN, SEDOL, TICKER). Add/Edit/Reset/Nuke options. Internal links between security records. (remove_ofx_security_bindings.py and change-security-cusip.py)
         - Update OFX Last Txn Update Date (Downloaded) field for an account (MD versions >= 2022 can now use Online menu, Setup Online Banking, Reset Sync Date)
         - Reset ALL OFX Last Txn Update Dates (default, OFX and MD+) (MD 2022.3(4074) onwards)
         - Remove/disable (hidden) MD+/OFX(/QIF) data from downloaded Transactions within an Account (useful to address as_of reconcile date issues)
