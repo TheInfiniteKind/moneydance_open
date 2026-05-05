@@ -4,7 +4,7 @@
 from __future__ import division    # Has to occur at the beginning of file... Changes division to always produce a float
 assert isinstance(0/1, float), "LOGIC ERROR: Custom Balances extension assumes that division of integers yields a float! Do you have this statement: 'from __future__ import division'?"
 
-# net_account_balances.py build: 2000 - February 2026 - Stuart Beesley - StuWareSoftSystems
+# net_account_balances.py build: 2000 - May 2026 - Stuart Beesley - StuWareSoftSystems
 # Display Name in MD changed to 'Custom Balances' (was 'Net Account Balances') >> 'id' remains: 'net_account_balances'
 
 # Thanks and credit to Dan T Davis and Derek Kent(23) for their suggestions and extensive testing...
@@ -103,7 +103,7 @@ assert isinstance(0/1, float), "LOGIC ERROR: Custom Balances extension assumes t
 # build: 2000 - ???
 # build: 2000 - Upgraded CostCalculation to v10 to match MD2026(5500)
 # build: 2000 - BUGFIX for gatherRemainingRealBalances() - now when getting capital gains, we detect and pass the row currency and set setSpecialCurrencyType()
-# build: 2000 - misc AI fixes...
+# build: 2000 - misc AI recommended fixes...; added menu option 'Click Opens Register'; added ability to specify pos/neg value colours via row formmating commands
 # build: 2000 - ???
 
 # todo - tweak getConvertXBalanceRecursive() and getXBalance() to also exclude inactives from recursive balances (like apply networth rules)
@@ -121,7 +121,7 @@ assert isinstance(0/1, float), "LOGIC ERROR: Custom Balances extension assumes t
 # SET THESE LINES
 myModuleID = u"net_account_balances"
 version_build = "2000"
-MIN_BUILD_REQD = 5100  # 2024(5100) - AppDebug didn't exist before this build, and too many other CC, NW, AcctFIlter changes to deal with...
+MIN_BUILD_REQD = 5100  # 2024(5100) - AppDebug didn't exist before this build, and too many other CC, NW, AcctFilter changes to deal with...
 _I_CAN_RUN_AS_DEVELOPER_CONSOLE_SCRIPT = False
 
 global moneydance, moneydance_ui, moneydance_extension_loader, moneydance_extension_parameter, moneydance_this_fm
@@ -575,6 +575,7 @@ else:
     GlobalVars.extn_param_NEW_disableWarningIcon_NAB         = None
     GlobalVars.extn_param_NEW_disableGrayTextInfo_NAB        = None
     GlobalVars.extn_param_NEW_treatSecZeroBalInactive_NAB    = None
+    GlobalVars.extn_param_NEW_clickOpensRegister_NAB         = None
     GlobalVars.extn_param_NEW_useIndianNumberFormat_NAB      = None
     GlobalVars.extn_param_NEW_useTaxDates_NAB                = None
     GlobalVars.extn_param_NEW_displayVisualUnderDots_NAB     = None
@@ -1839,7 +1840,7 @@ Visit: %s (Author's site)
                 self.status = _status; self.color = _color
 
             def run(self):
-                GlobalVars.STATUS_LABEL.setText((_theStatus))
+                GlobalVars.STATUS_LABEL.setText(self.status)
                 if self.color is None or self.color == "": self.color = "X"
                 self.color = self.color.upper()
                 if self.color == "R":    GlobalVars.STATUS_LABEL.setForeground(getColorRed())
@@ -3107,10 +3108,10 @@ Visit: %s (Author's site)
     # NOTE: Two bugs were later fixed in the MD CC class from MD2024(5119); and then again from MD2026(5500)
     GlobalVars.MD_COSTCALCULATION_UPGRADED_BUILD = 5500                                                                 # MD2026(5500)
     def isCostCalculationUpgradedBuild(): return (MD_REF.getBuild() >= GlobalVars.MD_COSTCALCULATION_UPGRADED_BUILD)
-    if isCostCalculationUpgradedBuild():
-        from com.infinitekind.moneydance.model import CostCalculation
-    else:
+    if not isCostCalculationUpgradedBuild():
         global CostCalculation
+    else:
+        from com.infinitekind.moneydance.model import CostCalculation
 
     GlobalVars.MD_DATERANGECHOOSER_UPGRADED_BUILD = 5128;                                                                # MD2024.2(5128) - fixes between 5100 and 5128
     # def isDateRangeChooserUpgradedBuild(): return (MD_REF.getBuild() >= GlobalVars.MD_DATERANGECHOOSER_UPGRADED_BUILD)
@@ -4511,7 +4512,7 @@ Visit: %s (Author's site)
 
         # Avoid width resizes changing the GUI back and forth....
         def getPreferredSize(self):
-            dim = super(self.__class__, self).getPreferredSize()
+            dim = super(self.__class__, self).getPreferredSize()                                                        # noqa
             self.maxWidth = Math.max(self.maxWidth, dim.width)
             dim.width = self.maxWidth
             return dim
@@ -4531,7 +4532,7 @@ Visit: %s (Author's site)
 
         # Avoid width resizes changing the GUI back and forth....
         def getPreferredSize(self):
-            dim = super(self.__class__, self).getPreferredSize()
+            dim = super(self.__class__, self).getPreferredSize()                                                        # noqa
             self.maxWidth = Math.max(self.maxWidth, dim.width)
             dim.width = self.maxWidth
             return dim
@@ -4557,7 +4558,7 @@ Visit: %s (Author's site)
 
         # Avoid width resizes changing the GUI back and forth....
         def getPreferredSize(self):
-            dim = super(self.__class__, self).getPreferredSize()
+            dim = super(self.__class__, self).getPreferredSize()                                                        # noqa
             self.maxWidth = Math.max(self.maxWidth, dim.width)
             dim.width = self.maxWidth
             return dim
@@ -4671,7 +4672,7 @@ Visit: %s (Author's site)
 
         # Avoid width resizes changing the GUI back and forth....
         def getPreferredSize(self):
-            dim = super(self.__class__, self).getPreferredSize()
+            dim = super(self.__class__, self).getPreferredSize()                                                        # noqa
             self.maxWidth = Math.max(self.maxWidth, dim.width)
             dim.width = self.maxWidth
             return dim
@@ -4941,10 +4942,11 @@ Visit: %s (Author's site)
             self.maxBaseline = self.fonts.defaultMetrics.getMaxDescent()
             self.underlineStroke = BasicStroke(1.0, BasicStroke.CAP_BUTT, BasicStroke.JOIN_BEVEL, 1.0, [1.0, 6.0], 1.0 if (self.getHorizontalAlignment() == JLabel.LEFT) else 0.0)  # noqa
             self.underlineDots = self.NAB.savedDisplayVisualUnderDots
-            if tdfsc.isNoUnderlineDots(): self.underlineDots = False
-            if tdfsc.isForceUnderlineDots(): self.underlineDots = True
+            if tdfsc is not None and tdfsc.isNoUnderlineDots(): self.underlineDots = False
+            if tdfsc is not None and tdfsc.isForceUnderlineDots(): self.underlineDots = True
 
         def setUnderlineDots(self, underlineDots): self.underlineDots = underlineDots
+        def setAllowDynamicSizing(self, allowDynamicSizing): self.allowDynamicSizing = allowDynamicSizing
 
         def getPreferredSize(self):
             dim = super(self.__class__, self).getPreferredSize()
@@ -5028,6 +5030,7 @@ Visit: %s (Author's site)
         WIDGET_ROW_CENTERROWNAME        = "<#jc>";       WIDGET_ROW_CENTERROWNAME_DISPLAY        = "row name justify: center"
         WIDGET_ROW_REDROWNAME           = "<#cre>";      WIDGET_ROW_REDROWNAME_DISPLAY           = "row name colour: red"
         WIDGET_ROW_BLUEROWNAME          = "<#cbl>";      WIDGET_ROW_BLUEROWNAME_DISPLAY          = "row name colour: blue"
+        WIDGET_ROW_GREENROWNAME         = "<#cgrn>";     WIDGET_ROW_GREENROWNAME_DISPLAY         = "row name colour: green"
         WIDGET_ROW_LIGHTGREYROWNAME     = "<#cgr>";      WIDGET_ROW_LIGHTGREYROWNAME_DISPLAY     = "row name colour: light grey"
         WIDGET_ROW_MDCOLORROWNAME       = "<#cmd:xxx>";  WIDGET_ROW_MDCOLORROWNAME_DISPLAY       = "row name colour: Moneydance internal colour (refer help)"
         WIDGET_ROW_BOLDROWNAME          = "<#fbo>";      WIDGET_ROW_BOLDROWNAME_DISPLAY          = "row name font: bold"
@@ -5038,26 +5041,34 @@ Visit: %s (Author's site)
         WIDGET_ROW_BLANKZEROVALUE       = "<#bzv>";      WIDGET_ROW_BLANKZEROVALUE_DISPLAY       = "forces any total (value) to appear blank when zero"
         WIDGET_ROW_VALUE_RED            = "<#cvre>";     WIDGET_ROW_VALUE_RED_DISPLAY            = "value colour: red"
         WIDGET_ROW_VALUE_BLUE           = "<#cvbl>";     WIDGET_ROW_VALUE_BLUE_DISPLAY           = "value colour: blue"
+        WIDGET_ROW_VALUE_GREEN          = "<#cvgrn>";    WIDGET_ROW_VALUE_GREEN_DISPLAY          = "value colour: green"
         WIDGET_ROW_VALUE_LIGHTGREY      = "<#cvgr>";     WIDGET_ROW_VALUE_LIGHTGREY_DISPLAY      = "value colour: light grey"
-        WIDGET_ROW_VALUE_DEFAULT        = "<#cvde>";     WIDGET_ROW_VALUE_DEFAULT_DISPLAY        = "value colour: default foreground"
+        WIDGET_ROW_VALUE_DEFAULT        = "<#cvde>";     WIDGET_ROW_VALUE_DEFAULT_DISPLAY        = "value colour: default foreground (normally black)"
         WIDGET_ROW_VALUE_MDCOLOR        = "<#cvmd:xxx>"; WIDGET_ROW_VALUE_MDCOLOR_DISPLAY        = "value colour: Moneydance internal colour (refer help)"
+        WIDGET_ROW_VALUE_NEG_RED        = "<#cv-re>";    WIDGET_ROW_VALUE_NEG_RED_DISPLAY        = "value colour negative: red"
+        WIDGET_ROW_VALUE_NEG_BLUE       = "<#cv-bl>";    WIDGET_ROW_VALUE_NEG_BLUE_DISPLAY       = "value colour negative: blue"
+        WIDGET_ROW_VALUE_NEG_GREEN      = "<#cv-gr>";    WIDGET_ROW_VALUE_NEG_GREEN_DISPLAY      = "value colour negative: green"
+        WIDGET_ROW_VALUE_NEG_DEFAULT    = "<#cv-de>";    WIDGET_ROW_VALUE_NEG_DEFAULT_DISPLAY    = "value colour negative: default foreground (normally black)"
+        WIDGET_ROW_VALUE_POS_RED       = "<#cv+re>";     WIDGET_ROW_VALUE_POS_RED_DISPLAY        = "value colour positive: red"
+        WIDGET_ROW_VALUE_POS_BLUE       = "<#cv+bl>";    WIDGET_ROW_VALUE_POS_BLUE_DISPLAY       = "value colour positive: blue"
+        WIDGET_ROW_VALUE_POS_GREEN      = "<#cv+gr>";    WIDGET_ROW_VALUE_POS_GREEN_DISPLAY      = "value colour positive: green"
+        WIDGET_ROW_VALUE_POS_DEFAULT    = "<#cv+de>";    WIDGET_ROW_VALUE_POS_DEFAULT_DISPLAY    = "value colour positive: default foreground (normally black)"
         WIDGET_ROW_VALUE_BOLD           = "<#fvbo>";     WIDGET_ROW_VALUE_BOLD_DISPLAY           = "value font: bold"
         WIDGET_ROW_VALUE_ITALICS        = "<#fvit>";     WIDGET_ROW_VALUE_ITALICS_DISPLAY        = "value font: italics"
         WIDGET_ROW_VALUE_UNDERLINE      = "<#fvun>";     WIDGET_ROW_VALUE_UNDERLINE_DISPLAY      = "value font: underline"
         WIDGET_ROW_VALUE_PLUS           = "<#fv+>";      WIDGET_ROW_VALUE_PLUS_DISPLAY           = "value font: plus (larger size)"
         WIDGET_ROW_HTMLROWNAME          = "<#html>";     WIDGET_ROW_HTMLROWNAME_DISPLAY          = "EXPERIMENTAL. Takes your row name as html encoded text"
-
-        WIDGET_VAR_ROW_NUMBER           = "<##rn>";    WIDGET_VAR_ROW_NUMBER_DISPLAY           = "insert the row number"
-        WIDGET_VAR_ROW_TAG              = "<##rt>";    WIDGET_VAR_ROW_TAG_DISPLAY              = "insert the row tag (variable) name"
-        WIDGET_VAR_BAL_OPTION           = "<##bopt>";  WIDGET_VAR_BAL_OPTION_DISPLAY           = "insert the balance option selected"
-        WIDGET_VAR_BAL_ASOF_DATE        = "<##bad>";   WIDGET_VAR_BAL_ASOF_DATE_DISPLAY        = "insert the balance asof date"
-        WIDGET_VAR_BAL_ASOF_DATE_NAME   = "<##badn>";  WIDGET_VAR_BAL_ASOF_DATE_NAME_DISPLAY   = "insert the balance asof date name"
-        WIDGET_VAR_REM_ASOF_DATE        = "<##rad>";   WIDGET_VAR_REM_ASOF_DATE_DISPLAY        = "insert the include reminders asof date"
-        WIDGET_VAR_REM_ASOF_DATE_NAME   = "<##radn>";  WIDGET_VAR_REM_ASOF_DATE_NAME_DISPLAY   = "insert the include reminders asof date name"
-        WIDGET_VAR_CG_DATE_RANGE        = "<##cgdr>";  WIDGET_VAR_CG_DATE_RANGE_DISPLAY        = "insert the capital gains date range"
-        WIDGET_VAR_CG_DATE_RANGE_NAME   = "<##cgdrn>"; WIDGET_VAR_CG_DATE_RANGE_NAME_DISPLAY   = "insert the capital gains date range name"
-        WIDGET_VAR_IE_DATE_RANGE        = "<##iedr>";  WIDGET_VAR_IE_DATE_RANGE_DISPLAY        = "insert the income/expense date range"
-        WIDGET_VAR_IE_DATE_RANGE_NAME   = "<##iedrn>"; WIDGET_VAR_IE_DATE_RANGE_NAME_DISPLAY   = "insert the income/expense date range name"
+        WIDGET_VAR_ROW_NUMBER           = "<##rn>";      WIDGET_VAR_ROW_NUMBER_DISPLAY           = "insert the row number"
+        WIDGET_VAR_ROW_TAG              = "<##rt>";      WIDGET_VAR_ROW_TAG_DISPLAY              = "insert the row tag (variable) name"
+        WIDGET_VAR_BAL_OPTION           = "<##bopt>";    WIDGET_VAR_BAL_OPTION_DISPLAY           = "insert the balance option selected"
+        WIDGET_VAR_BAL_ASOF_DATE        = "<##bad>";     WIDGET_VAR_BAL_ASOF_DATE_DISPLAY        = "insert the balance asof date"
+        WIDGET_VAR_BAL_ASOF_DATE_NAME   = "<##badn>";    WIDGET_VAR_BAL_ASOF_DATE_NAME_DISPLAY   = "insert the balance asof date name"
+        WIDGET_VAR_REM_ASOF_DATE        = "<##rad>";     WIDGET_VAR_REM_ASOF_DATE_DISPLAY        = "insert the include reminders asof date"
+        WIDGET_VAR_REM_ASOF_DATE_NAME   = "<##radn>";    WIDGET_VAR_REM_ASOF_DATE_NAME_DISPLAY   = "insert the include reminders asof date name"
+        WIDGET_VAR_CG_DATE_RANGE        = "<##cgdr>";    WIDGET_VAR_CG_DATE_RANGE_DISPLAY        = "insert the capital gains date range"
+        WIDGET_VAR_CG_DATE_RANGE_NAME   = "<##cgdrn>";   WIDGET_VAR_CG_DATE_RANGE_NAME_DISPLAY   = "insert the capital gains date range name"
+        WIDGET_VAR_IE_DATE_RANGE        = "<##iedr>";    WIDGET_VAR_IE_DATE_RANGE_DISPLAY        = "insert the income/expense date range"
+        WIDGET_VAR_IE_DATE_RANGE_NAME   = "<##iedrn>";   WIDGET_VAR_IE_DATE_RANGE_NAME_DISPLAY   = "insert the income/expense date range name"
 
         ROW_NAME_MD_COLOR_PATTERN = re.compile(r"<#cmd:([a-zA-Z0-9]+)>")
         ROW_VALUE_MD_COLOR_PATTERN = re.compile(r"<#cvmd:([a-zA-Z0-9]+)>")
@@ -5068,6 +5079,7 @@ Visit: %s (Author's site)
                                 [WIDGET_ROW_CENTERROWNAME,             WIDGET_ROW_CENTERROWNAME_DISPLAY       ],
                                 [WIDGET_ROW_REDROWNAME,                WIDGET_ROW_REDROWNAME_DISPLAY          ],
                                 [WIDGET_ROW_BLUEROWNAME,               WIDGET_ROW_BLUEROWNAME_DISPLAY         ],
+                                [WIDGET_ROW_GREENROWNAME,              WIDGET_ROW_GREENROWNAME_DISPLAY        ],
                                 [WIDGET_ROW_LIGHTGREYROWNAME,          WIDGET_ROW_LIGHTGREYROWNAME_DISPLAY    ],
                                 [WIDGET_ROW_BOLDROWNAME,               WIDGET_ROW_BOLDROWNAME_DISPLAY         ],
                                 [WIDGET_ROW_ITALICSROWNAME,            WIDGET_ROW_ITALICSROWNAME_DISPLAY      ],
@@ -5077,6 +5089,7 @@ Visit: %s (Author's site)
                                 [WIDGET_ROW_BLANKZEROVALUE,            WIDGET_ROW_BLANKZEROVALUE_DISPLAY      ],
                                 [WIDGET_ROW_VALUE_RED,                 WIDGET_ROW_VALUE_RED_DISPLAY           ],
                                 [WIDGET_ROW_VALUE_BLUE,                WIDGET_ROW_VALUE_BLUE_DISPLAY          ],
+                                [WIDGET_ROW_VALUE_GREEN,               WIDGET_ROW_VALUE_GREEN_DISPLAY         ],
                                 [WIDGET_ROW_VALUE_LIGHTGREY,           WIDGET_ROW_VALUE_LIGHTGREY_DISPLAY     ],
                                 [WIDGET_ROW_VALUE_DEFAULT,             WIDGET_ROW_VALUE_DEFAULT_DISPLAY       ],
                                 [WIDGET_ROW_VALUE_BOLD,                WIDGET_ROW_VALUE_BOLD_DISPLAY          ],
@@ -5085,6 +5098,14 @@ Visit: %s (Author's site)
                                 [WIDGET_ROW_VALUE_PLUS,                WIDGET_ROW_VALUE_PLUS_DISPLAY          ],
                                 [WIDGET_ROW_MDCOLORROWNAME,            WIDGET_ROW_MDCOLORROWNAME_DISPLAY      ],
                                 [WIDGET_ROW_VALUE_MDCOLOR,             WIDGET_ROW_VALUE_MDCOLOR_DISPLAY       ],
+                                [WIDGET_ROW_VALUE_NEG_RED,             WIDGET_ROW_VALUE_NEG_RED_DISPLAY       ],
+                                [WIDGET_ROW_VALUE_NEG_BLUE,            WIDGET_ROW_VALUE_NEG_BLUE_DISPLAY      ],
+                                [WIDGET_ROW_VALUE_NEG_GREEN,           WIDGET_ROW_VALUE_NEG_GREEN_DISPLAY     ],
+                                [WIDGET_ROW_VALUE_NEG_DEFAULT,         WIDGET_ROW_VALUE_NEG_DEFAULT_DISPLAY   ],
+                                [WIDGET_ROW_VALUE_POS_RED,             WIDGET_ROW_VALUE_POS_RED_DISPLAY       ],
+                                [WIDGET_ROW_VALUE_POS_BLUE,            WIDGET_ROW_VALUE_POS_BLUE_DISPLAY      ],
+                                [WIDGET_ROW_VALUE_POS_GREEN,           WIDGET_ROW_VALUE_POS_GREEN_DISPLAY     ],
+                                [WIDGET_ROW_VALUE_POS_DEFAULT,         WIDGET_ROW_VALUE_POS_DEFAULT_DISPLAY   ],
                                 [WIDGET_ROW_HTMLROWNAME,               WIDGET_ROW_HTMLROWNAME_DISPLAY         ],
                                 [WIDGET_VAR_ROW_NUMBER,                WIDGET_VAR_ROW_NUMBER_DISPLAY          ],
                                 [WIDGET_VAR_ROW_TAG,                   WIDGET_VAR_ROW_TAG_DISPLAY             ],
@@ -5187,6 +5208,8 @@ Visit: %s (Author's site)
             self.disableBlinkOnValue = False
             self.blankZero = False
             self.valueColor = None
+            self.valueNegColor = None
+            self.valuePosColor = None
             self.valueBold = False
             self.valueItalics = False
             self.valueUnderline = False
@@ -5219,6 +5242,10 @@ Visit: %s (Author's site)
             if (self.__class__.WIDGET_ROW_BLUEROWNAME in _rowText):
                 _rowText = _rowText.replace(self.__class__.WIDGET_ROW_BLUEROWNAME, "")
                 self.color = getColorBlue()
+
+            if (self.__class__.WIDGET_ROW_GREENROWNAME in _rowText):
+                _rowText = _rowText.replace(self.__class__.WIDGET_ROW_GREENROWNAME, "")
+                self.color = getColorDarkGreen()
 
             if (self.__class__.WIDGET_ROW_REDROWNAME in _rowText):
                 _rowText = _rowText.replace(self.__class__.WIDGET_ROW_REDROWNAME, "")
@@ -5259,6 +5286,10 @@ Visit: %s (Author's site)
                 _rowText = _rowText.replace(self.__class__.WIDGET_ROW_VALUE_BLUE, "")
                 self.valueColor = getColorBlue()
 
+            if (self.__class__.WIDGET_ROW_VALUE_GREEN in _rowText):
+                _rowText = _rowText.replace(self.__class__.WIDGET_ROW_VALUE_GREEN, "")
+                self.valueColor = getColorDarkGreen()
+
             if (self.__class__.WIDGET_ROW_VALUE_RED in _rowText):
                 _rowText = _rowText.replace(self.__class__.WIDGET_ROW_VALUE_RED, "")
                 self.valueColor = getColorRed()
@@ -5270,6 +5301,38 @@ Visit: %s (Author's site)
             if (self.__class__.WIDGET_ROW_VALUE_DEFAULT in _rowText):
                 _rowText = _rowText.replace(self.__class__.WIDGET_ROW_VALUE_DEFAULT, "")
                 self.valueColor = self.defaultTextForeground
+
+            if (self.__class__.WIDGET_ROW_VALUE_NEG_RED in _rowText):
+                _rowText = _rowText.replace(self.__class__.WIDGET_ROW_VALUE_NEG_RED, "")
+                self.valueNegColor = getColorRed()
+
+            if (self.__class__.WIDGET_ROW_VALUE_NEG_BLUE in _rowText):
+                _rowText = _rowText.replace(self.__class__.WIDGET_ROW_VALUE_NEG_BLUE, "")
+                self.valueNegColor = getColorBlue()
+
+            if (self.__class__.WIDGET_ROW_VALUE_NEG_GREEN in _rowText):
+                _rowText = _rowText.replace(self.__class__.WIDGET_ROW_VALUE_NEG_GREEN, "")
+                self.valueNegColor = getColorDarkGreen()
+
+            if (self.__class__.WIDGET_ROW_VALUE_NEG_DEFAULT in _rowText):
+                _rowText = _rowText.replace(self.__class__.WIDGET_ROW_VALUE_NEG_DEFAULT, "")
+                self.valueNegColor = self.defaultTextForeground
+
+            if (self.__class__.WIDGET_ROW_VALUE_POS_RED in _rowText):
+                _rowText = _rowText.replace(self.__class__.WIDGET_ROW_VALUE_POS_RED, "")
+                self.valuePosColor = getColorRed()
+
+            if (self.__class__.WIDGET_ROW_VALUE_POS_BLUE in _rowText):
+                _rowText = _rowText.replace(self.__class__.WIDGET_ROW_VALUE_POS_BLUE, "")
+                self.valuePosColor = getColorBlue()
+
+            if (self.__class__.WIDGET_ROW_VALUE_POS_GREEN in _rowText):
+                _rowText = _rowText.replace(self.__class__.WIDGET_ROW_VALUE_POS_GREEN, "")
+                self.valuePosColor = getColorDarkGreen()
+
+            if (self.__class__.WIDGET_ROW_VALUE_POS_DEFAULT in _rowText):
+                _rowText = _rowText.replace(self.__class__.WIDGET_ROW_VALUE_POS_DEFAULT, "")
+                self.valuePosColor = self.defaultTextForeground
 
             colorMatch = self.__class__.ROW_VALUE_MD_COLOR_PATTERN.search(_rowText)
             if colorMatch:
@@ -5344,7 +5407,7 @@ Visit: %s (Author's site)
         def clone(self, tdfsc, prependBigText, appendBigText):
             newTDFSC = TextDisplayForSwingConfig(prependBigText + tdfsc.originalRowText + appendBigText,
                                                  tdfsc.originalSmallText,
-                                                 _smallColor=tdfsc.originalSmallText,
+                                                 _smallColor=tdfsc.originalSmallColor,
                                                  stripBigChars=tdfsc.originalStripBigChars,
                                                  stripSmallChars=tdfsc.originalStripSmallChars,
                                                  insertVars=tdfsc.originalVars,
@@ -5363,11 +5426,12 @@ Visit: %s (Author's site)
         def getValuePlus(self): return self.valuePlus
 
         def getValueColor(self, resultValue=-1):
-            if self.valueColor is not None:
-                return self.valueColor
+            if self.valueColor is not None: return self.valueColor
             if resultValue < 0:
+                if self.valueNegColor is not None: return self.valueNegColor
                 return self.ui.getColors().negativeBalFG
             else:
+                if self.valuePosColor is not None: return self.valuePosColor
                 if "default" == ThemeInfo.themeForID(self.ui,
                         self.ui.getPreferences().getSetting(GlobalVars.MD_PREFERENCE_KEY_CURRENT_THEME, ThemeInfo.DEFAULT_THEME_ID)).getThemeID():
                     return self.ui.getColors().budgetHealthyColor
@@ -6852,7 +6916,7 @@ Visit: %s (Author's site)
         @staticmethod
         class MyQueueableRefresher(Runnable):
             def __init__(self, collapsibleRefresherClass):
-                # type: (Runnable) -> None
+                # type: (MyCollapsibleRefresher) -> None
                 self.collapsibleRefresherClass = collapsibleRefresherClass
 
             # noinspection PyMethodMayBeStatic
@@ -6862,7 +6926,7 @@ Visit: %s (Author's site)
                 self.collapsibleRefresherClass.refreshable.run()
 
         def __init__(self, refreshable):
-            # type: (Runnable, bool) -> None
+            # type: (MyCollapsibleRefresher, bool) -> None
             if debug: myPrint("DB", "Initialising MyCollapsibleRefresher.... Instance: %s. Refreshable: %s" %(self, refreshable))
             self.isPendingRefresh = False
             self.refreshable = refreshable
@@ -7635,7 +7699,10 @@ Visit: %s (Author's site)
                 self.moneydanceExtensionLoader = MD_EXTENSION_LOADER  # This is the class loader (or later actually FeatureModule instance) for the whole extension
                 myPrint("DB", "... Build is >= 3051 so using moneydance_extension_loader or moneydance_this_fm: %s" %(self.moneydanceExtensionLoader))
                 # try:
-                #     self.SWSS_CC = MD_EXTENSION_LOADER.loadClass(GlobalVars.Strings.SWSS_COMMON_CODE_NAME)
+                #     _cl = None
+                #     try: _cl = getFieldByReflection(MD_EXTENSION_LOADER, "classloader")
+                #     except: _cl = MD_EXTENSION_LOADER
+                #     self.SWSS_CC = _cl.loadClass(GlobalVars.Strings.SWSS_COMMON_CODE_NAME)
                 #     self.SWSS_CC.DEBUG = False
                 #     myPrint("DB", "... (class)loaded bundled java code '%s' into memory too... (%s)" %(GlobalVars.Strings.SWSS_COMMON_CODE_NAME, self.SWSS_CC))
                 # except:
@@ -7761,6 +7828,7 @@ Visit: %s (Author's site)
             self.savedDisableWarningIcon            = None
             self.savedDisableGrayTextInfo           = None
             self.savedTreatSecZeroBalInactive       = None
+            self.savedClickOpensRegister            = None
             self.savedUseIndianNumberFormat         = None
             self.savedUseTaxDates                   = None
             self.savedDisplayVisualUnderDots        = None
@@ -7778,6 +7846,7 @@ Visit: %s (Author's site)
             self.menuItemDisableWidgetTitle = None
             self.menuItemShowDashesInsteadOfZeros = None
             self.menuItemTreatSecZeroBalInactive = None
+            self.menuClickOpensRegister = None
             self.menuItemDisableWarningIcon = None
             self.menuItemDisableGrayTextInfo = None
             self.menuItemUseIndianNumberFormat = None
@@ -8195,7 +8264,7 @@ Visit: %s (Author's site)
 
         def isWidgetRefreshRunning_NOLOCKFIRST(self):
             for sw in self.swingWorkers:                                                                                # type: SwingWorker
-                if sw.isBuildHomePageWidgetSwingWorker():
+                if sw.isBuildHomePageWidgetSwingWorker():                                                               # noqa
                     # myPrint("DB", "isWidgetRefreshRunning() reports TRUE on SwingWorker:", sw)
                     return True
             # myPrint("DB", "isSimulateRunning() reports False")
@@ -8206,7 +8275,7 @@ Visit: %s (Author's site)
 
         def isSimulateRunning_NOLOCKFIRST(self):
             for sw in self.swingWorkers:                                                                                # type: SwingWorker
-                if sw.isSimulateTotalForRowSwingWorker():
+                if sw.isSimulateTotalForRowSwingWorker():                                                               # noqa
                     # myPrint("DB", "isSimulateRunning() reports TRUE on SwingWorker:", sw)
                     return True
             # myPrint("DB", "isSimulateRunning() reports False")
@@ -8217,7 +8286,7 @@ Visit: %s (Author's site)
 
         def isParallelRebuildRunning_NOLOCKFIRST(self):
             for sw in self.swingWorkers:                                                                                # type: SwingWorker
-                if sw.isRebuildParallelBalanceTableSwingWorker():
+                if sw.isRebuildParallelBalanceTableSwingWorker():                                                       # noqa
                     # myPrint("DB", "isParallelRebuildRunning() reports TRUE on SwingWorker:", sw)
                     return True
             # myPrint("DB", "isParallelRebuildRunning() reports False")
@@ -8229,9 +8298,9 @@ Visit: %s (Author's site)
         def cancelSwingWorkers(self, lSimulates=False, lParallelRebuilds=False, lBuildHomePageWidgets=False):
             lCancelledAny = False
             for sw in self.swingWorkers:                                                                                # type: SwingWorker
-                if ((lSimulates and sw.isSimulateTotalForRowSwingWorker())
-                        or (lParallelRebuilds and sw.isRebuildParallelBalanceTableSwingWorker())
-                        or (lBuildHomePageWidgets and sw.isBuildHomePageWidgetSwingWorker())):
+                if ((lSimulates and sw.isSimulateTotalForRowSwingWorker())                                              # noqa
+                        or (lParallelRebuilds and sw.isRebuildParallelBalanceTableSwingWorker())                        # noqa
+                        or (lBuildHomePageWidgets and sw.isBuildHomePageWidgetSwingWorker())):                          # noqa
                     if not sw.isCancelled() and not sw.isDone():
                         if debug: myPrint("`DB", "cancelSwingWorkers() sending CANCEL COMMAND to running SwingWorker:", sw)
                         if not sw.cancel(True):
@@ -8453,6 +8522,7 @@ Visit: %s (Author's site)
             GlobalVars.extn_param_NEW_disableWarningIcon_NAB         = copy.deepcopy(NAB.savedDisableWarningIcon)
             GlobalVars.extn_param_NEW_disableGrayTextInfo_NAB        = copy.deepcopy(NAB.savedDisableGrayTextInfo)
             GlobalVars.extn_param_NEW_treatSecZeroBalInactive_NAB    = copy.deepcopy(NAB.savedTreatSecZeroBalInactive)
+            GlobalVars.extn_param_NEW_clickOpensRegister_NAB         = copy.deepcopy(NAB.savedClickOpensRegister)
             GlobalVars.extn_param_NEW_useIndianNumberFormat_NAB      = copy.deepcopy(NAB.savedUseIndianNumberFormat)
             GlobalVars.extn_param_NEW_useTaxDates_NAB                = copy.deepcopy(NAB.savedUseTaxDates)
             GlobalVars.extn_param_NEW_displayVisualUnderDots_NAB     = copy.deepcopy(NAB.savedDisplayVisualUnderDots)
@@ -9149,6 +9219,7 @@ Visit: %s (Author's site)
         def disableWarningIconDefault(self):            return False
         def disableGrayTextInfoDefault(self):           return False
         def treatSecZeroBalInactiveDefault(self):       return False
+        def clickOpensRegisterDefault(self):            return False
         def useIndianNumberFormatDefault(self):         return False
         def useTaxDatesDefault(self):                   return False
         def hideDecimalsDefault(self):                  return False
@@ -9346,6 +9417,8 @@ Visit: %s (Author's site)
                 self.resetParameters(47)
             elif self.savedTreatSecZeroBalInactive is None or not isinstance(self.savedTreatSecZeroBalInactive, bool):
                 self.resetParameters(49)
+            elif self.savedClickOpensRegister is None or not isinstance(self.savedClickOpensRegister, bool):
+                self.resetParameters(50)
             elif self.savedUseIndianNumberFormat is None or not isinstance(self.savedUseIndianNumberFormat, bool):
                 self.resetParameters(51)
             elif self.savedUseTaxDates is None or not isinstance(self.savedUseTaxDates, bool):
@@ -10335,6 +10408,7 @@ Visit: %s (Author's site)
                 self.savedDisableWarningIcon            = self.disableWarningIconDefault()
                 self.savedDisableGrayTextInfo           = self.disableGrayTextInfoDefault()
                 self.savedTreatSecZeroBalInactive       = self.treatSecZeroBalInactiveDefault()
+                self.savedClickOpensRegister            = self.clickOpensRegisterDefault()
                 self.savedUseIndianNumberFormat         = self.useIndianNumberFormatDefault()
                 self.savedUseTaxDates                   = self.useTaxDatesDefault()
                 self.savedDisplayVisualUnderDots        = self.displayVisualUnderDotsDefault()
@@ -11046,6 +11120,7 @@ Visit: %s (Author's site)
                 myPrint("B", ".....savedDisableWidgetTitle: %s"                 %(NAB.savedDisableWidgetTitle))
                 myPrint("B", ".....savedShowDashesInsteadOfZeros: %s"           %(NAB.savedShowDashesInsteadOfZeros))
                 myPrint("B", ".....savedTreatSecZeroBalInactive: %s"            %(NAB.savedTreatSecZeroBalInactive))
+                myPrint("B", ".....savedClickOpensRegister: %s"                 %(NAB.savedClickOpensRegister))
                 myPrint("B", ".....savedDisableWarningIcon: %s"                 %(NAB.savedDisableWarningIcon))
                 myPrint("B", ".....savedDisableGrayTextInfo: %s"                %(NAB.savedDisableGrayTextInfo))
                 myPrint("B", ".....savedUseIndianNumberFormat: %s"              %(NAB.savedUseIndianNumberFormat))
@@ -11430,6 +11505,7 @@ Visit: %s (Author's site)
             myPrint("B", " %s" %(pad("savedDisableWidgetTitle",30)),            NAB.savedDisableWidgetTitle)
             myPrint("B", " %s" %(pad("savedShowDashesInsteadOfZeros",30)),      NAB.savedShowDashesInsteadOfZeros)
             myPrint("B", " %s" %(pad("savedTreatSecZeroBalInactive",30)),       NAB.savedTreatSecZeroBalInactive)
+            myPrint("B", " %s" %(pad("savedClickOpensRegister",30)),            NAB.savedClickOpensRegister)
             myPrint("B", " %s" %(pad("savedDisableWarningIcon",30)),            NAB.savedDisableWarningIcon)
             myPrint("B", " %s" %(pad("savedDisableGrayTextInfo",30)),           NAB.savedDisableGrayTextInfo)
             myPrint("B", " %s" %(pad("savedUseIndianNumberFormat",30)),         NAB.savedUseIndianNumberFormat)
@@ -12803,6 +12879,13 @@ Visit: %s (Author's site)
                     myPrint("B", "User has changed 'Treat Securities With Zero Balance as Inactive' to: %s" %(NAB.savedTreatSecZeroBalInactive))
 
                 # ######################################################################################################
+                if event.getActionCommand() == "click_opens_register":
+                    NAB.savedClickOpensRegister = not NAB.savedClickOpensRegister
+                    NAB.configSaved = False
+                    NAB.searchFiltersUpdated()
+                    myPrint("B", "User has changed 'Click Opens Register' to: %s" %(NAB.savedClickOpensRegister))
+
+                # ######################################################################################################
                 if event.getActionCommand() == "hide_controls":
                     NAB.savedHideControlPanel = not NAB.savedHideControlPanel
                     NAB.menuBarItemHideControlPanel_CB.setSelected(NAB.savedHideControlPanel)
@@ -13215,6 +13298,7 @@ Visit: %s (Author's site)
                 GlobalVars.extn_param_NEW_disableWarningIcon_NAB            = NAB.disableWarningIconDefault()
                 GlobalVars.extn_param_NEW_disableGrayTextInfo_NAB           = NAB.disableGrayTextInfoDefault()
                 GlobalVars.extn_param_NEW_treatSecZeroBalInactive_NAB       = NAB.treatSecZeroBalInactiveDefault()
+                GlobalVars.extn_param_NEW_clickOpensRegister_NAB            = NAB.clickOpensRegisterDefault()
                 GlobalVars.extn_param_NEW_useIndianNumberFormat_NAB         = NAB.useIndianNumberFormatDefault()
                 GlobalVars.extn_param_NEW_useTaxDates_NAB                   = NAB.useTaxDatesDefault()
                 GlobalVars.extn_param_NEW_displayVisualUnderDots_NAB        = NAB.displayVisualUnderDotsDefault()
@@ -13284,6 +13368,7 @@ Visit: %s (Author's site)
                         self.savedDisableWarningIcon            = copy.deepcopy(GlobalVars.extn_param_NEW_disableWarningIcon_NAB)
                         self.savedDisableGrayTextInfo           = copy.deepcopy(GlobalVars.extn_param_NEW_disableGrayTextInfo_NAB)
                         self.savedTreatSecZeroBalInactive       = copy.deepcopy(GlobalVars.extn_param_NEW_treatSecZeroBalInactive_NAB)
+                        self.savedClickOpensRegister            = copy.deepcopy(GlobalVars.extn_param_NEW_clickOpensRegister_NAB)
                         self.savedUseIndianNumberFormat         = copy.deepcopy(GlobalVars.extn_param_NEW_useIndianNumberFormat_NAB)
                         self.savedUseTaxDates                   = copy.deepcopy(GlobalVars.extn_param_NEW_useTaxDates_NAB)
                         self.savedDisplayVisualUnderDots        = copy.deepcopy(GlobalVars.extn_param_NEW_displayVisualUnderDots_NAB)
@@ -13480,6 +13565,12 @@ Visit: %s (Author's site)
             NAB.menuItemTreatSecZeroBalInactive.setToolTipText("When enabled will treat securities with a zero balance as 'Inactive'")
             menuO.add(NAB.menuItemTreatSecZeroBalInactive)
 
+            NAB.menuClickOpensRegister = MyJCheckBoxMenuItem("Click Opens Register")
+            NAB.menuClickOpensRegister.setActionCommand("click_opens_register")
+            NAB.menuClickOpensRegister.addActionListener(NAB.saveActionListener)
+            NAB.menuClickOpensRegister.setToolTipText("When enabled, clicking a row with a single account will open that account's register (otherwise opens config screen)")
+            menuO.add(NAB.menuClickOpensRegister)
+
             NAB.menuItemUseIndianNumberFormat = MyJCheckBoxMenuItem("Use Indian number format")
             NAB.menuItemUseIndianNumberFormat.setActionCommand("use_indian_number_format")
             NAB.menuItemUseIndianNumberFormat.setMnemonic(KeyEvent.VK_N)
@@ -13603,6 +13694,7 @@ Visit: %s (Author's site)
             NAB.menuItemDisableWidgetTitle.setSelected(NAB.savedDisableWidgetTitle)
             NAB.menuItemShowDashesInsteadOfZeros.setSelected(NAB.savedShowDashesInsteadOfZeros)
             NAB.menuItemTreatSecZeroBalInactive.setSelected(NAB.savedTreatSecZeroBalInactive)
+            NAB.menuClickOpensRegister.setSelected(NAB.savedClickOpensRegister)
             NAB.menuItemDisableWarningIcon.setSelected(NAB.savedDisableWarningIcon)
             NAB.menuItemDisableGrayTextInfo.setSelected(NAB.savedDisableGrayTextInfo)
             NAB.menuItemUseIndianNumberFormat.setSelected(NAB.savedUseIndianNumberFormat)
@@ -15596,6 +15688,16 @@ Visit: %s (Author's site)
 
                 myPrint("B", "... end of routines after receiving  '%s' command...." %(AppEventManager.FILE_OPENED))
 
+            elif (appEvent.lower().startswith(("%s:customevent:showAccount" %(self.myModuleID)).lower())):
+                myPrint("DB", "... Click Opens Account requested - attempting to locate and open account for specified uuid: %s" %(appEvent))
+                requestedAcctUUID = decodeCommand(appEvent)[1]
+                clickAcct = NAB.moneydanceContext.getCurrentAccountBook().getAccountByUUID(requestedAcctUUID)
+                if clickAcct is None:
+                    myPrint("DB", ".. failed to find account for uuid: '%s' - doing nothing!" %(requestedAcctUUID))
+                else:
+                    myPrint("DB", ".. calling .showAccount() for account: '%s'" %(clickAcct.getFullAccountName()))
+                    genericSwingEDTRunner(False, False, NAB.moneydanceContext.getUI().showAccount, clickAcct)
+
             elif (appEvent.lower().startswith(("%s:customevent:showConfig" %(self.myModuleID)).lower())):
                 myPrint("DB", "%s Config screen requested - I might show it if conditions are appropriate" %(appEvent))
 
@@ -17405,30 +17507,44 @@ Visit: %s (Author's site)
 
                                     tdfsc = TextDisplayForSwingConfig(("[%s] " %(i+1) if debug else "") + NAB.savedWidgetName[i], _grayInfoText, altFG, insertVars=insertVars)
 
-                                    nameLabel = SpecialJLinkLabel(tdfsc.getSwingComponentText(), "showConfig?%s" %(str(onRow)), tdfsc.getJustification(), tdfsc=tdfsc, allowDynamicSizing=True)
+                                    # determine whether clicking on a row opens config or that row's single account register (configured by menu option)
+                                    clickAcctUUID = (NAB.savedAccountListUUIDs[i][0]
+                                                     if (NAB.savedClickOpensRegister and balanceObj.getCountSelectedAccounts() == 1 and len(NAB.savedAccountListUUIDs[i]) == 1)
+                                                     else None)
+                                    clickLink = "showAccount?%s" %(clickAcctUUID) if clickAcctUUID is not None else "showConfig?%s" %(str(onRow))
+
+                                    nameLabel = SpecialJLinkLabel(tdfsc.getSwingComponentText(), clickLink, tdfsc.getJustification())
+                                    nameLabel.setAllowDynamicSizing(True)
+                                    nameLabel.setUnderlineDots(NAB.savedDisplayVisualUnderDots)
+                                    if tdfsc.isNoUnderlineDots(): nameLabel.setUnderlineDots(False)
+                                    if tdfsc.isForceUnderlineDots(): nameLabel.setUnderlineDots(True)
+
                                     addPopupContextMenu(md.getUI(), nameLabel)
 
                                     # NOTE: Leave "  " (two spaces) to avoid the row height collapsing.....
                                     if balanceOrAverageLong is None:
                                         netTotalLbl = SpecialJLinkLabel(" " if (tdfsc.getBlankZero()) else GlobalVars.DEFAULT_WIDGET_ROW_NOT_CONFIGURED.lower(),
-                                                                        "showConfig?%s" %(str(onRow)),
-                                                                        JLabel.RIGHT,
-                                                                        tdfsc=tdfsc)
+                                                                        clickLink, JLabel.RIGHT)
+                                        netTotalLbl.setUnderlineDots(NAB.savedDisplayVisualUnderDots)
+                                        if tdfsc.isNoUnderlineDots(): netTotalLbl.setUnderlineDots(False)
+                                        if tdfsc.isForceUnderlineDots(): netTotalLbl.setUnderlineDots(True)
                                         netTotalLbl.setFont(tdfsc.getValueFont(False))                                  # noqa
 
                                     elif balanceObj.isUORError():
                                         netTotalLbl = SpecialJLinkLabel(CalculatedBalance.DEFAULT_WIDGET_ROW_UOR_ERROR.lower(),
-                                                                        "showConfig?%s" %(str(onRow)),
-                                                                        JLabel.RIGHT,
-                                                                        tdfsc=tdfsc)
+                                                                        clickLink, JLabel.RIGHT)
+                                        netTotalLbl.setUnderlineDots(NAB.savedDisplayVisualUnderDots)
+                                        if tdfsc.isNoUnderlineDots(): netTotalLbl.setUnderlineDots(False)
+                                        if tdfsc.isForceUnderlineDots(): netTotalLbl.setUnderlineDots(True)
                                         netTotalLbl.setFont(tdfsc.getValueFont(False))                                  # noqa
                                         netTotalLbl.setForeground(md.getUI().getColors().errorMessageForeground)        # noqa
 
                                     elif balanceObj.isFormulaError():
                                         netTotalLbl = SpecialJLinkLabel(CalculatedBalance.DEFAULT_WIDGET_ROW_FORMULA_ERROR.lower(),
-                                                                        "showConfig?%s" %(str(onRow)),
-                                                                        JLabel.RIGHT,
-                                                                        tdfsc=tdfsc)
+                                                                        clickLink, JLabel.RIGHT)
+                                        netTotalLbl.setUnderlineDots(NAB.savedDisplayVisualUnderDots)
+                                        if tdfsc.isNoUnderlineDots(): netTotalLbl.setUnderlineDots(False)
+                                        if tdfsc.isForceUnderlineDots(): netTotalLbl.setUnderlineDots(True)
                                         netTotalLbl.setFont(tdfsc.getValueFont(False))                                  # noqa
                                         netTotalLbl.setForeground(md.getUI().getColors().errorMessageForeground)        # noqa
 
@@ -17456,7 +17572,10 @@ Visit: %s (Author's site)
                                                 if balanceObj.getCurrencyType().getDoubleValue(balanceOrAverageLong) != balanceOrAverageDecimals:
                                                     theDecimalPrecisionFormattedValue = " (%s)" %(balanceOrAverageDecimals)
 
-                                        netTotalLbl = SpecialJLinkLabel(theFormattedValue + theDecimalPrecisionFormattedValue, "showConfig?%s" %(onRow), JLabel.RIGHT, tdfsc=tdfsc)
+                                        netTotalLbl = SpecialJLinkLabel(theFormattedValue + theDecimalPrecisionFormattedValue, "showConfig?%s" %(onRow), JLabel.RIGHT)
+                                        netTotalLbl.setUnderlineDots(NAB.savedDisplayVisualUnderDots)
+                                        if tdfsc.isNoUnderlineDots(): netTotalLbl.setUnderlineDots(False)
+                                        if tdfsc.isForceUnderlineDots(): netTotalLbl.setUnderlineDots(True)
                                         addPopupContextMenu(md.getUI(), netTotalLbl)
                                         netTotalLbl.setFont(tdfsc.getValueFont())                                       # noqa
                                         netTotalLbl.setForeground(tdfsc.getValueColor(balanceOrAverageLong))            # noqa
@@ -17645,6 +17764,11 @@ Visit: %s (Author's site)
                 HPV = MyHomePageView.getHPV()
 
                 if isinstance(link, basestring):
+
+                    if (link.lower().startswith("showAccount".lower())):
+                        myPrint("DB", ".. calling .showURL() to trigger a call to show account: %s" %(link))
+                        NAB.moneydanceContext.showURL("moneydance:fmodule:%s:%s:customevent:%s" %(HPV.myModuleID,HPV.myModuleID, link))
+
                     if (link.lower().startswith("showConfig".lower())):
                         myPrint("DB", ".. calling .showURL() to call up %s panel" %(link))
                         NAB.moneydanceContext.showURL("moneydance:fmodule:%s:%s:customevent:%s" %(HPV.myModuleID,HPV.myModuleID, link))
