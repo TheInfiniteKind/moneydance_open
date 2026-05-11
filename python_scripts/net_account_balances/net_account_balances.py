@@ -9873,10 +9873,10 @@ Visit: %s (Author's site)
                 validTagsDict["asof00000row%s" %(str(i+1))] = getBalanceAsOfDateSelected(NAB.savedBalanceAsOfDateTable[i])
                 validTagsDict["rowcurrency00000row%s" %(str(i+1))] = NAB.savedCurrencyTable[i] or base.getUUID()        # uuid
 
-            validTagsDict["dan00000specialnumber"] = 24601.0                                # for DTD
-            validTagsDict["pi00000"] = Math.PI                                              # for fun!
-            validTagsDict["mdversion00000"] = float(NAB.moneydanceContext.getVersion())     # for fun!
-            validTagsDict["mdbuild00000"] = NAB.moneydanceContext.getBuild()                # for fun!
+            validTagsDict["dan00000specialnumber"] = 24601.0                                                                # for DTD
+            validTagsDict["pi00000"] = Math.PI                                                                              # for fun!
+            validTagsDict["mdversion00000"] = float(StringUtils.stripNonNumbers(NAB.moneydanceContext.getVersion(), '.'))   # for fun!
+            validTagsDict["mdbuild00000"] = NAB.moneydanceContext.getBuild()                                                # for fun!
             validTagsDict["today00000"] = DateUtil.getStrippedDateInt()
 
             validTagsDict["basecurrency00000"] = base.getUUID()                                                         # uuid
