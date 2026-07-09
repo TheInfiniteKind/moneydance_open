@@ -1176,6 +1176,8 @@ registerPythonModule("security_performance_graph", true)
 registerPythonModule("extension_tester")
 registerPythonModule("accounts_categories_mega_search_window")
 
+registerPythonModule("import_fidelity")
+
 
 def allJavaKotlin = [
     "yahooqt", "yahoofx", "priceui", "findandreplace", "debtinsights", "ratios", "stockglance",
@@ -1183,7 +1185,8 @@ def allJavaKotlin = [
     "mousetester", "contextmenutools"
 ]
 def allPython = [
-    "toolbox", "extract_data", "list_future_reminders", "net_account_balances", "extension_tester", "accounts_categories_mega_search_window", "security_performance_graph"
+    "toolbox", "extract_data", "list_future_reminders", "net_account_balances", "extension_tester", "accounts_categories_mega_search_window", "security_performance_graph",
+    "import_fidelity"
 ]
 def allFeatures = allJavaKotlin + allPython
 

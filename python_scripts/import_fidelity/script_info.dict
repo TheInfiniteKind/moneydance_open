@@ -1,0 +1,11 @@
+{
+  "actions" = (
+    {
+      "type" = "menu"
+      "script_file" = "import_fidelity.py"
+      "name" = "Import Fidelity Investment txns from CSV"
+      "name.en-GB" = "Import Fidelity Investment txns from CSV"
+      "script_fixed_parameter" = "menu"
+    }
+  )
+}

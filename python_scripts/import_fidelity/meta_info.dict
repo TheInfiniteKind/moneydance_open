@@ -1,0 +1,12 @@
+{
+  "id" = "import_fidelity"
+  "extension_type" = "python"
+  "vendor" = "@mmd and the Infinite Kind"
+  "module_build" = "16"
+  "minbuild" = "5253"
+  "vendor_url" = "https://infinitekind.com"
+  "module_name" = "Import Fidelity Investment txns from CSV"
+  "module_name.en-GB" = "Import Fidelity Investment txns from CSV"
+  "module_name.en" = "Import Fidelity Investment txns from CSV"
+  "module_desc" = "Extension to import Fidelity Investment transactions from CSV file..."
+}
