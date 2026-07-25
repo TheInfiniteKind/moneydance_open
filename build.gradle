@@ -576,6 +576,7 @@ tasks.register("verifyConfig") {
     logger.lifecycle("parallelProjectExecutionEnabled = ${gradle.startParameter.parallelProjectExecutionEnabled}")
     logger.lifecycle("Kotlin incremental compilation enabled = ${providers.gradleProperty("kotlin.incremental").orNull != "false"}")
     logger.lifecycle("Kotlin classpath snapshotting enabled = ${providers.gradleProperty("kotlin.incremental.useClasspathSnapshot").orNull == "true"}")
+    logger.lifecycle("kotlin.stdlib.default.dependency = ${providers.gradleProperty("kotlin.stdlib.default.dependency").orNull ?: "<default: true>"}")
 
     requireMoneydanceClass(failWhenNotFound: false, showResults: true)
 
