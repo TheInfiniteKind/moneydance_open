@@ -34,10 +34,14 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 import java.util.zip.ZipFile
 
 
+// note: we match the kotlin plugin version to the Moneydance build system. For MD2024 this was 1.9, with MD2026 it's 2.4
+// kotlin plugin 2.3.21 is the last version to support language level 1.9.
+// we limit the kotlin language/api version to 1.9 for backwards compatibility with MD2024
+// we also compile against the kotlin stdlib 1.9 jar for the same reason
+
 plugins {
   id 'java'                                         // configure the java environment
-  id 'org.jetbrains.kotlin.jvm' version '1.9.21'    // configure the kotlin environment - kotlin plugin version to match Moneydance's build system and also bundled runtime kotlin-stdlib-x.x.x.jar
-                                                    // use '2.3.10' to upgrade
+  id 'org.jetbrains.kotlin.jvm' version '2.3.21'    // configure the kotlin environment - kotlin plugin version to match Moneydance's build system and also bundled runtime kotlin-stdlib-x.x.x.jar
 }
 
 repositories {
