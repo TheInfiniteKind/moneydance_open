@@ -213,13 +213,17 @@ public class GetYahooQuote extends GetQuoteTask {
                 quotePrice.setVolume(0L);
             }
         }
-        itemNode = fields.get("timezone");
+        itemNode = fields.get("exchangeTimezoneName");
+        if (itemNode == null) {
+          debugInst.debug("GetQuoteTask", "parseDoc", MRBDebug.DETAILED, "YahooQuote: 'exchangeTimezoneName' not found - reverting to deprecated 'timezone'");
+          itemNode = fields.get("timezone");  // fallback if Yahoo omits the preferred field
+        }
         if (itemNode != null) {
-            try {
-                timeZoneStr = itemNode.getAsString();
-            } catch (ClassCastException | IllegalStateException e) {
-                debugInst.debug("GetQuoteTask", "parseDoc", MRBDebug.INFO, "Invalid Time Zone ");
-            }
+          try {
+            timeZoneStr = itemNode.getAsString();
+          } catch (ClassCastException | IllegalStateException e) {
+            debugInst.debug("GetQuoteTask", "parseDoc", MRBDebug.INFO, "Invalid Time Zone ");
+          }
         }
         itemNode = fields.get("regularMarketDayHigh");
         if (itemNode != null) {
