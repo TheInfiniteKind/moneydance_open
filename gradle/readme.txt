@@ -9,10 +9,14 @@ gradle properties:	        gradle.properties
 
 user config file:	 /userconfig/user.gradle.properties
 
+machine config:      ~/.gradle/gradle.properties
+                     org.gradle.java.home=/Library/Java/JavaVirtualMachines/temurin-25.jdk/Contents/Home
+                     (to define the JVM that gradle wrapper will execute on)
+
 IntelliJ IDEA CE environment
-- Project Structure: Project & Modules: JDK-21, Language level: 17
+- Project Structure: Project & Modules: JDK-25, Language level: 17
 - Settings: Build, Execution, Deployment: Compiler
-  - Kotlin Compiler, Compiler version: 1.9.21
+  - Kotlin Compiler, Plugin, Compiler version: 2.3.21 (terminal version that supports kotlin language/api 1.9)
   - Language version: 1.9, API version:	  1.9, Target JVM version: 17
 - Settings: Build, Execution, Deployment: Build Tools: Gradle: Build and run using gradle
 

@@ -10,6 +10,11 @@ build.gradle: gradle buildfile for Moneydance extensions
 ** REVIEW PROPERTIES IN [ROOT]/gradle.properties file
 ** SET LOCAL/USER OVERRIDING PROPERTIES in [ROOT]/userconfig/user.gradle.properties
 
+DEFINE local/machine specific gradle wrapper settings in: ~/.gradle/gradle.properties
+       example: to define the JVM that gradle runs on (ideally Java 25) specify:
+       org.gradle.java.home=/Library/Java/JavaVirtualMachines/temurin-25.jdk/Contents/Home
+       (when missing it will pickup your locally defined JVM version)
+
 Execute ./gradlew                       -> show usage
         ./gradlew extensionname         -> build extension
         ./gradlew cleanextensionname    -> cleanup a single extension's build files
@@ -67,7 +72,7 @@ if (!isKotlin2) {
 // - java / kotlin target versions are set to allow extensions to have maximum possible of backwards compatibility.
 // - we set these value here - rather than using gradle.properties - as these are not really very user configurable.
 ext {
-    compilerJDK       = 21                          // JDK version to execute java/kotlin compile, sign, and packaging tasks
+    compilerJDK       = 25                          // JDK version to execute java/kotlin compile, sign, and packaging tasks
     targetRelease     = 17                          // equivalent java --release (source/target/bytecode/API) version
     kotlinLangVersion = KotlinVersion.KOTLIN_1_9    // kotlin language version (lock to plugin version) - match to Moneydance bundled kotlin-stdlib-x.x.x.jar
     kotlinApiVersion  = KotlinVersion.KOTLIN_1_9    // kotlin API version (lock to plugin version) - match to Moneydance bundled kotlin-stdlib-x.x.x.jar
@@ -507,6 +512,7 @@ tasks.register("verifyConfig") {
     logger.lifecycle("------------------------------------------")
 
     logger.lifecycle("")
+    logger.lifecycle("Daemon JVM         = ${System.getProperty('java.version')} (${System.getProperty('java.home')})")
     logger.lifecycle("Gradle version     = ${gradle.gradleVersion}")
     logger.lifecycle("Kotlin plugin      = ${KotlinCompilerVersion.VERSION}")
     logger.lifecycle("CompilerJDK        = ${compilerJDK}")

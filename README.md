@@ -10,9 +10,10 @@ To communicate with the developers and other Moneydance community members, pleas
 
 ## Suggestions for building
 
-* Use java version 17 or newer. When using a newer JDK, ideally set the target language/release to 17.
+* Your IDE, gradle, and compiler can operate on java 25.
+* Use java version 17 or newer (ideally 25). When using a newer JDK, ideally set the target language/release to 17 for maximum backwards compatibility.
 * kotlin has been enabled and you can build extensions using kotlin, java, or both. You should use the updated gradle (wrapper) build tools for this
-* kotlin plugin should ideally be 1.9 with the same for API and language (match to the versions being used by Moneydance)
+* kotlin plugin can be upto 2.3.21 (terminal version that supports 1.9), and 1.9 for API and language (match to the versions being used by Moneydance)
 * Add `extadmin.jar` and `moneydance-dev.jar` from the devkit to the lib folder
 * Some of the projects use the non-public api's. For those you need to copy the moneydance jar file to the lib directory
 * Create keys as explained in the developer kit documentation (set keypass= in properties, and execute genKeys task)
