@@ -118,6 +118,9 @@
 # build: 2000 - Handle MD2026 change to security schemes - now new api calls and multiple IDs per scheme...
 # build: 2000 - Added merge_security_identifier_stores(), and relocated / upgraded all fiscal scheme/ID management code to extra code...
 # build: 2000 - MD2026(5501) changed Syncer#stopSyncing() signature with killswitch.. advanced_clone_dataset() now calls with True for a clean sync shutdown on 5501 onwards...
+# build: 2000 - add disgnostic messages for JVM debugging and profiling tools
+# build: 2000 - fixes for multi-security-splits (now allowed) on same day - as of MD2026(5501)...
+# build: 2000 - init code now always enables the data export show in viewer option/flag
 # build: 2000 - ???
 
 # NOTE: 'The domain/default pair of (kCFPreferencesAnyApplication, AppleInterfaceStyle) does not exist' means that Dark mode is NOT in force
@@ -556,7 +559,7 @@ else:
 
     GlobalVars.TOOLBOX_MINIMUM_TESTED_MD_VERSION = 2020.0
     GlobalVars.TOOLBOX_MAXIMUM_TESTED_MD_VERSION = 2026.0
-    GlobalVars.TOOLBOX_MAXIMUM_TESTED_MD_BUILD =   5501
+    GlobalVars.TOOLBOX_MAXIMUM_TESTED_MD_BUILD =   5503
     GlobalVars.MD_OFX_BANK_SETTINGS_DIR = "https://infinitekind.com/app/md/fis/"
     GlobalVars.MD_OFX_DEFAULT_SETTINGS_FILE = "https://infinitekind.com/app/md/fi2004.dict"
     GlobalVars.MD_OFX_DEBUG_SETTINGS_FILE = "https://infinitekind.com/app/md.debug/fi2004.dict"
@@ -5967,6 +5970,44 @@ Visit: %s (Author's site)
         textArray.append(u"Java version:                        %s"  %(System.getProperty(u"java.version")))
         textArray.append(u"Java vendor:                         %s"  %(System.getProperty(u"java.vendor")))
 
+        try:
+            # detect java debugging and profiling tools....
+            from java.lang import Class
+            from java.lang.management import ManagementFactory
+    
+            def hasClass(className):
+                try:
+                    Class.forName(className)
+                    return True
+                except: return False
+
+            args = [str(x) for x in ManagementFactory.getRuntimeMXBean().getInputArguments()]
+
+            javaHome = System.getProperty("java.home")
+            jcmd = File(javaHome + "/bin/jcmd")
+
+            textArray.append(u"   *JFR available:                   %s" %(hasClass("jdk.jfr.FlightRecorder")))
+            textArray.append(u"   *Attach API available:            %s" %(hasClass("com.sun.tools.attach.VirtualMachine")))
+            textArray.append(u"   *jcmd executable available:       %s" %(jcmd.exists()))
+            textArray.append(u"   *JDWP enabled:                    %s" %(any("jdwp" in arg for arg in args)))
+
+            stream = MD_REF.getClass().getResourceAsStream("/com/moneydance/apps/md/controller/Main.class")
+            header = bytearray(stream.readNBytes(8))
+            major = (header[6] << 8) | header[7]
+
+            javaLevel = "<unknown>"
+            if major == 61: javaLevel = "Java 17"
+            elif major == 65: javaLevel = "Java 21"
+            elif major == 69: javaLevel = "Java 25"
+            elif major < 61: javaLevel = "< Java 17"
+            elif major > 69: javaLevel = "> Java 25"
+            textArray.append(u"   *Main.class bytecode version:     %s (%s)" %(major, javaLevel))
+        except:
+            textArray.append(u"   <unable to detect debug/profiling tools, or bytecode version>")
+
+        textArray.append(u"")
+
+
         pyVersion = PySystemState.version_info
         textArray.append(u"Platform:                            %s(%s) %s.%s.%s(%s)" %(platform.python_implementation(), platform.system(), pyVersion.major, pyVersion.minor, pyVersion.micro, pyVersion.releaselevel))
 
@@ -6396,6 +6437,13 @@ Visit: %s (Author's site)
             except:
                 textArray.append(u"ERROR OBTAINING KOTLIN VERSIONS!?")
 
+        textArray.append(u"")
+        try:
+            from java.lang.management import ManagementFactory
+            textArray.append(u"JVM effective launch parameters: %s" % (ManagementFactory.getRuntimeMXBean().getInputArguments()))
+        except:
+            textArray.append(u"ERROR OBTAINING JVM LAUNCH PARAMETERS!?")
+
         textArray.append(u"\n\n<END>\n")
 
         # This catches exceptions.UnicodeDecodeError 'utf-8' codec can't decode byte 0xa0 in position 46: unexpected code byte'
@@ -6405,7 +6453,7 @@ Visit: %s (Author's site)
             returnString = u"\n".join(textArray)
             myPrint(u"DB",u"Success joining diagnostics text array.....")
         except:
-            myPrint(u"B",u"UH-OH - Seems like we probably caught an utf8 error... trying to rectify")
+            myPrint(u"B",u"ERROR - seems like we probably caught a utf8 error... trying to rectify")
             myPrint(u"B", dump_sys_error_to_md_console_and_errorlog(True))
             returnString = u""
             for i in range(0, len(textArray)):
@@ -6415,7 +6463,7 @@ Visit: %s (Author's site)
                         myPrint(u"B",u"@@ FAILING ROW STARTS: '%s'" %(textArray[i][:textArray[i].find(char)]))
                         break
                 returnString += (u"".join(char for char in textArray[i] if ord(char) < 128) )+u"\n"
-            returnString += u"\n(** NOTE: I had to strip non ASCII characters **)\n"
+            returnString += u"\n(** NOTE: forced to strip non ASCII characters **)\n"
 
         return returnString
 

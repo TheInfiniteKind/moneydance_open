@@ -2445,6 +2445,9 @@ try:
             splits = sec.getSplits()
             if not splits: continue
 
+            splitCountByDate = {}
+            for s in splits: splitCountByDate[s.getDateInt()] = splitCountByDate.get(s.getDateInt(), 0) + 1
+
             snaps = list(sec.getSnapshots())
             if not snaps: continue
 
@@ -2457,6 +2460,9 @@ try:
                 if abs(ratio - 1.0) < EPSILON: continue
 
                 splitDate = split.getDateInt()
+
+                multipleSplitsSameDay = splitCountByDate.get(splitDate, 0) > 1
+
                 on_snap, prev_snap, next_snap = _find_on_prev_next(snaps, dates, splitDate)
 
                 beforeSplitDateRate = None if prev_snap is None else prev_snap.getRate()
@@ -2474,20 +2480,25 @@ try:
 
                 # strict pass/fail using DISPLAY orientation for consistency with shown %Δ
                 ok = True
-                if beforeSplitDateRate is None: ok = False
+                if multipleSplitsSameDay: ok = False
+                elif beforeSplitDateRate is None: ok = False
                 elif onSplitDateRate is None: ok = False
                 elif disp_expected is None or not _rel_close(disp_on, disp_expected, TOL_ON): ok = False
                 elif (disp_after is not None) and (not _rel_close(disp_after, disp_expected, TOL_AFTER)): ok = False
 
                 if ok and (not lAll): continue
 
-                if ok:
-                    warning, action = u"OK", u""
+                if ok: warning, action = u"OK", u""
+                elif multipleSplitsSameDay: warning, action = u"Multiple splits on the same date", u"Review combined split ratio and price validation"
                 else:
                     later_exists = next_snap is not None
                     warning, action = _classify_issue(
-                        beforeSplitDateRate, onSplitDateRate, afterSplitDateRate, estSplitDateRate,
-                        later_exists, disp_on)
+                        beforeSplitDateRate,
+                        onSplitDateRate,
+                        later_exists,
+                        disp_on,
+                        disp_after,
+                        disp_expected)
 
                 beforeDisp   = _fmt_val(disp_before,   missingTxt, dec, sec)
                 onDisp       = _fmt_val(disp_on,       missingTxt, dec, sec)
@@ -2622,11 +2633,12 @@ ADVANCED MONEYDANCE LAUNCH SETTINGS / PARAMETERS:
 
 Moneydance(MD) is built on Java. Hence the application runs on a Java Virtual Machine (JVM).
 - The MD installer typically creates an app package and launch icon for easy execution of the app
+- Within the application is the Java Runtime (aka JRE). Java does NOT need to be installed locally (it would be ignored anyway).
 
 - NOTE: You can also execute the moneydance.jar using Java as long as you set up your environment properly.
         .. this is out of scope of this document, but refer to: https://yogi1967.github.io/MoneydancePythonScripts/
         .. and the example launch scripts contained on my site.
-        .. MD2022.1(4058) Java 17, MD2022.3(4077) Java 18, MD2023.2(5008) Java 20, MD2023.2(5047) Java 21
+        .. MD2022.1(4058) Java 17, MD2022.3(4077) Java 18, MD2023.2(5008) Java 20, MD2023.2(5047) Java 21, MD2026 (5500) Java 25 LTS
 
 - Windows and Linux: The launch package is built using install4j. The JVM can be modified by editing the vmoptions file.
                      See separate Toolbox > Advanced Options menu > 'View Java VM Options File' for details
@@ -2652,11 +2664,26 @@ Moneydance(MD) is built on Java. Hence the application runs on a Java Virtual Ma
          ... the [optional] parameters below will work with this app package using Terminal.
          
 - Apple macOS: The installer creates an apple mac 'package' file called /Applications/Moneydance.app
-               .. (this is really a special folder. In Finder, right-click and 'Show Package Contents'
+               .. (this is really a special folder. Finder, right-click and 'Show Package Contents'
                .. There is no vmoptions file option with macOS
                .. But you can simply execute Moneydance from Terminal using the following command:
                .. /Applications/Moneydance.app/Contents/MacOS/Moneydance (with [optional] parameters - see below)
+               
+               - You can pass some java / JVM parameters by setting [JAVA_TOOL_OPTIONS] from Terminal:
 
+                 without Moneydance arguments:
+                    JAVA_TOOL_OPTIONS="-Dsomething=great" open -a "/Applications/Moneydance.app/Contents/MacOS/Moneydance"
+
+                 with Moneydance arguments:
+                    JAVA_TOOL_OPTIONS="-DDsomething=great" "/Applications/Moneydance.app/Contents/MacOS/Moneydance" -d -nobackup
+
+                note: not all java/JVM options will work here:
+                    - Attach / Profiling / Debugging commands will not work with the JRE as these are excluded from the build  
+                    -Dsun.java2d.metal=false        # sometimes useful to disable Metal rendering giving large memory usage issues
+
+                you can also set [_JAVA_OPTIONS] to override some default launcher settings:
+                   _JAVA_OPTIONS="-Xmx5G" open -a "/Applications/Moneydance.app" # override memory setting (example)
+                    
 Moneydance parameters:
 ----------------------
 -d                  Enables Moneydance DEBUG mode (extra messages in help/console)
@@ -2748,10 +2775,11 @@ MD2021.2(3088): Adds capability to set the encryption passphrase into an environ
             del currencies
 
             def compareSplits(splitsOne, splitsTwo):
+
+                # don't sort - rely on the underlying order (backed by TreeSet), key date (+UUID from MD2026 5501)
+                # now allows multi-splits on same day...
                 if len(splitsOne) < 1 and len(splitsTwo) < 1:   return True
                 if len(splitsOne) != len(splitsTwo):            return False
-                splitsOne = sorted(splitsOne, key=lambda sort_x: (sort_x.getDateInt()))
-                splitsTwo = sorted(splitsTwo, key=lambda sort_x: (sort_x.getDateInt()))
 
                 for i in range(0,len(splitsOne)):
                     s1 = splitsOne[i]
