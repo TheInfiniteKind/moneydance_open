@@ -120,7 +120,7 @@
 # build: 2000 - MD2026(5501) changed Syncer#stopSyncing() signature with killswitch.. advanced_clone_dataset() now calls with True for a clean sync shutdown on 5501 onwards...
 # build: 2000 - add disgnostic messages for JVM debugging and profiling tools
 # build: 2000 - fixes for multi-security-splits (now allowed) on same day - as of MD2026(5501)...
-# build: 2000 - init code now always enables the data export show in viewer option/flag
+# build: 2000 - added toolbox_show_data_mode_in_viewer.py - new menu to toggle the data export show in viewer option/flag
 # build: 2000 - ???
 
 # NOTE: 'The domain/default pair of (kCFPreferencesAnyApplication, AppleInterfaceStyle) does not exist' means that Dark mode is NOT in force

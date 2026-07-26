@@ -8,6 +8,12 @@
     }
     {
       "type" = "menu"
+      "script_file" = "toolbox_show_data_mode_in_viewer.py"
+      "name" = "Toolbox: Toggle Show 'Data Mode' Reports in Report Viewer mode"
+      "name.en-GB" = "Toolbox: Toggle Show 'Data Mode' Reports in Report Viewer mode"
+    }
+    {
+      "type" = "menu"
       "script_file" = "toolbox_move_merge_investment_txns.py"
       "name" = "Toolbox: Move investment transactions"
       "name.en-GB" = "Toolbox: Move investment transactions"

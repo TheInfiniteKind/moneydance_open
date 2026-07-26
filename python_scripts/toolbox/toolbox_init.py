@@ -351,13 +351,6 @@ def _invokeMethodByReflection(theObj, methodName, params, *args):
     reflectMethod.setAccessible(True)
     return reflectMethod.invoke(theObj, *args)
 
-if float(MD_REF.getBuild()) >= 5500:    # Data export reporting capability (also AppDebug class present etc)
-    try:
-        from com.infinitekind.util import AppDebug                                                                      # noqa
-        AppDebug.logger("report-data").allowTogglingInUI(True).friendlyName("Show 'Data Mode' Reports in the Report Viewer").setEnabled(True)
-        _specialPrint("Enabled AppDebug::report-data flag (ie always show option in the report viewer)")
-    except:
-        _specialPrint("ERROR - could not enable AppDebug::report-data flag")
 
 from javax.swing import SwingUtilities
 def _genericSwingEDTRunner(ifOffEDTThenRunNowAndWait, ifOnEDTThenRunNowAndWait, codeblock, *args):
