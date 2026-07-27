@@ -3,10 +3,10 @@
   "vendor_url" = "https://github.com/TheInfiniteKind/moneydance_open"
   "vendor.url" = "https://github.com/TheInfiniteKind/moneydance_open"
   "module_url" = "https://infinitekind.com/app/md/extensions/ratios.mxt"
-  "module_name" = "Ratio Calculator"
+  "module_name" = "Ratios"
   "module_desc" = "<html><body><title>Ratio Calculator</title><p>Allows you to create fully customizable ratios</p></body></html>"
   "desc" = "Show a custom list of ratios or percentages on your summary page. Examples include savings rate, debt-to-income ratio, or debt to assets"
   "id" = "ratios"
-  "module_build" = "1046"
+  "module_build" = "1047"
   "minbuild" = "1206"
 }
