@@ -286,17 +286,16 @@ public class GetMDQuote extends GetQuoteTask {
             volume = 0L;
             priceFound = false;
             tradeDateInt = 0;
+            boolean tradeDateValid = false;
             try {
                     volume = volumes.get(crntLine).getAsLong();
-            }
-            catch (ClassCastException | IllegalStateException| IndexOutOfBoundsException e){
+            } catch (ClassCastException | IllegalStateException| IndexOutOfBoundsException e){
                 debugInst.debug("GetQuoteTask", "parseDoc", MRBDebug.INFO, "Invalid volume value ");
                 volume=0L;
             }
             try {
                  lowValue = lows.get(crntLine).getAsDouble();
-            }
-            catch (ClassCastException | IllegalStateException| IndexOutOfBoundsException e){
+            } catch (ClassCastException | IllegalStateException| IndexOutOfBoundsException e){
                 debugInst.debug("GetQuoteTask", "parseDoc", MRBDebug.INFO, "Invalid low price value ");
                 lowValue=0L;
             }
@@ -310,8 +309,7 @@ public class GetMDQuote extends GetQuoteTask {
             try {
                     price = prices.get(crntLine).getAsDouble();
                     priceFound = true;
-                }
-            catch (ClassCastException | IllegalStateException| IndexOutOfBoundsException e){
+                } catch (ClassCastException | IllegalStateException| IndexOutOfBoundsException e){
                 debugInst.debug("GetQuoteTask", "parseDoc", MRBDebug.INFO, "Invalid price value ");
                 price=0L;
             }
@@ -320,14 +318,16 @@ public class GetMDQuote extends GetQuoteTask {
                 tradeDateStr = tradeDate+"T00:00";
                 tradeDate = tradeDate.replace("-","");
                 tradeDateInt= Integer.valueOf(tradeDate);
-
-            }
-            catch (ClassCastException | IllegalStateException| IndexOutOfBoundsException e){
+                tradeDateValid = true;
+            } catch (ClassCastException | IllegalStateException| IndexOutOfBoundsException e){
                 debugInst.debug("GetQuoteTask", "parseDoc", MRBDebug.INFO, "Invalid tarde date value ");
                 price=0L;
             }
 
-            if (priceFound) {
+            if (tradeDateValid && tradeDateInt <= lastPriceDate)
+              break;
+
+            if (priceFound && tradeDateValid) {
                 QuotePrice historyPrice = new QuotePrice();
                 historyPrice.setTradeDateInt(tradeDateInt);
                 historyPrice.setTradeDate(tradeDateStr);

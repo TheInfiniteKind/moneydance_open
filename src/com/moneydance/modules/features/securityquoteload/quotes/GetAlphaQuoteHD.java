@@ -193,7 +193,9 @@ public class GetAlphaQuoteHD extends GetQuoteTask{
             values= entry.getValue().getAsJsonObject();
             members = values.entrySet();
             int date = getIntDate(key);
+            boolean dateValid = date != 0;
             if (!priceFound) {
+                if (!dateValid) continue;
                 fillValues(members, quotePrice);
                 quotePrice.setTradeDateInt(date);
                 quotePrice.setTradeDate(date+"T00:00");
@@ -202,7 +204,8 @@ public class GetAlphaQuoteHD extends GetQuoteTask{
                 priceFound = true;
             }
             else {
-                if (date < lastPriceDate || !params.getHistory())
+                if (!dateValid) continue;
+                if (date <= lastPriceDate || !params.getHistory())
                     return;
                 QuotePrice historyPrice = new QuotePrice();
                 historyPrice.setTicker(ticker);
