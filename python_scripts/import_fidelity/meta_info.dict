@@ -2,7 +2,7 @@
   "id" = "import_fidelity"
   "extension_type" = "python"
   "vendor" = "@mmd and the Infinite Kind"
-  "module_build" = "16"
+  "module_build" = "17"
   "minbuild" = "5253"
   "vendor_url" = "https://infinitekind.com"
   "module_name" = "Import Fidelity Investment txns from CSV"
