@@ -123,7 +123,7 @@ public class Main extends FeatureModule implements PreferencesListener {
         getMDMain().getPreferences().addListener(this);
 
         try {
-            context.registerFeature(this, EXTN_CMD, null, EXTN_NAME + " (" + EXTN_OVERVIEW_TITLE + ")");
+            context.registerFeature(this, EXTN_CMD, null, getName());
 
             widgetViewReference = new CreditCardAccountView(this);
             context.registerHomePageView(this, widgetViewReference);
@@ -269,9 +269,7 @@ public class Main extends FeatureModule implements PreferencesListener {
     }
 
     @Override
-    public String getName() {
-        return EXTN_NAME;
-    }
+    public String getName() { return EXTN_NAME; }
 
     @SuppressWarnings("unused")
     public synchronized void creditCardReportRefresh() {
