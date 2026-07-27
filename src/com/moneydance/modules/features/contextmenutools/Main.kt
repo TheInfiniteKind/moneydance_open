@@ -47,7 +47,7 @@ class Main : FeatureModule(), PreferencesListener {
     addPreferencesListener()
     
     //register on the extensions menu
-    context.registerFeature(this, moduleID, null, "${getName()}: $STRING_EXTN_MENU")
+    context.registerFeature(this, moduleID, null, getName())
     logConsole("Initialized (Kotlin) build: $versionString ${if (PREVIEW_BUILD) "(PREVIEW) " else ""}")
   }
   
