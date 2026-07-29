@@ -2476,12 +2476,18 @@ public class MainPriceWindow extends JFrame implements TaskListener {
         case Constants.TASKCOMPLETED -> countCompleted++;
       }
 
-			if (line.getTickerStatus() == Constants.TASKSTARTED) {
-				Main.debugInst.debug("MainPriceWindow", "checkProgress", MRBDebug.SUMMARY,
-						"Quote " + line.getTicker() + " has not finished");
-				return false;
-			}
-		}
+      if (line.getTickerStatus() == Constants.TASKSTARTED) {
+        Main.debugInst.debug("MainPriceWindow", "checkProgress", MRBDebug.SUMMARY, "Quote " + line.getTicker() + " has not finished");
+        return false;
+      }
+    }
+    for (CurrencyTableLine line : currenciesTable.values()) {
+      if (line.getTickerStatus() == Constants.TASKSTARTED) {
+        Main.debugInst.debug("MainPriceWindow", "checkProgress", MRBDebug.SUMMARY, "Quote " + line.getTicker() + " has not finished (due to currency process)");
+        return false;
+      }
+    }                                                                            
+
     Main.debugInst.debug("MainPriceWindow", "checkProgress", MRBDebug.DETAILED, "nothing appears to be running - assuming finished - stats:" +
                                                                                 " started: "+countStarted+
                                                                                 " failed: "+countFailed+
@@ -2489,15 +2495,20 @@ public class MainPriceWindow extends JFrame implements TaskListener {
 		return true;
 	}
 
-	public synchronized void closeQuotes() {
-		for (SecurityTableLine line : securitiesTable.values()) {
-			if (line.getTickerStatus() == Constants.TASKSTARTED) {
-				if (listener != null)
-					listener.failed(line.getTicker());
-			}
-		}
-
-	}
+  public synchronized void closeQuotes() {
+    for (SecurityTableLine line : securitiesTable.values()) {
+      if (line.getTickerStatus() == Constants.TASKSTARTED) {
+        if (listener != null)
+          listener.failed(line.getTicker());
+      }
+    }
+    for (CurrencyTableLine line : currenciesTable.values()) {                    
+      if (line.getTickerStatus() == Constants.TASKSTARTED) {                     
+        if (listener != null)                                                   
+          listener.failed(line.getTicker());                                    
+      }                                                                          
+    }                                                                            
+  }
 
 	/*
 	 * preferences

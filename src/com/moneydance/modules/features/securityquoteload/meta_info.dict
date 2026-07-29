@@ -1,7 +1,7 @@
 {
   "id" = "securityquoteload"
   "vendor" = "Mike Bray, updated by Stuart Beesley"
-  "module_build" = "330110"
+  "module_build" = "330111"
   "minbuild" = "4045"
   "vendor.url" = "https://github.com/TheInfiniteKind/moneydance_open/wiki/Extensions"
   "module_name" = "Quote Loader"
