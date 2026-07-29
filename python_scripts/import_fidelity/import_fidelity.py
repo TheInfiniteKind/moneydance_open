@@ -198,9 +198,6 @@ def doMain():
             dirName = fwin.getDirectory()
 
             if (fileName is None or dirName is None):
-                msg = "No file selected - quitting"
-                myPrint(msg)
-                mdGUI.showInfoMessage(msg)
                 raise QuickAbortThisScriptException
 
             prefs.setSetting(MY_IMPORT_DIR_KEY, dirName)
