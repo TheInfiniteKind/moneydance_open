@@ -1,4 +1,5 @@
 {
+  "id" = "findandreplace"
   "vendor" = "The Infinite Kind (updated by Stuart Beesley)"
   "module_build" = "1221"
   "minbuild" = "1000"

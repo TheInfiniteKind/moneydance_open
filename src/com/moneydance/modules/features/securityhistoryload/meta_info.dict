@@ -1,4 +1,5 @@
 {
+  "id" = "securityhistoryload"
   "vendor" = "Mike Bray, updated by Stuart Beesley"
   "module_build" = "321702"
   "minbuild" = "1820"
