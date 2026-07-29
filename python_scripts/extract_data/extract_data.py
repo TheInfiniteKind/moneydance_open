@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# extract_data.py - build: 1050 - February 2026 - Stuart Beesley
+# extract_data.py - build: 1050 - June 2026 - Stuart Beesley
 #                   You can auto invoke by launching MD with one of the following:
 #                           '-d [datasetpath] -invoke=moneydance:fmodule:extract_data:autoextract:noquit'
 #                           '-d [datasetpath] -invoke=moneydance:fmodule:extract_data:autoextract:quit'
@@ -108,6 +108,8 @@
 # build: 1049 - Tweak Extract Account Register txns (EAR) - add Parent and Split UUID fields...
 # build: 1050 - ???
 # build: 1050 - Upgrade MyCostCalculation to v10 for MD2026(5500)
+# build: 1050 - Misc AI suggested fixes...
+# build: 1050 - fix for EIT with security splits now allowing multi-same-day as of MD2026(5501)
 # build: 1050 - ???
 
 # todo - EAR: Switch to 'proper' usage of DateRangeChooser() (rather than my own 'copy')
@@ -1885,7 +1887,7 @@ Visit: %s (Author's site)
                 self.status = _status; self.color = _color
 
             def run(self):
-                GlobalVars.STATUS_LABEL.setText((_theStatus))
+                GlobalVars.STATUS_LABEL.setText(self.status)
                 if self.color is None or self.color == "": self.color = "X"
                 self.color = self.color.upper()
                 if self.color == "R":    GlobalVars.STATUS_LABEL.setForeground(getColorRed())
@@ -6170,7 +6172,7 @@ Visit: %s (Author's site)
         label7b = JLabel("Include Balance Adjustments?")
         user_selectBalanceAdjustments = JCheckBox("", GlobalVars.saved_lIncludeBalanceAdjustments_EIT)
 
-        label8 = JLabel("Adjust for stock splits/")
+        label8 = JLabel("Adjust for stock splits?")
         user_selectAdjustSplits = JCheckBox("", GlobalVars.saved_lAdjustForSplits_EIT)
 
         dateStrings=["dd/mm/yyyy", "mm/dd/yyyy", "yyyy/mm/dd", "yyyymmdd"]
@@ -7214,7 +7216,7 @@ Visit: %s (Author's site)
     if GlobalVars.AUTO_INVOKE_CALLED:
         GlobalVars.AUTO_INVOKE_THEN_QUIT = (cmdParam == "quit")
 
-    myPrint("B", "Book: '%s', Auto Extract Mode: %s, Auto Invoke: %s (MD Quit after extract: %s), Handle_Event triggered: %s (Menu/Parameter/Event detected: '%s'), Display SG2020: %s, Display Remiders: %s"
+    myPrint("B", "Book: '%s', Auto Extract Mode: %s, Auto Invoke: %s (MD Quit after extract: %s), Handle_Event triggered: %s (Menu/Parameter/Event detected: '%s'), Display SG2020: %s, Display Reminders: %s"
             %(MD_REF.getCurrentAccountBook(), GlobalVars.AUTO_EXTRACT_MODE, GlobalVars.AUTO_INVOKE_CALLED, GlobalVars.AUTO_INVOKE_THEN_QUIT, GlobalVars.HANDLE_EVENT_AUTO_EXTRACT_ON_CLOSE, MD_EXTENSION_PARAMETER, GlobalVars.AUTO_DISPLAY_SG2020, GlobalVars.AUTO_DISPLAY_REMINDERS))
 
     ####################################################################################################################
@@ -7257,8 +7259,6 @@ Visit: %s (Author's site)
             defaultFileName = "extract_currency_history"
         elif extractType == "eci":
             defaultFileName = "extract_category_info"
-        elif extractType == "eab":
-            defaultFileName = "extract_account_balances"
         elif extractType == "etrunk":
             extn = ""
             defaultFileName = "extract_trunk"
@@ -7305,17 +7305,17 @@ Visit: %s (Author's site)
     def getTxnDescription(txn):
         # type: (AbstractTxn) -> String
         if isinstance(txn, SplitTxn):
-            return txn.getParentTxn().getDescription().strip()
+            return txn.getParentTxn().getDescription().strip()                                                          # noqa
         else:
             return txn.getDescription().strip()
 
     def getTxnMemo(txn, fallBackParent, grabParentMemo=False):
         # type: (AbstractTxn, bool, bool) -> String
         if isinstance(txn, SplitTxn):
-            memo = txn.getDescription().strip()
+            memo = txn.getDescription().strip()                                                                         # noqa
             if memo == getTxnDescription(txn): memo = ""
             if fallBackParent and (memo == "" or grabParentMemo):
-                memo = txn.getParentTxn().getMemo().strip()
+                memo = txn.getParentTxn().getMemo().strip()                                                             # noqa
                 memo = wrapTextWithSquares(memo)
         else:
             memo = txn.getParentTxn().getMemo().strip()
@@ -7415,7 +7415,7 @@ Visit: %s (Author's site)
                                              lModal=False).go()
 
                     else:
-                        for exType in ["EAR", "EIT", "SG2020", "ERTC", "EFRTC", "ESB", "EAB", "ECH", "ECI", "EAB", "ETRUNK", "JSON","EATTACH"]:
+                        for exType in ["EAR", "EIT", "SG2020", "ERTC", "EFRTC", "ESB", "EAB", "ECH", "ECI", "ETRUNK", "JSON","EATTACH"]:
 
                             checkPath = getExtractFullPath(exType, lDoNotAddTimeStamp=True)
                             if check_file_writable(checkPath):
@@ -9481,12 +9481,12 @@ Visit: %s (Author's site)
                                                     if isinstance(txnparent, ParentTxn): pass
 
                                                     amount = baseCurr.getDoubleValue(txnparent.getValue())
-                                                    stripacct = txnparent.getAccount().getFullAccountName().strip()
+                                                    stripacct = txnparent.getAccount().getFullAccountName().strip()     # noqa
 
                                                     catsAmounts = ""
                                                     for iRemSplit in range(0, txnparent.getOtherTxnCount()):
                                                         remSplit = txnparent.getOtherTxn(iRemSplit)
-                                                        stripCat = remSplit.getAccount().getFullAccountName().strip()
+                                                        stripCat = remSplit.getAccount().getFullAccountName().strip()   # noqa
                                                         splitValue = GlobalVars.baseCurrency.getDoubleValue(remSplit.getValue()) * -1
                                                         catsAmounts += "{%s;%s}" %(stripCat, splitValue)
 
@@ -9684,17 +9684,17 @@ Visit: %s (Author's site)
                                                     if isinstance(splitTxn, SplitTxn): pass
 
                                                     # remove commas to keep csv format happy....
-                                                    splitdesc = splitTxn.getDescription().replace(",", " ").strip()
+                                                    splitdesc = splitTxn.getDescription().replace(",", " ").strip()     # noqa
                                                     splitmemo = txnparent.getMemo().replace(",", " ").strip()
-                                                    maindesc = txnparent.getDescription().replace(",", " ").strip()
+                                                    maindesc = txnparent.getDescription().replace(",", " ").strip()     # noqa
 
                                                     if index2 > 0: amount = ''  # Don't repeat the new amount on subsequent split lines (so you can total column). The split amount will be correct
 
                                                     # stripacct = str(txnparent.getAccount()).replace(",", " ").strip()
-                                                    stripacct = txnparent.getAccount().getFullAccountName().replace(",", " ").strip()
+                                                    stripacct = txnparent.getAccount().getFullAccountName().replace(",", " ").strip()   # noqa
 
                                                     # stripcat = str(splitTxn.getAccount()).replace(","," ").strip()
-                                                    stripcat = splitTxn.getAccount().getFullAccountName().replace(","," ").strip()
+                                                    stripcat = splitTxn.getAccount().getFullAccountName().replace(","," ").strip()   # noqa
 
                                                     # use set() to create a unique list, and OR to concatenate...
                                                     splitTags = list(set(txnparent.getKeywords() if index2 == 0 else []) | set(splitTxn.getKeywords()))
@@ -10820,13 +10820,11 @@ Visit: %s (Author's site)
 
                                         return False
 
-                                    def getTotalLocalValue( theTxn ):
-
+                                    def getTotalLocalValue(theTxn):
                                         lValue = 0
-
+                                        _p = theTxn.getParentTxn()
                                         for _iSplit in range(0, (theTxn.getOtherTxnCount())):
-                                            lValue += GlobalVars.baseCurrency.getDoubleValue(parent_Txn.getOtherTxn(_iSplit).getValue()) * -1
-
+                                            lValue += GlobalVars.baseCurrency.getDoubleValue(_p.getOtherTxn(_iSplit).getValue()) * -1
                                         return lValue
 
                                     copyValidAccountList = ArrayList()
@@ -12047,7 +12045,12 @@ Visit: %s (Author's site)
 
                                                         numYearsChoice = ["0.5"]
                                                         for iYears in range(1, 51): numYearsChoice.append(str(iYears))
-                                                        _row[GlobalVars.dataKeys["_SECINFO_CD_YEARS"][_COLUMN]] = numYearsChoice[-1] if (len(numYearsChoice) < securityAcct.getNumYears()) else numYearsChoice[securityAcct.getNumYears()]
+                                                        numYears = securityAcct.getNumYears()                                                                                    
+                                                        if numYears < 0 or numYears >= len(numYearsChoice):                                                                      
+                                                            myPrint("B", _THIS_EXTRACT_NAME + "WARNING: unexpected num_years value '%s' for security '%s'" % (numYears, securityAcct.getFullAccountName()))  
+                                                            _row[GlobalVars.dataKeys["_SECINFO_CD_YEARS"][_COLUMN]] = numYearsChoice[-1]
+                                                        else:                                                                                                                     
+                                                            _row[GlobalVars.dataKeys["_SECINFO_CD_YEARS"][_COLUMN]] = numYearsChoice[numYears]
 
                                                     if securityAcct.getSecurityType() == SecurityType.BOND:
                                                         bondTypes = [MD_REF.getUI().getStr("gov_bond"), MD_REF.getUI().getStr("mun_bond"), MD_REF.getUI().getStr("corp_bond"), MD_REF.getUI().getStr("zero_bond")]
@@ -12083,27 +12086,9 @@ Visit: %s (Author's site)
                                             _row[GlobalVars.dataKeys["_AVGCOST"][_COLUMN]] = ""
                                             _row[GlobalVars.dataKeys["_SECSHRHOLDING"][_COLUMN]] = 0
 
-                                        if GlobalVars.saved_lAdjustForSplits_EIT and securityTxn and _row[GlobalVars.dataKeys["_SHARES"][_COLUMN]] != 0:
-                                            # Here we go.....
-                                            _row[GlobalVars.dataKeys["_SHRSAFTERSPLIT"][_COLUMN]] = _row[GlobalVars.dataKeys["_SHARES"][_COLUMN]]
-                                            stockSplits = securityCurr.getSplits()
-                                            if stockSplits and len(stockSplits)>0:
-                                                # Here we really go....1
-
-                                                myPrint("D", _THIS_EXTRACT_NAME, securityCurr, " - Found share splits...")
-                                                myPrint("D", _THIS_EXTRACT_NAME, securityTxn)
-
-                                                stockSplits = sorted(stockSplits, key=lambda x: x.getDateInt(), reverse=True)   # Sort date newest first...
-                                                for theSplit in stockSplits:
-                                                    if _row[GlobalVars.dataKeys["_DATE"][_COLUMN]] >= theSplit.getDateInt():
-                                                        continue
-                                                    myPrint("D", _THIS_EXTRACT_NAME, securityCurr, " -  ShareSplits()... Applying ratio.... *", theSplit.getSplitRatio(), "Shares before:",  _row[GlobalVars.dataKeys["_SHRSAFTERSPLIT"][_COLUMN]])
-                                                    # noinspection PyUnresolvedReferences
-                                                    _row[GlobalVars.dataKeys["_SHRSAFTERSPLIT"][_COLUMN]] = _row[GlobalVars.dataKeys["_SHRSAFTERSPLIT"][_COLUMN]] * theSplit.getSplitRatio()
-                                                    myPrint("D", _THIS_EXTRACT_NAME, securityCurr, " - Shares after:",  _row[GlobalVars.dataKeys["_SHRSAFTERSPLIT"][_COLUMN]])
-                                                    # Keep going if more splits....
-                                                    continue
-
+                                        if GlobalVars.saved_lAdjustForSplits_EIT and securityTxn and securityTxn.getValue() != 0:
+                                            shrsAfterSplitLong = securityCurr.adjustValueForSplitsInt(txn.getDateInt(), securityTxn.getValue())
+                                            _row[GlobalVars.dataKeys["_SHRSAFTERSPLIT"][_COLUMN]] = securityCurr.getDoubleValue(shrsAfterSplitLong)
 
                                         _row[GlobalVars.dataKeys["_DESC"][_COLUMN]] = safeStr(txn.getDescription())
                                         _row[GlobalVars.dataKeys["_ACTION"][_COLUMN]] = safeStr(txn.getTransferType())
@@ -12491,7 +12476,6 @@ Visit: %s (Author's site)
                                                     writer.writerow(["Include Unadjusted Opening Balances: %s" %(GlobalVars.saved_lIncludeOpeningBalances_EIT)])
                                                     writer.writerow(["Include Balance Adjustments........: %s" %(GlobalVars.saved_lIncludeBalanceAdjustments_EIT)])
                                                     writer.writerow(["Adjust for Splits..................: %s" %(GlobalVars.saved_lAdjustForSplits_EIT)])
-                                                    writer.writerow(["Split Securities by Account........: %s" %(GlobalVars.saved_extractDateFormat_SWSS)])
                                                     writer.writerow(["Omit LOT matching data.............: %s" %(GlobalVars.saved_lOmitLOTDataFromExtract_EIT)])
                                                     writer.writerow(["Extract extra Sec Acct Info........: %s" %(GlobalVars.saved_lExtractExtraSecurityAcctInfo)])
                                                     writer.writerow(["Download Attachments...............: %s" %(GlobalVars.saved_lExtractAttachments_EIT)])
@@ -12709,14 +12693,18 @@ Visit: %s (Author's site)
                                                 row.append(curr.getDecimalPlaces())
                                                 row.append((curr.getPrefix()))
                                                 row.append((curr.getSuffix()))
-                                                row.append(round(float(curr.getParameter("rate", None)),dpc))
-                                                row.append(round(1/float(curr.getParameter("rate", None)),dpc))
+
+                                                _rate = float(curr.getParameter("rate", None))
+                                                row.append(round(_rate,dpc))
+                                                row.append(round(1/_rate, dpc) if _rate != 0.0 else 0.0)
 
                                                 # I don't print relative currency as it's supposed to always be None or = Base..
 
                                                 row.append(currSnapshot.getDateInt())
-                                                row.append(round(float(currSnapshot.getRate()),dpc))
-                                                row.append(round(1/float(currSnapshot.getRate()),dpc))
+
+                                                _snapRate = float(currSnapshot.getRate())
+                                                row.append(round(_snapRate,dpc))
+                                                row.append(round(1/_snapRate, dpc) if _snapRate != 0.0 else 0.0)
 
                                                 curr_table.append(row)
 
@@ -12979,39 +12967,38 @@ Visit: %s (Author's site)
                                                 if GlobalVars.saved_csvDelimiter_SWSS != ",":
                                                     writer.writerow(["sep=",""])  # Tells Excel to open file with the alternative delimiter (it will add the delimiter to this line)
 
-                                                if not GlobalVars.saved_lSimplify_ECH:
-                                                    try:
-                                                        for i in range(0, len(theTable)):
-                                                            try:
-                                                                writer.writerow( theTable[i] )
-                                                            except:
-                                                                myPrint("B", _THIS_EXTRACT_NAME + "Error writing row %s to file... Older Jython version?" %i)
-                                                                myPrint("B", _THIS_EXTRACT_NAME + "Row: ", theTable[i])
-                                                                myPrint("B", _THIS_EXTRACT_NAME + "Will attempt coding back to str()..... Let's see if this fails?!")
-                                                                for _col in range(0, len(theTable[i])):
-                                                                    theTable[i][_col] = fix_delimiter(theTable[i][_col])
-                                                                writer.writerow( theTable[i] )
-                                                    except:
-                                                        _msgTxt = _THIS_EXTRACT_NAME + "@@ ERROR writing to CSV on row %s. Please review console" %(i)
-                                                        GlobalVars.AUTO_MESSAGES.append(_msgTxt)
-                                                        myPrint("B", _msgTxt)
-                                                        myPrint("B", _THIS_EXTRACT_NAME, theTable[i])
-                                                        raise
+                                                try:
+                                                    for i in range(0, len(theTable)):
+                                                        try:
+                                                            writer.writerow( theTable[i] )
+                                                        except:
+                                                            myPrint("B", _THIS_EXTRACT_NAME + "Error writing row %s to file... Older Jython version?" %i)
+                                                            myPrint("B", _THIS_EXTRACT_NAME + "Row: ", theTable[i])
+                                                            myPrint("B", _THIS_EXTRACT_NAME + "Will attempt coding back to str()..... Let's see if this fails?!")
+                                                            for _col in range(0, len(theTable[i])):
+                                                                theTable[i][_col] = fix_delimiter(theTable[i][_col])
+                                                            writer.writerow( theTable[i] )
+                                                except:
+                                                    _msgTxt = _THIS_EXTRACT_NAME + "@@ ERROR writing to CSV on row %s. Please review console" %(i)
+                                                    GlobalVars.AUTO_MESSAGES.append(_msgTxt)
+                                                    myPrint("B", _msgTxt)
+                                                    myPrint("B", _THIS_EXTRACT_NAME, theTable[i])
+                                                    raise
 
-                                                    if GlobalVars.saved_lWriteParametersToExportFile_SWSS:
-                                                        today = Calendar.getInstance()
-                                                        writer.writerow([""])
-                                                        writer.writerow(["StuWareSoftSystems - " + GlobalVars.thisScriptName + "(build: "
-                                                                         + version_build
-                                                                         + ")  Moneydance Python Script - Date of Extract: "
-                                                                         + str(GlobalVars.sdf.format(today.getTime()))])
+                                                if GlobalVars.saved_lWriteParametersToExportFile_SWSS:
+                                                    today = Calendar.getInstance()
+                                                    writer.writerow([""])
+                                                    writer.writerow(["StuWareSoftSystems - " + GlobalVars.thisScriptName + "(build: "
+                                                                     + version_build
+                                                                     + ")  Moneydance Python Script - Date of Extract: "
+                                                                     + str(GlobalVars.sdf.format(today.getTime()))])
 
-                                                        writer.writerow([""])
-                                                        writer.writerow(["Dataset path/name: %s" %(MD_REF.getCurrentAccountBook().getRootFolder()) ])
+                                                    writer.writerow([""])
+                                                    writer.writerow(["Dataset path/name: %s" %(MD_REF.getCurrentAccountBook().getRootFolder()) ])
 
-                                                        writer.writerow([""])
-                                                        writer.writerow(["User Parameters..."])
-                                                        writer.writerow(["<none>"])
+                                                    writer.writerow([""])
+                                                    writer.writerow(["User Parameters..."])
+                                                    writer.writerow(["<none>"])
 
                                             _msgTxt = _THIS_EXTRACT_NAME + "CSV file: '%s' created (%s records)" %(GlobalVars.csvfilename, len(theTable))
                                             myPrint("B", _msgTxt)
