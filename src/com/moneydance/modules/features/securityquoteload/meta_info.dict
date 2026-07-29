@@ -1,4 +1,5 @@
 {
+  "id" = "securityquoteload"
   "vendor" = "Mike Bray, updated by Stuart Beesley"
   "module_build" = "330110"
   "minbuild" = "4045"
