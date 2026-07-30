@@ -38,12 +38,13 @@ import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 import java.util.zip.ZipFile
 
-
-// note: we match the kotlin plugin version to the Moneydance build system. For MD2024 this was 1.9, with MD2026 it's 2.4
-// kotlin plugin 2.3.21 is the last version to support language level 1.9.
-// we limit the kotlin language/api version to 1.9 for backwards compatibility with MD2024
-// we also compile against the kotlin stdlib 1.9 jar for the same reason
-
+/**
+ * The DevKit build is independent of the main Moneydance build. We generally keep the Kotlin Gradle plugin aligned
+ * with the version used by the Moneydance build. However, we deliberately lock the Kotlin language/API versions
+ * and compile against Kotlin stdlib 1.9 to maintain backwards compatibility with extensions built for Moneydance 2024.
+ * We also lock the target java language to 17 for the same compatibility reasons.
+ * MD2024 used kotlin plug version 1.9, and MD2026 uses 2.4
+*/
 plugins {
   id 'java'                                         // configure the java environment
   id 'org.jetbrains.kotlin.jvm' version '2.3.21'    // configure the kotlin environment - kotlin plugin version to match Moneydance's build system and also bundled runtime kotlin-stdlib-x.x.x.jar
@@ -66,17 +67,21 @@ if (!isKotlin2) {
   project.ext["kotlin.incremental.useClasspathSnapshot"] = "false"
 }
 
-// Using gradle 9.x, with kotlin plugin 1.9.21 (note final release before kotlin 2.0 is 1.9.25 which would have maximum compatibility with gradle 9)
-// - ideally match versions to the Moneydance build system, and bundled runtime jar, but..:
-// - latest gradle is fine as this is a seperate build system, and we lock the kotlin language / api version to 1.9
-// - java / kotlin target versions are set to allow extensions to have maximum possible of backwards compatibility.
-// - we set these value here - rather than using gradle.properties - as these are not really very user configurable.
+/**
+* These settings define the DevKit compatibility baseline.
+*
+* The build itself may use newer Java and Kotlin tooling, but extensions are compiled to a fixed Java/Kotlin baseline
+* for maximum compatibility with supported Moneydance releases.
+*
+* These values are defined here, rather than gradle.properties, because they are fundamental characteristics of the
+* DevKit and are not intended to be user-configurable.
+*/
 ext {
-    compilerJDK       = 25                          // JDK version to execute java/kotlin compile, sign, and packaging tasks
-    targetRelease     = 17                          // equivalent java --release (source/target/bytecode/API) version
-    kotlinLangVersion = KotlinVersion.KOTLIN_1_9    // kotlin language version (lock to plugin version) - match to Moneydance bundled kotlin-stdlib-x.x.x.jar
-    kotlinApiVersion  = KotlinVersion.KOTLIN_1_9    // kotlin API version (lock to plugin version) - match to Moneydance bundled kotlin-stdlib-x.x.x.jar
-                                                    // use KotlinVersion.KOTLIN_2_1 (for example) to upgrade
+    compilerJDK       = 25                        // JDK used to execute compilation, signing and packaging tasks.
+    targetRelease     = 17                        // Java compatibility level (--release) used for compiled extensions.
+
+    kotlinLangVersion = KotlinVersion.KOTLIN_1_9  // Kotlin language features accepted by the compiler.
+    kotlinApiVersion  = KotlinVersion.KOTLIN_1_9  // Kotlin stdlib API available to compiled code.
 }
 
 // set flag to let subordinate gradle scripts know that the master script is executing
