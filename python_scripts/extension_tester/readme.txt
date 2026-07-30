@@ -185,14 +185,13 @@ SWING
 CODING TIPS
 - You access Moneydance via the published API: https://infinitekind.com/dev/apidoc/index.html - so start here.
 - You can also access all Moneydance's internal code/classes. Best bet is to stick with the API.
-- As it's Java, most standard stuff works first-time cross-platform. But not always... Test on Mac, Windows, Linux
+- As it's Java, most standard things works first-time cross-platform. But not always... Test on Mac, Windows, Linux
 - I recommend you install a free IDE. IntelliJ IDEA works well and has Python support. Without this you will find code editing difficult
     to set it up, create Project with Python 2.7 as the SDK, add a moneydance.jar as a Library,
     add a Java Module called Moneydance (link the Library, and assign a relevant JDK (at least JDK17).
     This will then give you a great code editor and inbuilt checking of your work....
     NOTE: IntelliJ IDEA CE 2021.1 is the last known version to work properly with jython support. For simpler scripts use PyCharm.
 - com.moneydance.util.Platform .isWindows() .isMac() [or .isOSX()] .isBigSurOrLater() .isUnix() are  very  useful methods.
-- Don't use file extension filters with Mac and JFileChooser() - these will randomly hang your machine.
 - Use FileDialog() on Windows to allow file creation. As when creating files with JFileChooser() on some machines, in some folder it can fail with a permission error
 - Be aware of encoding issues. Moneydance uses UTF-8 as it's default (which is good), but Python 2.7 uses ASCII (which is not good):
     - This is not good practice, but do this 'hack' at the beginning of your code to get Python 2.7 to default to UTF-8
@@ -331,8 +330,7 @@ Moneydance Events:
 # md:file:backupstarted         (backup is about to start)
 # md:file:backupfinished        (backup has finished)
 # md:account:root               (summary / home page was selected)
-# md:file:opened                (file was opened)
-# md:account:select             (acount was selected)
+# md:account:select             (account was selected)
 # md:app:onlinedownloadstarted  (fiscal institution downloads have started)
 # md:app:onlinedownloadfinished (fiscal institution downloads have finished)
 # md:viewreminders              (reminders were selected/viewed)
