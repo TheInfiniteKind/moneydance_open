@@ -322,23 +322,23 @@ Moneydance Events:
 
 # You should release any reference to MD data objects if dataset is closed/opened!
 
-# md:app:onlinedownloadstarted  Online (bank) download started
-# md:app:onlinedownloadfinished Online (bank) download finished
-# md:file:backupstarted         Backup started
-# md:file:backupfinished        Backup finished
-# md:file:closing	            The Moneydance file is being closed
-# md:file:closed	            The Moneydance file has closed
-# md:file:opening	            The Moneydance file is being opened
-# md:file:opened	            The Moneydance file has opened
-# md:file:presave	            The Moneydance file is about to be saved
-# md:file:postsave	            The Moneydance file has been saved
-# md:app:exiting	            Moneydance is shutting down
-# md:account:select	            An account has been selected by the user
-# md:account:root	            The root account has been selected
-# md:graphreport	            An embedded graph or report has been selected
-# md:viewbudget	                One of the budgets has been selected
-# md:viewreminders	            One of the reminders has been selected
-# md:licenseupdated	            The user has updated the license
+# md:file:opening               (file will be opened)
+# md:file:opened                (file has opened)
+# md:file:closing               (file will be closed)
+# md:file:closed                (file has closed)
+# md:file:presave               (dataset is about to flush data from memory to disk)
+# md:file:postsave              (dataset has flushed data from memory to disk)
+# md:file:backupstarted         (backup is about to start)
+# md:file:backupfinished        (backup has finished)
+# md:account:root               (summary / home page was selected)
+# md:file:opened                (file was opened)
+# md:account:select             (acount was selected)
+# md:app:onlinedownloadstarted  (fiscal institution downloads have started)
+# md:app:onlinedownloadfinished (fiscal institution downloads have finished)
+# md:viewreminders              (reminders were selected/viewed)
+# md:viewbudget                 (budgets was selected/viewed)
+# md:licenseupdated             (license was updated)
+# md:app:exiting                (application is closing)
 
 
 Happy Python coding.... Stuart Beesley - Last updated: 30th July 2026
