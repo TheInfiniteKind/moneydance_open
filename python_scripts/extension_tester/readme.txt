@@ -1,6 +1,6 @@
 InfiniteKind - Moneydance Python extensions
 
-Documented by Stuart Beesley - StuWareSoftSystems 2026 - https://yogi1967.github.io/MoneydancePythonScripts/
+Documented by Stuart Beesley - StuWareSoftSystems(2026) - https://yogi1967.github.io/MoneydancePythonScripts/
 
 NOTES ABOUT PYTHON EXTENSIONS:
 
@@ -20,11 +20,11 @@ NOTES ABOUT PYTHON EXTENSIONS:
 
 - To create/build an extension. The process is roughly as follows:
     - Download/install the development kit and read the notes: https://infinitekind.com/developer
-    - At lot of the notes relate to java, but some are still valid.
-    - You will need ANT and also to run "ant genkeys" (before you start) in the src directory (to create your own key-pair)
+    - These notes are mainly java/kotlin related, but most can be converted to work with jython
+    - You will need gradlew and also to run "./gradlew genkeys" (before you start) in the project root directory (to create your own key-pair)
       (strictly speaking you don't actually need to sign your own code)
 
-    - You will also need to create an mxt (zip) build script (or use ANT)
+    - You will also need to create an mxt (zip) build script (or just use DevKit's gradlew)
 
     - Essentially, you need to build the extension_name.mxt file. This is a zip file.
     - the mxt contains your *.py file(s) and script_info.dict at root level, and then..:
@@ -75,7 +75,6 @@ NOTES ABOUT PYTHON EXTENSIONS:
 - So the extension types available to you:
   a) Your Py script simply contains an extn Class that you have defined and set the variable moneydance_extension = ExtensionClass()
      You run this script from 'Developer Console' and then you will be asked if you want to install this extn. This lives until MD restart.
-     >> I don't personally see this type of extension as being of any 'real' use other than prototyping and playing etc <<
   b) Script 'method': You create an .mxt bundle that contains script_info.dict with the key: "type" = "menu". When you install this then
      at MD launch a PyII is created and this is registered as an Extension and each "menu" item appears on the extensions menu (normally one only)
      When you select this menu item, MD basically just runs your Py script. So it's a quick and easy way to allow a user to run your
@@ -133,14 +132,13 @@ NOTES ABOUT PYTHON EXTENSIONS:
      whenever your extension is unloaded.
      >> It will take some investigation to get your HomePageView working properly, but then that's the fun of this...!
 
-- If the User or MD uninstalls / reinstalls your extension, then .unload() method will be called, or the unload.py script, depending
+- If the User or MD uninstalls / (re)installs your extension, then .unload() method will be called, or the unload.py script, depending
      on how you defined it. Please utilise this to 'clean up' before your extension is 'killed'.. E.g. delete all references to data objects
 
 - You might get to a point where you want to access a running Py Extension from elsewhere... There are several ways:
       - The easiest I have found is to extend the JFrame class and add some variables/references to your objects.
-        You can use JFrame.getFrames() and then iterate to find yours, From there access the variables/references you defined
+        You can use JFrame.getFrames() and then iterate to find yours; From there access the variables/references you defined
       - You can also use MD APIs to iterate installed extensions, and go from there...
-      - There are also some more 'advanced' (sneaky) ways to do this, but out of the scope of this little jump-start document ;->
 
 ACCESSING MONEYDANCE OBJECTS
 - The 'moneydance' variable is your friend. It exists when your script is executed and is deleted once the script exits
@@ -162,11 +160,11 @@ ACCESSING MONEYDANCE OBJECTS
 
 >> Again, note that moneydance, moneydance_ui, moneydance_data get deleted when your script exits
 
-- You can use moneydance_this_fm.getResourceAsStream() (proxy) to access files within your extension's mxt file (as of build 3056)
+- You can use moneydance_this_fm.getResourceAsStream() (proxy) to access files within your extension's mxt file (as of MD2024.2 build 5142)
 
 
 SWING
-- You have full access to javax swing components - do your own research ;->
+- You have full access to javax swing components - you need to do your own research on this
 
 - For large scripts, especially  with Swing GUI components you should take care to run all GUI updates on the Swing Event Dispatch Thread (EDT)
   ... and 'heavy' non-GUI code off the EDT.
@@ -190,8 +188,9 @@ CODING TIPS
 - As it's Java, most standard stuff works first-time cross-platform. But not always... Test on Mac, Windows, Linux
 - I recommend you install a free IDE. IntelliJ IDEA works well and has Python support. Without this you will find code editing difficult
     to set it up, create Project with Python 2.7 as the SDK, add a moneydance.jar as a Library,
-    add a Java Module called Moneydance (link the Library, and assign the SDK adopt-openjdk-15 (Hotspot)).
+    add a Java Module called Moneydance (link the Library, and assign a relevant JDK (at least JDK17).
     This will then give you a great code editor and inbuilt checking of your work....
+    NOTE: IntelliJ IDEA CE 2021.1 is the last known version to work properly with jython support. For simpler scripts use PyCharm.
 - com.moneydance.util.Platform .isWindows() .isMac() [or .isOSX()] .isBigSurOrLater() .isUnix() are  very  useful methods.
 - Don't use file extension filters with Mac and JFileChooser() - these will randomly hang your machine.
 - Use FileDialog() on Windows to allow file creation. As when creating files with JFileChooser() on some machines, in some folder it can fail with a permission error
@@ -199,8 +198,8 @@ CODING TIPS
     - This is not good practice, but do this 'hack' at the beginning of your code to get Python 2.7 to default to UTF-8
         import sys; reload(sys); sys.setdefaultencoding('utf8')
     - AVOID using str(). For example just use %s in text. So "Hello %s" %(name) - and not "Hello " + str(name)
-      ... an update.. I had a tip from the Jython developer to use unicode() instead of str() [on MD data/strings that is unicode/utf8]
-    - If you use str(), especially anywhere where there are extended characters - like £ or € - you will either get garbage or an error.....
+      - or just use unicode() instead of str() [on MD data/strings that is unicode/utf8]
+    - If you use str(), especially anywhere there are extended characters - like £ or € - you will either get garbage or an error.....
     The reference __file__ will not exist if running as an ExtensionClass()
 - Account Filter  is very useful: com.infinitekind.moneydance.model.AcctFilter. It took me ages to work out.... - Example:
     class MyAcctFilter(AcctFilter):
@@ -219,9 +218,7 @@ CODING TIPS
 
 - Review:
     - Stuart Beesley's scripts (especially net_account_balances extension): https://yogi1967.github.io/MoneydancePythonScripts/
-    - Mike Bray's excellent wiki:   https://bitbucket.org/mikerb/moneydance-2019/wiki/Moneydance%20Information
-    - Virantha Ekanayake's tips: https://virantha.com/2016/11/28/moneydance-python-extension-tips/
-                                 (ignore the elements in Virantha's tips about using java to package the extension)
+    - Mike Bray's excellent wiki:   https://github.com/mrbray99/moneydanceproduction/wiki/Moneydance-Information
 
 - ExtensionClass():
     - __init__():             Perform simple variable initialisation here.
@@ -247,12 +244,10 @@ CODING TIPS
                       there are some prebuilt popups you can use in .getUI() .askQuestion() .askForInput() .showInfoMessage()
                       your extension probably needs a GUI... Swing JFrame() etc is the way to go. DO NOT instantiate
                       .. your Swing until after the UI and the Dataset are loaded ('strange' things will happen)
-    - advanced...     You don't have Java Synchronized.. If you need this, consider self.lock = threading.Lock() and then 'with self.lock: ...'
+    - advanced...     For locking consider self.lock = threading.Lock() and then 'with self.lock: ...'
                       do not update the Look and Feel (LAF). Override .updateUI() in JComponents and super(YourClass, self).updateUI()
 
 - Moneydance data:    Read the API. Look at others' scripts. Learn the model. It's confusing at first, but becomes clear(er) over time.
-                      review Stuart Beesley's scripts: https://yogi1967.github.io/MoneydancePythonScripts/
-                      this is a very good 'primer': https://bitbucket.org/mikerb/moneydance-2019/wiki/Moneydance%20Information
 
 There are also more 'advanced' ways to access and manage your Py Extension but try to keep everything MD friendly and to survive upgrades.
 Details of these are out of scope for this document, I will  be happy to discuss / brainstorm these with anyone who wants
@@ -346,6 +341,5 @@ Moneydance Events:
 # md:licenseupdated	            The user has updated the license
 
 
-Thanks for reading.. Contact me with questions, updates... Happy Python coding.... Stuart Beesley
-Last updated: 14th March 2024
+Happy Python coding.... Stuart Beesley - Last updated: 30th July 2026
 
