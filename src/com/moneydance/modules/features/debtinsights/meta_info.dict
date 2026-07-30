@@ -5,6 +5,6 @@
   "minbuild" = "1372"
   "vendor.url" = ""
   "module_name" = "Debt Insights"
-  "module_desc" = "<html><body><p>Tools for Analyzing Credit Card and Loan Accounts together as related Debt Accounts</p></body></html>"
+  "module_desc" = "<html><body><title>Debt Insights</title><p>Tools for Analyzing Credit Card and Loan Accounts together as related Debt Accounts</p></body></html>"
   "desc" = "Tools for Analyzing Credit Card and Loan Accounts together as related Debt Accounts"
 }
