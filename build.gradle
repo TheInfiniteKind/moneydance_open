@@ -150,8 +150,8 @@ def pythonSrcPath = project.property("python-src")
 def mdbuildlibs = project.findProperty("md_ext_lib_dir") // note: this is an optional path that will override where the std set of build libs are found
 def extPrivKeyFile = project.property("extprivkeyfile")
 def extPubKeyFile = project.property("extpubkeyfile")
-def privKeyID = project.property("privkeyid")
-def keyPassValue = project.findProperty("keypass")    // don't force keypass= to exist
+def privKeyID = project.property("extprivkeyid")
+def keyPassValue = project.findProperty("extprivkeypass")    // don't force keypass= to exist
 
 // if key files not found at configured path, check src/ as legacy fallback
 if (!file(extPrivKeyFile).exists() && file("${srcPath}/${file(extPrivKeyFile).name}").exists()) {
