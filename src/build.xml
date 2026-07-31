@@ -33,7 +33,7 @@ note: as 'withKolin' can pull in unwanted kotlin files, we've replaced the stand
   <property name="extprivkeyfile" value="${src}/priv_key"/>
   <property name="extpubkeyfile" value="${src}/pub_key"/>
   <property name="privkeyid" value="99"/>
-  <property name="keypass" value=""/>
+  <property name="extprivkeypass" value=""/>
 
   <property name="build.sysclasspath" value="ignore" /> <!-- suppress "includeantruntime not set" messages from ant -->
   <property name="build.compiler"  value="modern"/>
@@ -407,7 +407,7 @@ note: as 'withKolin' can pull in unwanted kotlin files, we've replaced the stand
           classpathref="classpath"
           classname="com.moneydance.admin.KeyAdmin"
           fork="true">
-          <sysproperty key="moneydance_key_pass" value="${keypass}"/>
+          <sysproperty key="moneydance_key_pass" value="${extprivkeypass}"/>
           <arg value="signextjar"/>
           <arg value="${extprivkeyfile}"/>
           <arg value="${privkeyid}"/>
@@ -431,7 +431,7 @@ note: as 'withKolin' can pull in unwanted kotlin files, we've replaced the stand
           classpathref="classpath"
           classname="com.moneydance.admin.PythonExtensionPackager"
           fork="true">
-      <sysproperty key="moneydance_key_pass" value="${keypass}"/>
+      <sysproperty key="moneydance_key_pass" value="${extprivkeypass}"/>
       <arg value="${extprivkeyfile}"/>
       <arg value="${privkeyid}"/>
       <arg value="${feature}"/>
