@@ -102,12 +102,15 @@ if (gradle.startParameter.configurationCacheRequested) {
 }
 
 // The build system will attempt to locate the user properties file using the following resolution order (first found wins):
-//  1. project root     (user.properties)        - project-level                 (gitignored)
+//  1. project root     (user.properties)        - project-level                     (gitignored)
 //  2. src/             (user.properties)        - legacy, source directory          (gitignored)
+//  3. userconfig/      (user.properties)        - localtion for all user config     (gitignored)
 
 def searchPaths = [
     "${project.rootDir}/user.properties",
-    "${project.rootDir}/src/user.properties",
+    "${project.rootDir}/src/user.properties",                 // location previously used by legacy ANT builds
+    "${project.rootDir}/userconfig/user.properties",
+    "${project.rootDir}/userconfig/user.gradle.properties"
 ]
 
 def localPropsFile = searchPaths.collect { file(it) }.find { it.exists() }
@@ -126,7 +129,7 @@ if (localPropsFile) {
 }
 
 // verify all required properties are set
-["src", "lib", "dist", "python-src", "privkeyid", "extprivkeyfile", "extpubkeyfile"]
+["src", "lib", "dist", "python-src", "extprivkeyid", "extprivkeyfile", "extpubkeyfile"]
     .each {
       if (!project.hasProperty(it)) throw new GradleException("Missing gradle.property: $it")
     }
@@ -200,7 +203,7 @@ ext.applyKeyPassToJavaExec = { JavaExec task ->
 }
 
 ext.requireSigningInputs = {
-  if (!resolveKeyPass(true)) throw new GradleException("\n*****\nERROR - extprivkeypass must be set in: ${project.rootDir}/user.properties (or via 'moneydance_key_pass' system property / 'MONEYDANCE_KEY_PASS' env var)\n*****\n")
+  if (!resolveKeyPass(true)) throw new GradleException("\n*****\nERROR - extprivkeypass must be set in: ${project.rootDir}/user.properties, or ${userConfigPath}/user.properties (or via 'moneydance_key_pass' system property / 'MONEYDANCE_KEY_PASS' env var)\n*****\n")
   if (!file(extPrivKeyFile).exists()) throw new GradleException("\n*****\nERROR - Missing private key file: ${extPrivKeyFile} (run genKeys)\n*****\n")
 //  if (!file(extPubKeyFile).exists()) throw new GradleException("\n*****\nERROR - Missing public key file: ${extPubKeyFile} (run genKeys)\n*****\n")
 }
@@ -453,8 +456,7 @@ tasks.register("newUserInit") {
   dependsOn("ensureDist", "ensureUserConfig")
 
   doLast {
-
-    def propsFile = file("${project.rootDir}/user.properties")
+    def propsFile = file("${userConfigPath}/user.properties")
 
     // prompt to overwrite if user.properties already exists
     if (propsFile.exists()) {

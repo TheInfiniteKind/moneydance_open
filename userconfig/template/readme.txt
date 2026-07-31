@@ -5,7 +5,7 @@ These files are used by gradle during the build process. The gradle (wrapper) fi
 It's possible that you already have user.properties config files in the [ROOT]/ and/or [ROOT]/src folder(s) if you have an existing build system setup.
 If so, they will automatically be used by this build system.
 
-If you don't already have a user.properties file, there is a sample file in "userconfig/user.properties-sample" which you can copy to [ROOT]/user.properties as a starting point
+If you don't already have a user.properties file, there is a sample file in "userconfig/user.properties-sample" which you can copy to either [ROOT]/ or userconfig/ folder named 'user.properties' as a starting point
 
 It should contain as a minimum the following entry:
 

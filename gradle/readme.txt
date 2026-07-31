@@ -7,7 +7,7 @@ gradle main build file:	    build.gradle
 gradle settings:	        settings.gradle
 gradle properties:	        gradle.properties
 
-user config file:	 /user.properties
+user config file:	 [ROOT]/user.properties or /userconfig/user.properties
 
 machine config:      ~/.gradle/gradle.properties
                      org.gradle.java.home=/Library/Java/JavaVirtualMachines/temurin-25.jdk/Contents/Home
