@@ -235,6 +235,10 @@ public class ReplaceCommand implements IFarCommand
         final boolean newCategory = (previousCategory != null) && (_replaceCategory != null);
         if (!skipAmount && (_replaceAmount != null))
         {
+            // NOTE: In the replace amount field a posative number means replace all values with the new value and
+            // obey the original sign convention. But if you enter a minus sign then this means flip the orginal sign
+            // as per the user-guide. This was broken and fixed for build 1222 August 2026 (Stuart Beesley)
+
             // only apply amount changes to splits because it is too complicated to change the
             // amount for a parent transaction with multiple splits
             // If we replace both the category AND the amount, we have to assume the user put the amount
@@ -242,6 +246,10 @@ public class ReplaceCommand implements IFarCommand
             final SplitTxn split = _transaction.getSplitTxn();
             //  check if the target category has changed to == new rate
             long value = _replaceAmount.longValue();
+            boolean flipSign = value < 0;
+            boolean originalNegative = split.getParentAmount() < 0;
+            boolean resultNegative = flipSign != originalNegative;
+
             CurrencyType targetCurr = split.getAccount().getCurrencyType();
             CurrencyType parentCurr = _transaction.getParentTxn().getAccount().getCurrencyType();
             changed = true;
@@ -249,9 +257,9 @@ public class ReplaceCommand implements IFarCommand
                 targetCurr = _replaceCategory.getCurrencyType();
             }
             // convert the replacement amount into the category's currency
-            long splitAmount = Math.abs(CurrencyUtil.convertValue(value, _replaceCurrency, targetCurr, split.getDateInt()));
-            long parentAmount = Math.abs(CurrencyUtil.convertValue(value, _replaceCurrency, parentCurr, split.getDateInt()));
-            split.setAmount(-splitAmount, -parentAmount);
+            long splitMag = Math.abs(CurrencyUtil.convertValue(value, _replaceCurrency, targetCurr, split.getDateInt()));
+            long parentMag = Math.abs(CurrencyUtil.convertValue(value, _replaceCurrency, parentCurr, split.getDateInt()));
+            split.setAmount(resultNegative ? splitMag : -splitMag, resultNegative ? parentMag : -parentMag);
         }
         else if (newCategory)
         {
