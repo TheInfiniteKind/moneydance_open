@@ -1002,8 +1002,7 @@ def registerPackagePythonExtension = { String feature, String pythonBase, boolea
       // Validate mandatory extension files
       def requiredFiles = [
           file("${pythonBase}/meta_info.dict"),
-          file("${pythonBase}/script_info.dict"),
-          file("${pythonBase}/${feature}.py")
+          file("${pythonBase}/script_info.dict")
       ]
 
       requiredFiles.each { f ->
@@ -1011,6 +1010,9 @@ def registerPackagePythonExtension = { String feature, String pythonBase, boolea
           throw new GradleException("Missing required extension file: ${f}")
         }
       }
+
+      def pyFiles = fileTree(pythonBase) { include("*.py") }.files
+      if (pyFiles.isEmpty()) throw new GradleException("No .py files found in ${pythonBase}")
 
       // reset staging dir
       delete(stagingDir)
