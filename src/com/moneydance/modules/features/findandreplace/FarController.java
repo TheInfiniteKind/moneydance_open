@@ -20,7 +20,6 @@ import java.awt.Cursor;
 import java.util.HashSet;
 import java.util.List;
 import java.util.ArrayList;
-import java.text.DecimalFormatSymbols;
 import java.awt.Image;
 import java.awt.Point;
 import java.util.Set;
@@ -986,14 +985,11 @@ public class FarController implements IFindAndReplaceController
         return null;
     }
 
-    char getDecimalChar()
-    {
-        return DecimalFormatSymbols.getInstance().getDecimalSeparator();
-    }
+    char getDecimalChar() { return getMDGUI().getPreferences().getDecimalChar(); }
 
     char getCommaChar()
     {
-        return DecimalFormatSymbols.getInstance().getGroupingSeparator();
+        return getMDGUI().getPreferences().getThousandsSeparator();
     }
 
     void setIncludeTransfers(final boolean include)
