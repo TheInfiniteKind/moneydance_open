@@ -3,6 +3,6 @@
   "module_build" = "3208"
   "minbuild" = "1820"
   "vendor.url" = "https://github.com/TheInfiniteKind/moneydance_open/wiki/Extensions"
-  "module_name" = "FileDisplay"
+  "module_name" = "File Display"
   "module_desc" = "Displays the contents of the current data file (no longer supported by Mike Bray - branched from from 3206)"
 }
