@@ -187,7 +187,7 @@ extends FeatureModule
 
 	@Override
 	public String getName() {
-		return "QIF File Loader";
+		return "QIF Loader";
 	}
 
 	private synchronized void showConsole() {
