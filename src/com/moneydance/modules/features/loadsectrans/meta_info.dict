@@ -1,9 +1,9 @@
 {
   "id" = "loadsectrans"
   "vendor" = "Mike Bray, updated by Stuart Beesley"
-  "module_build" = "321701"
+  "module_build" = "321702"
   "minbuild" = "1820"
-  "vendor.url" = "http://github.com/mrbray99/moneydanceproduction/wiki"
+  "vendor.url" = "https://github.com/TheInfiniteKind/moneydance_open/wiki/Extensions"
   "module_name" = "Load Security Transactions"
   "module_desc" = "Loads miscellaneous transactions from csv file generated from brokerage firms. Uses the exchange code to identify the account (no longer supported by Mike Bray - branched from from 321700)"
 }

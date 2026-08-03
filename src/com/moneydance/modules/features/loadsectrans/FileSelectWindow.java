@@ -344,7 +344,7 @@ public class FileSelectWindow extends JPanel implements TreeSelectionListener {
         helpBtn = new JButton("Help");
         helpBtn.setToolTipText("Display help information");
         helpBtn.addActionListener(e -> {
-            String url = "https://github.com/mrbray99/moneydanceproduction/wiki/Security-Transaction-Load";
+            String url = "https://github.com/TheInfiniteKind/moneydance_open/wiki/Extensions";
             mdGUI.showInternetURL(url);
         });
         this.add(helpBtn, GridC.getc(x, y).west().insets(10, 10, 10, 10));

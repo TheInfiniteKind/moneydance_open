@@ -345,7 +345,7 @@ public class FileDisplayWindow extends JFrame {
 		helpBtn = new JButton("Help");
 		helpBtn.setToolTipText("Display help information");
 		helpBtn.addActionListener(e -> {
-			String url = "https://github.com/mrbray99/moneydanceproduction/wiki/File-Display";
+			String url = "https://github.com/TheInfiniteKind/moneydance_open/wiki/Extensions";
 			mdGUI.showInternetURL(url);
 		});
 		panButtons.add(helpBtn, GridC.getc(col, row).west().insets(10, 10, 10, 10));

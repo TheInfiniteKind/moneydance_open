@@ -555,7 +555,7 @@ public class BudgetValuesWindow extends JFrame {
 		helpBtn = new JButton("Help");
 		helpBtn.setToolTipText("Display help information");
 		helpBtn.addActionListener(e -> {
-            String url = "https://github.com/mrbray99/moneydanceproduction/wiki/Budget-Report";
+            String url = "https://github.com/TheInfiniteKind/moneydance_open/wiki/Extensions";
             mdGUI.showInternetURL(url);
         });
 		panTop.add(helpBtn, GridC.getc(3, 9).west().insets(10, 10, 10, 10));

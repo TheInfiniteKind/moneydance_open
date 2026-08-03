@@ -1,8 +1,8 @@
 {
-  "vendor" = "Mike Bray (patched)"
-  "module_build" = "321507"
+  "vendor" = "Mike Bray, updated by Stuart Beesley"
+  "module_build" = "321508"
   "minbuild" = "1860"
-  "vendor.url" = "http://https://bitbucket.org/mikerb/moneydance-2019/wiki/Report%20Writer"
+  "vendor.url" = "https://github.com/TheInfiniteKind/moneydance_open/wiki/Extensions"
   "module_name" = "Report Writer 3205"
   "module_desc" = "A general purpose reporting and data extraction tool for Moneydance (no longer supported by Mike Bray - branched from from 321506)"
 }

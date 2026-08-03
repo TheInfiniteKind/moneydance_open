@@ -796,7 +796,7 @@ public class FileSelectWindow extends JPanel implements ActionListener {
     public void actionPerformed(ActionEvent aeMenu) {
         JMenuItem miSource = (JMenuItem) (aeMenu.getSource());
         if (miSource == onlineMenu) {
-            String url = "http://github.com/mrbray99/moneydanceproduction/wiki/Security-Price-and-History-Load";
+            String url = "https://github.com/TheInfiniteKind/moneydance_open/wiki/Extensions";
             mdGUI.showInternetURL(url);
         }
         if (miSource == debugOff) {

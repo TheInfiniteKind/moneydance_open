@@ -70,9 +70,9 @@ public abstract class Constants {
 	public static final String RESOURCES = "/com/moneydance/modules/features/reportwriter/resources/";
 	public static final String VIEWREPORTCMD = "ViewReport";
 	public static final String DEFAULTDATABASE = "database.mv.db";
-	public static final String REPOSITORY = "http://github.com/mrbray99/moneydanceproduction/blob/main/downloads";
+	public static final String REPOSITORY = "https://github.com/TheInfiniteKind/moneydance_open/tree/main/src/com/moneydance/modules/features/reportwriter";
 	public static final String SAMPLESFILE = "rwsamples.zip";
-	public static final String HELPURL = "https://github.com/mrbray99/moneydanceproduction/wiki/Report-Writer";
+	public static final String HELPURL = "https://github.com/TheInfiniteKind/moneydance_open/wiki/Extensions";
 	public static final String SHOWHELP = "showhelp";
 	public static final String FIRSTRUNDIR = "firstrundir";
 /*

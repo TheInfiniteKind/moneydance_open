@@ -443,7 +443,7 @@ public class MainPriceWindow extends JFrame implements TaskListener {
 		helpBtn = new JButton("Help");
 		helpBtn.setToolTipText("Display help information");
 		helpBtn.addActionListener(e -> {
-            String url = "http://github.com/mrbray99/moneydanceproduction/wiki/New-Quote-Loader";
+            String url = "https://github.com/TheInfiniteKind/moneydance_open/wiki/Extensions";
             mdGUI.showInternetURL(url);
         });
 		buttonsPanel.add(helpBtn, GridC.getc(gridX++, gridY).west().insets(10, 10, 10, 10));

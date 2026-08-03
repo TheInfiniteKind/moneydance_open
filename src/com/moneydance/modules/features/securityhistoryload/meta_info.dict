@@ -3,7 +3,7 @@
   "vendor" = "Mike Bray, updated by Stuart Beesley"
   "module_build" = "321702"
   "minbuild" = "1820"
-  "vendor.url" = "http://bitbucket.org/mikerb/wiki/Home"
+  "vendor.url" = "https://github.com/TheInfiniteKind/moneydance_open/wiki/Extensions"
   "module_name" = "Security / Currency History CSV Loader"
   "module_desc" = "Batch load history price data from CSV file: multiple securities / currencies; multiple dates (no longer supported by Mike Bray - branched from 321700)"
 }

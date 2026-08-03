@@ -46,7 +46,7 @@ public class HelpScreen {
 		helpBtn.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				String url = "http://github.com/mrbray99/moneydanceproduction/wiki/Report-Writer";
+				String url = "https://github.com/TheInfiniteKind/moneydance_open/wiki/Extensions";
 				mdGUI.showInternetURL(url);
 			}
 		});
