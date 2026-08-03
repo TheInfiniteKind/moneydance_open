@@ -41,6 +41,7 @@ import java.time.LocalTime;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -82,7 +83,7 @@ public class Main extends FeatureModule {
     public static UserPreferences up;
     public static MRBDebug debugInst;
     public static Main extension;
-    public static QuoteManager manager = null;
+    public static final List<QuoteManager> activeManagers = new CopyOnWriteArrayList<>();
     public static Parameters params = null;
     public static String buildNo;
     public static Boolean autoSettingsChanged = false;
@@ -317,8 +318,10 @@ public class Main extends FeatureModule {
             autoRun.stop();
             autoRun = null;
         }
-        if (manager != null)
-            manager.shutdown();
+
+        for (QuoteManager m : activeManagers) { m.shutdown();}
+        activeManagers.clear();
+
         if (processor != null) {
             try {
                 processQueue.put(new ProcessCommandArgument(Constants.CLOSEDOWNCMD, ""));
@@ -787,14 +790,20 @@ public class Main extends FeatureModule {
 					}
 					return;
 				}
-				case Constants.GETQUOTECMD -> {
-					Runnable task = () -> {
-						manager = new QuoteManager();
-						manager.getQuotes(uri);
-					};
-					new Thread(task).start();
-					return;
-				}
+        case Constants.GETQUOTECMD -> {
+          Runnable task = () -> {
+            QuoteManager localManager = new QuoteManager();   
+            activeManagers.add(localManager);                  
+            try {                                               
+              localManager.getQuotes(uri);                    
+            } finally {                                         
+              activeManagers.remove(localManager);             
+            }                                                    
+          };
+          new Thread(task).start();
+          return;
+        }
+
 				case Constants.TIMEOUTCMD -> {
 					debugInst.debug("Quote Load", "invoke", MRBDebug.SUMMARY, "time out received");
 					return;
