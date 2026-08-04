@@ -136,10 +136,7 @@ public class Main extends FeatureModule {
 		}
 	}
 
-	@Override
-	public String getName() {
-		return "Budget Reporter";
-	}
+	@Override public String getName() { return "Budget Report"; }
 
 	private synchronized void showConsole() {
 		objBudgetmainWindow = new BudgetValuesWindow(this);

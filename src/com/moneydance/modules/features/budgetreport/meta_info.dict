@@ -3,6 +3,6 @@
   "module_build" = "3208"
    "minbuild" = "1820"
   "vendor.url" = "https://github.com/TheInfiniteKind/moneydance_open/wiki/Extensions"
-  "module_name" = "Budget Reporter"
+  "module_name" = "Budget Report"
   "module_desc" = "Displays actuals verses budgets with the ability to roll up figures into parent categories (no longer supported by Mike Bray - branched from from 3206)"
 }
