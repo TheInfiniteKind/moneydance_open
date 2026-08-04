@@ -45,7 +45,6 @@ import java.util.Map.Entry;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
-import javax.swing.JFrame;
 import javax.swing.JOptionPane;
 
 import com.infinitekind.moneydance.model.Account;
@@ -695,8 +694,7 @@ public class BudgetParameters implements java.io.Serializable {
 				+ ".bprp";
 		try {
 			fiCurInFile = new FileInputStream(strFullFileName);
-			JFrame fTemp = new JFrame();
-			int iResult = JOptionPane.showConfirmDialog(fTemp, "File "
+			int iResult = JOptionPane.showConfirmDialog(null, "File "
 					+ strFileName
 					+ " already exists.  Do you wish to overwrite?");
 			fiCurInFile.close();
