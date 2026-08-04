@@ -734,7 +734,7 @@ public class BudgetValuesWindow extends JFrame {
 	 */
 	public void close() {
 		if (params.isDirty()) {
-			JFrame fTemp = new JFrame();
+			JFrame fTemp = new JFrame("Budget Report);
 			int iResult = JOptionPane
 					.showConfirmDialog(fTemp,
 							"The parameters have been changed.  Do you wish to save them?");
