@@ -202,9 +202,7 @@ public class BudgetValuesWindow extends JFrame {
 		budgetList = new BudgetListExtend(context);
 		budget = budgetList.getBudget(strBudget);
 		if (budget == null){
-			JFrame fTemp = new JFrame();
-			JOptionPane.showMessageDialog(fTemp,
-					"No Budgets have been declared for this File");
+      JOptionPane.showMessageDialog(null, "No Budgets have been declared for this File");
 			bError = true;
 			return;
 		}
@@ -345,9 +343,7 @@ public class BudgetValuesWindow extends JFrame {
 				dtStart.setTime(jdtStart.getDate());
 				dtEnd.setTime(jdtEndDate.getDate());
 				if (!dtEnd.after(dtStart)) {
-					JFrame fTemp = new JFrame();
-					JOptionPane.showMessageDialog(fTemp,
-							"End Date must be after Start Date");
+					JOptionPane.showMessageDialog(null, "End Date must be after Start Date");
 					return false;
 				}
 				params.setStartDate(jdtStart.getDateInt());
@@ -375,9 +371,7 @@ public class BudgetValuesWindow extends JFrame {
 				dtStart.setTime(jdtStartDate.getDate());
 				dtEnd.setTime(jdtEnd.getDate());
 				if (!dtEnd.after(dtStart)) {
-					JFrame fTemp = new JFrame();
-					JOptionPane.showMessageDialog(fTemp,
-							"End Date must be after start date");
+          JOptionPane.showMessageDialog(null, "End Date must be after start date");
 					return false;
 				}
 				params.setEndDate(jdtEnd.getDateInt());
@@ -734,10 +728,10 @@ public class BudgetValuesWindow extends JFrame {
 	 */
 	public void close() {
 		if (params.isDirty()) {
-			JFrame fTemp = new JFrame();
-			int iResult = JOptionPane
-					.showConfirmDialog(fTemp,
-							"The parameters have been changed.  Do you wish to save them?","Budget Report",JOptionPane.YES_NO_CANCEL_OPTION);
+      int iResult = JOptionPane.showConfirmDialog(null,
+                                                  "The parameters have been changed.  Do you wish to save them?",
+                                                  "Budget Report",
+                                                  JOptionPane.YES_NO_CANCEL_OPTION);
 			if (iResult == JOptionPane.YES_OPTION) {
 				String strFileName = txtFileName.getText();
 				if (!strFileName.equals(Constants.CANCELLED)) {
