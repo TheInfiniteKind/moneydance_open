@@ -737,7 +737,7 @@ public class BudgetValuesWindow extends JFrame {
 			JFrame fTemp = new JFrame();
 			int iResult = JOptionPane
 					.showConfirmDialog(fTemp,
-							"The parameters have been changed.  Do you wish to save them?");
+							"The parameters have been changed.  Do you wish to save them?","Budget Report",JOptionPane.YES_NO_CANCEL_OPTION);
 			if (iResult == JOptionPane.YES_OPTION) {
 				String strFileName = txtFileName.getText();
 				if (!strFileName.equals(Constants.CANCELLED)) {
