@@ -312,7 +312,7 @@ public class MRBReportViewer extends JPanel implements PreferencesListener {
 	public void close() {
 		setVisible(false);
 		JFrame topFrame = (JFrame) SwingUtilities.getWindowAncestor(this);
-		topFrame.dispose();
+		if (topFrame != null) topFrame.dispose();
 	}
 	/**
 	 * Resets the fonts to be used
