@@ -241,8 +241,8 @@ if (mdbuildlibs) {
 mdJars += [
     files(                                      // now load all jars needed by extensions
         "${libPath}/kotlin-stdlib-1.9.21.jar",
-        "${libPath}/moneydance-dev.jar",
         "${libPath}/moneydance-private.jar",    // if you absolutely MUST use something that isn't in the exposed MD API then put a moneydance.jar file from Moneydance 2015 or higher here.  But, please don't
+        "${libPath}/moneydance-dev.jar",        // resolve devkit jar AFTER any other/private jar
         "${libPath}/extadmin.jar",              // since extadmin has a StringUtils, it needs to come after moneydance.jar
         "${libPath}/jfreechart-1.5.4.jar",
         "${libPath}/jcommon-1.0.24.jar",
