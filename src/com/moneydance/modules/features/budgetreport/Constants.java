@@ -45,7 +45,7 @@ public abstract class Constants {
 	 */
 	public static final int FRAMEWIDTH =800;
 	public static final int FRAMEDEPTH = 800;
-	public static final int TOPDEPTH = 250;
+	public static final int TOPDEPTH = 300;
 	public static final int GENSCREENWIDTH = 1000;
 	public static final int GENSCREENHEIGHT = 800;
 	public static final int GENMINSCREENWIDTH = 600;
