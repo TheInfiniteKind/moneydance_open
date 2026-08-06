@@ -62,7 +62,7 @@ public abstract class Constants {
 	 */
 	public static final int FRAMEWIDTH =800;
 	public static final int FRAMEDEPTH = 800;
-	public static final int TOPDEPTH = 200;
+	public static final int TOPDEPTH = 300;
 	public static final int BOTDEPTH = 100;
 	public static final int ADDSCREENWIDTH = 350;
 	public static final int ADDSCREENHEIGHT =300;

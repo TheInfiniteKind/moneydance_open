@@ -9,7 +9,7 @@ public abstract class Constants {
 	public static final String CRNTFRAMEDEPTH = "framedepth";
 	public static final int FRAMEWIDTH =800;
 	public static final int FRAMEHEIGHT = 800;
-	public static final int TOPDEPTH = 250;
+	public static final int TOPDEPTH = 300;
 	public static final int LOADSCREENWIDTH = 1000;
 	public static final int LOADSCREENHEIGHT = 800;
 	/*
