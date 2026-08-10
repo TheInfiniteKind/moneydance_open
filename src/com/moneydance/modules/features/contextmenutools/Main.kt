@@ -30,7 +30,7 @@ class Main : FeatureModule(), PreferencesListener {
   
   override fun init() {
     EXTN_ID = moduleID
-
+    
     val context = context
     mdMain = context as com.moneydance.apps.md.controller.Main  // upcast back to main to get full Moneydance capabilites
     val mdMain = mdMain!! // shadow copy and null-check once/upfront
@@ -49,6 +49,8 @@ class Main : FeatureModule(), PreferencesListener {
     //register on the extensions menu
     context.registerFeature(this, moduleID, null, getName())
     logConsole("Initialized (Kotlin) build: $versionString ${if (PREVIEW_BUILD) "(PREVIEW) " else ""}")
+
+    nukeLegacyPrefKeys()
   }
   
   /**
@@ -73,7 +75,7 @@ class Main : FeatureModule(), PreferencesListener {
     val dupMenuEnabled = prefs.getBoolSetting(EXTN_ID + SETTING_MENU_DUP_ENABLED, true)
     val vstMenuEnabled = prefs.getBoolSetting(EXTN_ID + SETTING_MENU_VST_ENABLED, true)
     val jumpMenuEnabled = prefs.getBoolSetting(EXTN_ID + SETTING_MENU_JUMP_ENABLED, true)
-    val debugMenuEnabled = prefs.getBoolSetting(EXTN_ID + SETTING_MENU_DEBUG_ENABLED, false)
+    val copyPasteMenuEnabled = prefs.getBoolSetting(EXTN_ID + SETTING_MENU_COPYPASTE_ENABLED, true)
     
     if (debugMenuEnabled) {
       AppDebug.ALL.log {
@@ -99,6 +101,7 @@ class Main : FeatureModule(), PreferencesListener {
     
     if (isDataEntryRegisterActionType(contextType = context.type, includeSecReg = false)) {
       if (dupMenuEnabled) actions += DuplicateTransactions().getActions(menuContext = context, listAccts = listAccts, listTxns = listTxns)
+      if (copyPasteMenuEnabled) actions += CopyPasteSplits().getActions(menuContext = context, listAccts = listAccts, listTxns = listTxns)
     }
     
     if (isDataEntryRegisterActionType(contextType = context.type, includeSecReg = false) || isSearchActionType(contextType = context.type)) {
@@ -150,11 +153,22 @@ class Main : FeatureModule(), PreferencesListener {
     } catch (e: Exception) { logConsole("Error closing window: '$e'") }
   }
   
-  override fun handleEvent(appEvent: String) {
-    logConsole(true, "::handleEvent($appEvent) doing nothing")
-    //if (eventStr.equalsIgnoreCase(AppEventManager.FILE_OPENED)) {
-    //    // do stuff with dataset here....
-    //}
+  override fun handleEvent(appEvent:String) {
+    logConsole(true, "::handleEvent($appEvent)")
+    when {
+      appEvent.equals(AppEventManager.FILE_OPENED, ignoreCase = true) -> copiedSplits = null
+       appEvent.equals(AppEventManager.FILE_OPENING, ignoreCase = true) -> copiedSplits = null
+       appEvent.equals(AppEventManager.FILE_CLOSING, ignoreCase = true) -> copiedSplits = null
+       appEvent.equals(AppEventManager.FILE_CLOSED, ignoreCase = true) -> copiedSplits = null
+    }
+
+    // on ANY event, expire a stale copy regardless of event type (instead of a timer)
+    copiedSplits?.let { copy ->
+      if (System.currentTimeMillis() - copy.copiedAtMillis > CopyPasteSplits.COPY_EXPIRY_MILLIS) {
+        copiedSplits = null
+        logConsole(true, "CopyPasteSplits: cleared stale copy (>10min) on '$appEvent'")
+      }
+    }
   }
   
   /** Process an invocation of this module with the given URI  */
@@ -196,8 +210,12 @@ class Main : FeatureModule(), PreferencesListener {
       isSelected = prefs.getBoolSetting(EXTN_ID + SETTING_MENU_JUMP_ENABLED, true)
     }
 
+    private val enableMenuCopyPasteCheckbox = JCheckBox(STRING_MENU_COPYPASTE_ENABLED).apply {
+      isSelected = prefs.getBoolSetting(EXTN_ID + SETTING_MENU_COPYPASTE_ENABLED, true)
+    }
+
     private val enableMenuDebugCheckbox = JCheckBox(STRING_DEBUG_ENABLED).apply {
-      isSelected = prefs.getBoolSetting(EXTN_ID + SETTING_MENU_DEBUG_ENABLED, false)
+      isSelected = extensionContext!!.debugMenuEnabled
     }
     
     private val vstBaseCurrLabel = JLabel(STRING_MENU_VST_DISP_CURR.labelify)
@@ -236,9 +254,11 @@ class Main : FeatureModule(), PreferencesListener {
       form.add(currPanel, GridC.getc(0, y++).west().insets(0, 24, 4, 4))
       
       form.add(enableMenuJumpCheckbox, GridC.getc(0, y++).west().insets(4, 4, 4, 4))
-
+      
+      form.add(enableMenuCopyPasteCheckbox, GridC.getc(0, y++).west().insets(4, 4, 4, 4))
+      
       form.add(enableMenuDebugCheckbox, GridC.getc(0, y++).west().insets(4, 4, 4, 4))
-
+      
       add(form, BorderLayout.CENTER)
       
       add(OKButtonPanel(mdGUI, this, OKButtonPanel.QUESTION_OK_CANCEL), BorderLayout.SOUTH)
@@ -261,6 +281,7 @@ class Main : FeatureModule(), PreferencesListener {
           prefs.setSetting(EXTN_ID + SETTING_MENU_DUP_ENABLED, enableMenuDupCheckbox.isSelected)
           prefs.setSetting(EXTN_ID + SETTING_MENU_VST_ENABLED, enableMenuVSTCheckbox.isSelected)
           prefs.setSetting(EXTN_ID + SETTING_MENU_JUMP_ENABLED, enableMenuJumpCheckbox.isSelected)
+          prefs.setSetting(EXTN_ID + SETTING_MENU_COPYPASTE_ENABLED, enableMenuCopyPasteCheckbox.isSelected)
           prefs.setSetting(EXTN_ID + SETTING_MENU_DEBUG_ENABLED, enableMenuDebugCheckbox.isSelected)
           
           val book = mdMain?.currentAccountBook
@@ -301,6 +322,22 @@ class Main : FeatureModule(), PreferencesListener {
     logConsole(true, "::preferencesUpdated() called - doing nothing")
   }
   
+  private fun nukeLegacyPrefKeys() {
+    //TODO - eliminate this at some point
+    val prefs = mdMain?.preferences ?: return
+    listOf(SETTING_MENU_DUP_ENABLED,
+           SETTING_MENU_VST_ENABLED,
+           SETTING_MENU_JUMP_ENABLED,
+           SETTING_MENU_COPYPASTE_ENABLED,
+           SETTING_MENU_DEBUG_ENABLED
+    ).forEach { key ->
+      prefs.setSetting(EXTN_ID + key.removePrefix("."), null as String?)
+    }
+  }
+
+
+  val debugMenuEnabled get() = mdMain?.preferences?.getBoolSetting(EXTN_ID + SETTING_MENU_DEBUG_ENABLED, false) ?: false
+  
   companion object {
 
     @JvmField var mdMain:com.moneydance.apps.md.controller.Main? = null
@@ -312,6 +349,8 @@ class Main : FeatureModule(), PreferencesListener {
     @JvmStatic var EXTN_ID = "???"
     
     @JvmStatic var DEBUG = false
+
+    @JvmField var copiedSplits: CopyPasteSplits.CopiedSplitsSnapshot? = null
     
     var extensionContext:Main? = null
     var PREVIEW_BUILD = true            //TODO - update accordingly
@@ -323,12 +362,14 @@ class Main : FeatureModule(), PreferencesListener {
     const val STRING_MENU_VST_ENABLED = "Enable context menu: 'Value Selected Transactions'"
     const val STRING_MENU_VST_DISP_CURR = "Display Currency"
     const val STRING_MENU_JUMP_ENABLED = "Enable context menu: 'Jump to date'"
+    const val STRING_MENU_COPYPASTE_ENABLED = "Enable context menu: 'Copy/Paste Splits'"
     const val STRING_DEBUG_ENABLED = "Enable debug messages"
-
-    const val SETTING_MENU_DUP_ENABLED = "menu.enabled.duplicate"
-    const val SETTING_MENU_VST_ENABLED = "menu.enabled.valueseltxns"
-    const val SETTING_MENU_JUMP_ENABLED = "menu.enabled.jump"
-    const val SETTING_MENU_DEBUG_ENABLED = "menu.enabled.debug"
+    
+    const val SETTING_MENU_DUP_ENABLED = ".menu.enabled.duplicate"
+    const val SETTING_MENU_VST_ENABLED = ".menu.enabled.valueseltxns"
+    const val SETTING_MENU_JUMP_ENABLED = ".menu.enabled.jump"
+    const val SETTING_MENU_COPYPASTE_ENABLED = ".menu.enabled.copypaste"
+    const val SETTING_MENU_DEBUG_ENABLED = ".menu.enabled.debug"
     
     // advanced_search is new for MD2026(5500)
     internal val advancedSearchType:ActionContextType? by lazy {

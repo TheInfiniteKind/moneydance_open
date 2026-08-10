@@ -22,6 +22,7 @@ import com.moneydance.awt.JDateField
 import com.moneydance.modules.features.contextmenutools.Main.Companion.mdGUI
 import com.moneydance.modules.features.contextmenutools.util.Util
 import com.moneydance.awt.JCurrencyField
+import com.moneydance.modules.features.contextmenutools.util.setNameCompat
 import java.awt.Dimension
 import java.awt.GridBagLayout
 import java.awt.event.ActionListener
@@ -457,23 +458,7 @@ class DuplicateTransactions: ContextMenuAction {
   
   private fun duplicateTxnsRecordChanges(duplicatedTxns: List<AbstractTxn>) {
     val change = UndoableChange()
-
-    val undoName = string_undo_redo_dup_txns.replace("{num}", "${duplicatedTxns.size}")
-
-    val clazz = change.javaClass
-    val setOk = runCatching {
-      val m = clazz.getMethod("setName", String::class.java)
-      m.invoke(change, undoName)
-    }.isSuccess
-    
-    if (!setOk) {
-      runCatching {
-        val f = clazz.getDeclaredField("name")
-        f.isAccessible = true
-        f.set(change, undoName)
-      }
-    }
-    
+    change.setNameCompat(string_undo_redo_dup_txns.replace("{num}", "${duplicatedTxns.size}"))
     duplicatedTxns.forEach { dup -> change.finishModification(modifiedItem = dup) }
     mdGUI.undoManager?.recordChange(change)
   }

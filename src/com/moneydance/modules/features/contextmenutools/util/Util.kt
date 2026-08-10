@@ -1,5 +1,6 @@
 package com.moneydance.modules.features.contextmenutools.util
 
+import com.infinitekind.moneydance.model.UndoableChange
 import com.infinitekind.util.AppDebug
 import com.infinitekind.util.DateUtil.today
 import com.moneydance.modules.features.contextmenutools.Main
@@ -8,6 +9,26 @@ import java.awt.Component
 import java.awt.Dialog
 
 fun String.prefixExtnID(): String { return "${Main.EXTN_ID}: $this"}
+
+/**
+ * UndoableChange.name became a public var in MD2026. For compatibility with pre-2026 builds,
+ * try the setName() method first, then fall back to reflection on the private field. Silently
+ * does nothing if neither exists (older/unexpected builds).
+ */
+fun UndoableChange.setNameCompat(name:String) {
+  val clazz = this.javaClass
+  val setOk = runCatching {
+    val m = clazz.getMethod("setName", String::class.java)
+    m.invoke(this, name)
+  }.isSuccess
+  if (!setOk) {
+    runCatching {
+      val f = clazz.getDeclaredField("name")
+      f.isAccessible = true
+      f.set(this, name)
+    }
+  }
+}
 
 object Util {
 
