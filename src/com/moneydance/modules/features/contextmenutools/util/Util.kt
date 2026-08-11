@@ -1,5 +1,6 @@
 package com.moneydance.modules.features.contextmenutools.util
 
+import com.infinitekind.moneydance.model.AbstractTxn
 import com.infinitekind.moneydance.model.UndoableChange
 import com.infinitekind.util.AppDebug
 import com.infinitekind.util.DateUtil.today
@@ -27,6 +28,30 @@ fun UndoableChange.setNameCompat(name:String) {
       f.isAccessible = true
       f.set(this, name)
     }
+  }
+}
+
+/**
+ * AbstractTxn.downloadMatchType / DownloadMatchType exist at runtime on MD2024.4, but not in
+ * the earlier compile-time API jar this module builds against. Reflect both the getter and the
+ * NO_MATCH constants, without a compile-time reference to the missing type.
+ */
+fun AbstractTxn.downloadMatchTypeCompat():Any {
+  return try {
+    this.javaClass.getMethod("getDownloadMatchType").invoke(this)
+    ?: throw IllegalStateException("downloadMatchType reflection returned null for $this")
+  } catch (e:Exception) {
+    throw IllegalStateException("Failed to reflect AbstractTxn.downloadMatchType via reflection", e)
+  }
+}
+
+val noMatchConstantCompat:Any by lazy {
+  try {
+    val enumClass = Class.forName("com.infinitekind.moneydance.model.AbstractTxn\$DownloadMatchType")
+    enumClass.getField("NO_MATCH").get(null)
+    ?: throw IllegalStateException("NO_MATCH field reflection returned null")
+  } catch (e:Exception) {
+    throw IllegalStateException("Failed to reflect AbstractTxn.DownloadMatchType.NO_MATCH via reflection", e)
   }
 }
 

@@ -10,6 +10,8 @@ import com.moneydance.modules.features.contextmenutools.Main.Companion.mdGUI
 import com.moneydance.modules.features.contextmenutools.util.Util
 import com.moneydance.awt.GridC
 import com.moneydance.modules.features.contextmenutools.Main.Companion.extensionContext
+import com.moneydance.modules.features.contextmenutools.util.downloadMatchTypeCompat
+import com.moneydance.modules.features.contextmenutools.util.noMatchConstantCompat
 import com.moneydance.modules.features.contextmenutools.util.setNameCompat
 import java.awt.Dimension
 import java.awt.GridBagLayout
@@ -399,7 +401,7 @@ class CopyPasteSplits:ContextMenuAction {
    */
   private fun splitHoldsProtectedOnlineData(split:SplitTxn):Boolean {
     return split.wasDownloaded() &&
-           (split.downloadMatchType != AbstractTxn.DownloadMatchType.NO_MATCH || !split.isNew)
+           (split.downloadMatchTypeCompat() != noMatchConstantCompat || !split.isNew)
   }
   
   /**
