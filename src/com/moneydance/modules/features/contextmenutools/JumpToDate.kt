@@ -6,27 +6,25 @@ import com.infinitekind.util.labelify
 import com.moneydance.apps.md.controller.MDActionContext
 import com.moneydance.apps.md.view.gui.MDAction
 import com.moneydance.apps.md.view.gui.OKButtonPanel
-import com.moneydance.apps.md.view.gui.OKButtonWindow
 import com.moneydance.apps.md.view.gui.txnreg.TxnRegister
 import com.moneydance.awt.GridC
 import com.moneydance.awt.JDateField
 import com.moneydance.modules.features.contextmenutools.Main.Companion.mdGUI
-import com.moneydance.modules.features.contextmenutools.util.Util
-import java.awt.Dimension
+import com.moneydance.modules.features.contextmenutools.util.SizedOKButtonWindow
 import java.awt.GridBagLayout
 import java.awt.event.ActionListener
-import java.awt.event.WindowAdapter
-import java.awt.event.WindowEvent
 import javax.swing.Action
 import javax.swing.JLabel
 import javax.swing.JPanel
 import javax.swing.border.EmptyBorder
 import kotlin.math.abs
-import kotlin.math.max
 
 @Suppress("DuplicatedCode", "PrivatePropertyName")
 
 class JumpToDate:ContextMenuAction {
+  
+  private val dialog_jump_to_date_size = ".gui.jump_to_date.size"
+  private val dialog_jump_to_date_locn = ".gui.jump_to_date.loc"
   
   private val string_jump_to_date = "Jump to date in register"
   private val string_jump_enter_date = "Enter date to jump to"
@@ -65,18 +63,13 @@ class JumpToDate:ContextMenuAction {
       it.add(dateField, GridC.getc().xy(1, 0).field())
     }
     
-    val win = OKButtonWindow(mdGUI, menuContext.component, string_jump_enter_date, null, OKButtonPanel.QUESTION_OK_CANCEL)
+    val win = SizedOKButtonWindow(
+      mdGUI, menuContext.component, string_jump_enter_date, OKButtonPanel.QUESTION_OK_CANCEL,
+      focusComponent = dateField,
+      sizeKey = Main.EXTN_ID + dialog_jump_to_date_size,
+      locationKey = Main.EXTN_ID + dialog_jump_to_date_locn
+    )
     win.setEscapeKeyCancels(true)
-    
-    win.window.addWindowListener(object:WindowAdapter() {
-      override fun windowOpened(e:WindowEvent) {
-        win.pack()
-        val preferredWidth = max(250, win.preferredSize.width)
-        val preferredHeight = max(100, win.preferredSize.height)
-        mdGUI.adjustWindow(win, Util.getComponentDialog(win), Dimension(preferredWidth, preferredHeight), null, null)
-        dateField.requestFocusInWindow()
-      }
-    })
     
     val result = win.showDialog(panel)
     if (result != OKButtonPanel.ANSWER_OK) return

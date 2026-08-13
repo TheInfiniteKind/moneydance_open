@@ -1,51 +1,41 @@
 package com.moneydance.modules.features.contextmenutools
 
-import com.infinitekind.moneydance.model.AbstractTxn
-import com.infinitekind.moneydance.model.Account
-import com.infinitekind.moneydance.model.InvestFields
-import com.infinitekind.moneydance.model.InvestTxnType
-import com.infinitekind.moneydance.model.ParentTxn
-import com.infinitekind.moneydance.model.SplitTxn
+import com.infinitekind.moneydance.model.*
 import com.infinitekind.moneydance.model.TxnUtil.getCorrespondingDuplicate
-import com.infinitekind.moneydance.model.UndoableChange
-import kotlin.math.abs
 import com.infinitekind.util.DateUtil.incrementDate
 import com.infinitekind.util.DateUtil.strippedDateInt
 import com.infinitekind.util.labelify
-import com.moneydance.apps.md.controller.*
+import com.moneydance.apps.md.controller.MDActionContext
+import com.moneydance.apps.md.controller.UserPreferences
 import com.moneydance.apps.md.view.gui.MDAction
 import com.moneydance.apps.md.view.gui.OKButtonPanel
-import com.moneydance.apps.md.view.gui.OKButtonWindow
 import com.moneydance.apps.md.view.gui.txnreg.TxnRegister
 import com.moneydance.awt.GridC
+import com.moneydance.awt.JCurrencyField
 import com.moneydance.awt.JDateField
 import com.moneydance.modules.features.contextmenutools.Main.Companion.mdGUI
-import com.moneydance.modules.features.contextmenutools.util.Util
-import com.moneydance.awt.JCurrencyField
+import com.moneydance.modules.features.contextmenutools.util.SizedOKButtonWindow
 import com.moneydance.modules.features.contextmenutools.util.setNameCompat
-import java.awt.Dimension
 import java.awt.GridBagLayout
 import java.awt.event.ActionListener
 import java.awt.event.FocusAdapter
 import java.awt.event.FocusEvent
-import java.awt.event.WindowAdapter
-import java.awt.event.WindowEvent
-import java.util.LinkedHashSet
-import java.util.Locale
-import javax.swing.Action
-import javax.swing.Box
-import javax.swing.JLabel
-import javax.swing.JPanel
-import javax.swing.JSpinner
-import javax.swing.SpinnerNumberModel
+import java.util.*
+import javax.swing.*
 import javax.swing.border.EmptyBorder
 import javax.swing.event.DocumentEvent
 import javax.swing.event.DocumentListener
+import kotlin.math.abs
 import kotlin.math.max
 
 @Suppress("DuplicatedCode", "PrivatePropertyName", "AssignedValueIsNeverRead")
 
 class DuplicateTransactions: ContextMenuAction {
+
+    private val dialog_duplicate_enter_date_size = ".gui.duplicate_enter_date.size"
+    private val dialog_duplicate_enter_date_locn = ".gui.duplicate_enter_date.loc"
+    private val dialog_duplicate_adjust_date_size = ".gui.duplicate_adjust_date.size"
+    private val dialog_duplicate_adjust_date_locn = ".gui.duplicate_adjust_date.loc"
 
     private val string_duplicate = "Duplicate transactions"
     private val string_duplicate_same_date = "With the same date(s)"
@@ -323,19 +313,14 @@ class DuplicateTransactions: ContextMenuAction {
       duplicateDatePnl.add(JLabel(string_duplicate_enter_value.labelify), GridC.getc().xy(x, y).label().topInset(8))
       duplicateDatePnl.add(it, GridC.getc().xy(1, y++).field())
     }
-
-    val win = OKButtonWindow(mdGUI, menuContext.component, string_duplicate_enter_date, null, OKButtonPanel.QUESTION_OK_CANCEL)
-    win.setEscapeKeyCancels(true)
     
-    win.window.addWindowListener(object : WindowAdapter() {
-      override fun windowOpened(e: WindowEvent) {
-        win.pack()
-        val preferredWidth = max(250, win.preferredSize.width)
-        val preferredHeight = max(125 + (if (showTaxDate) 50 else 0) + (if (showValueField) 50 else 0), win.preferredSize.height)
-        mdGUI.adjustWindow(win, Util.getComponentDialog(win), Dimension(preferredWidth, preferredHeight), null, null)
-        dupFixedDateField.requestFocusInWindow()
-      }
-    })
+    val win = SizedOKButtonWindow(
+      mdGUI, menuContext.component, string_duplicate_enter_date, OKButtonPanel.QUESTION_OK_CANCEL,
+      focusComponent = dupFixedDateField,
+      sizeKey = Main.EXTN_ID + dialog_duplicate_enter_date_size,
+      locationKey = Main.EXTN_ID + dialog_duplicate_enter_date_locn
+    )
+    win.setEscapeKeyCancels(true)
     
     val result = win.showDialog(duplicateDatePnl)
     
@@ -393,7 +378,11 @@ class DuplicateTransactions: ContextMenuAction {
     val dateAdjustmentPnl = JPanel(GridBagLayout())
     dateAdjustmentPnl.border = EmptyBorder(16, 16, 16, 16)
     
-    val win = OKButtonWindow(mdGUI, menuContext.component, string_duplicate_adjust_date, null, OKButtonPanel.QUESTION_OK_CANCEL)
+    val win = SizedOKButtonWindow(
+      mdGUI, menuContext.component, string_duplicate_adjust_date, OKButtonPanel.QUESTION_OK_CANCEL,
+      sizeKey = Main.EXTN_ID + dialog_duplicate_adjust_date_size,
+      locationKey = Main.EXTN_ID + dialog_duplicate_adjust_date_locn
+    )
     win.setEscapeKeyCancels(true)
     
     var x = 0
@@ -425,15 +414,6 @@ class DuplicateTransactions: ContextMenuAction {
       dateAdjustmentPnl.add(JLabel(string_duplicate_enter_value.labelify), GridC.getc().xy(x, y).label().topInset(8))
       dateAdjustmentPnl.add(it, GridC.getc().xy(1, y++).field().wx(0f).fillnone())
     }
-    
-    win.window.addWindowListener(object : WindowAdapter() {
-      override fun windowOpened(e: WindowEvent) {
-        win.pack()
-        val preferredWidth = max(300, win.preferredSize.width)
-        val preferredHeight = max(200 + (if (showTaxDate) 25 else 0) + (if (showValueField) 50 else 0), win.preferredSize.height)
-        mdGUI.adjustWindow(win, Util.getComponentDialog(win), Dimension(preferredWidth, preferredHeight), null, null)
-      }
-    })
     
     val result = win.showDialog(dateAdjustmentPnl)
     

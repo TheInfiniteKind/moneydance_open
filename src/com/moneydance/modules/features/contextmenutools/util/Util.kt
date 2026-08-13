@@ -127,4 +127,22 @@ object Util {
       c = c.parent ?: return null
     }
   }
+  
+  /**
+   * Loads a small icon from the extension jar's classpath resources (e.g. an icon dropped into
+   * src/.../contextmenutools/icons/ and built into the jar). Returns null (never throws) if the
+   * resource isn't found or fails to load - callers should fall back to a text/unicode label.
+   */
+  @JvmStatic
+  fun loadIcon(resourcePath:String):javax.swing.Icon? {
+    return try {
+      val cl = Main::class.java.classLoader
+      val stream = cl.getResourceAsStream(resourcePath) ?: return null
+      val bytes = stream.readBytes()
+      val img = java.awt.Toolkit.getDefaultToolkit().createImage(bytes)
+      javax.swing.ImageIcon(img)
+    } catch (e:Throwable) {
+      null
+    }
+  }
 }

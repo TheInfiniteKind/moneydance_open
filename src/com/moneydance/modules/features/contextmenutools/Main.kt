@@ -4,6 +4,7 @@ import com.infinitekind.moneydance.model.AbstractTxn
 import com.infinitekind.moneydance.model.Account
 import com.infinitekind.moneydance.model.CurrencyType
 import com.infinitekind.util.AppDebug
+import com.infinitekind.util.StreamTable
 import com.infinitekind.util.labelify
 import com.moneydance.apps.md.controller.*
 import com.moneydance.apps.md.view.gui.*
@@ -13,6 +14,7 @@ import com.moneydance.modules.features.contextmenutools.util.Util.logConsole
 import java.awt.BorderLayout
 import java.awt.GridBagLayout
 import javax.swing.*
+import javax.swing.border.EmptyBorder
 
 @Suppress("DuplicatedCode")
 
@@ -72,25 +74,48 @@ class Main : FeatureModule(), PreferencesListener {
     val listTxns = context.items.filterIsInstance<AbstractTxn>()
     
     val prefs = mdMain?.preferences ?: return actions
-    val dupMenuEnabled = prefs.getBoolSetting(EXTN_ID + SETTING_MENU_DUP_ENABLED, true)
-    val vstMenuEnabled = prefs.getBoolSetting(EXTN_ID + SETTING_MENU_VST_ENABLED, true)
-    val jumpMenuEnabled = prefs.getBoolSetting(EXTN_ID + SETTING_MENU_JUMP_ENABLED, true)
-    val copyPasteMenuEnabled = prefs.getBoolSetting(EXTN_ID + SETTING_MENU_COPYPASTE_ENABLED, true)
+    val menuSettings = prefs.getTableSetting(EXTN_ID + SETTING_MASTER_KEY, null) ?: StreamTable()
+    val dupMenuEnabled = getMenuBoolSetting(menuSettings, SETTING_MENU_DUP_ENABLED, true)
+    val vstMenuEnabled = getMenuBoolSetting(menuSettings, SETTING_MENU_VST_ENABLED, true)
+    val jumpMenuEnabled = getMenuBoolSetting(menuSettings, SETTING_MENU_JUMP_ENABLED, true)
+    val copyPasteMenuEnabled = getMenuBoolSetting(menuSettings, SETTING_MENU_COPYPASTE_ENABLED, true)
+    val templateMenuEnabled = getMenuBoolSetting(menuSettings, SETTING_MENU_TEMPLATE_ENABLED, true)
+    val rebalanceMenuEnabled = getMenuBoolSetting(menuSettings, SETTING_MENU_REBALANCE_ENABLED, true)
+    val templateIncludeSingleSplit = getMenuBoolSetting(menuSettings, SETTING_TEMPLATE_INCLUDE_SINGLE_SPLIT, false)
+    val templateNameFilter = getMenuStringSetting(menuSettings, SETTING_TEMPLATE_NAME_FILTER, "")
+    val templateMatchAccount = getMenuBoolSetting(menuSettings, SETTING_TEMPLATE_MATCH_ACCOUNT, false)
+    val excludeExpiredReminders = getMenuBoolSetting(menuSettings, SETTING_TEMPLATE_EXCLUDE_EXPIRED, false)
+    val copyRawMenuEnabled = getMenuBoolSetting(menuSettings, SETTING_MENU_COPY_RAW_ENABLED, false)
+    val alwaysConfirmTotal = getMenuBoolSetting(menuSettings, SETTING_ALWAYS_CONFIRM_TOTAL, false)
     
-    if (debugMenuEnabled) {
-      AppDebug.ALL.log {
-        ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n" +
-        "ContextMenuTools#getActionsForContext >>\n" +
-        "type:      ${context.type.let { "${it::class.simpleName}.${it.name}" }}\n" +
-        "obj:       ${context.contextObject?.let { "${it::class.qualifiedName} ${if (it is Account) (it.getAccountType().toString() + " " + it.fullAccountName) else it}" }}\n" +
-        "comp:      ${context.component?.let { "${it::class.qualifiedName} $it" }}\n" +
-        "dateRange: ${context.dateRange}\n" +
-        "accts:     ${listAccts.let { "${it.size} $it" }}\n" +
-        "txns:      ${listTxns.let { "${it.size} $it" }}\n" +
-        "items:     ${context.items.let { "${it.size} $it" }}\n" +
-        ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n"
+    if (debugMenuEnabled || DEBUG) {
+      val summary = "ContextMenuTools: type=${context.type.name} dateRange=${context.dateRange} " +
+                    "accts=${listAccts.size} txns=${listTxns.size} items=${context.items.size} " +
+                    "obj=${context.contextObject?.let { "${it::class.qualifiedName} ${if (it is Account) (it.getAccountType().toString() + " " + it.fullAccountName) else it}" }}"
+      
+      if (DEBUG) {
+        AppDebug.ALL.log {
+          ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n" +
+          "ContextMenuTools#getActionsForContext >>\n" +
+          "type:      ${context.type.let { "${it::class.simpleName}.${it.name}" }}\n" +
+          "obj:       ${context.contextObject?.let { "${it::class.qualifiedName} ${if (it is Account) (it.getAccountType().toString() + " " + it.fullAccountName) else it}" }}\n" +
+          "comp:      ${context.component?.let { "${it::class.qualifiedName} $it" }}\n" +
+          "dateRange: ${context.dateRange}\n" +
+          "accts:     ${listAccts.let { "${it.size} $it" }}\n" +
+          "txns:      ${listTxns.let { "${it.size} $it" }}\n" +
+          "items:     ${context.items.let { "${it.size} $it" }}\n" +
+          ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n"
+        }
+      } else {
+        Util.logConsole(summary)
       }
     }
+
+    // Copy Raw Details to Clipboard: no context-type or account-type restriction whatsoever -
+    // applies wherever any txns are received, so it's wired unconditionally, before the
+    // quick-exit check below (which only bails when BOTH txns and accts are empty).
+    actions += CopyRawDetailsToClipboard(enabled = copyRawMenuEnabled)
+      .getActions(menuContext = context, listAccts = listAccts, listTxns = listTxns)
     
     // quick do-nothing exit if there are no items/accounts to process...
     if (listTxns.isEmpty() && listAccts.isEmpty()) return actions
@@ -101,7 +126,16 @@ class Main : FeatureModule(), PreferencesListener {
     
     if (isDataEntryRegisterActionType(contextType = context.type, includeSecReg = false)) {
       if (dupMenuEnabled) actions += DuplicateTransactions().getActions(menuContext = context, listAccts = listAccts, listTxns = listTxns)
-      if (copyPasteMenuEnabled) actions += CopyPasteSplits().getActions(menuContext = context, listAccts = listAccts, listTxns = listTxns)
+      actions += CopyPasteSplits(
+        copyPasteEnabled = copyPasteMenuEnabled,
+        templateEnabled = templateMenuEnabled,
+        includeSingleSplitReminders = templateIncludeSingleSplit,
+        templateNameFilter = templateNameFilter,
+        templateMatchAccount = templateMatchAccount,
+        excludeExpiredReminders = excludeExpiredReminders,
+        rebalanceEnabled = rebalanceMenuEnabled,
+        alwaysConfirmTotal = alwaysConfirmTotal
+      ).getActions(menuContext = context, listAccts = listAccts, listTxns = listTxns)
     }
     
     if (isDataEntryRegisterActionType(contextType = context.type, includeSecReg = false) || isSearchActionType(contextType = context.type)) {
@@ -166,7 +200,7 @@ class Main : FeatureModule(), PreferencesListener {
     copiedSplits?.let { copy ->
       if (System.currentTimeMillis() - copy.copiedAtMillis > CopyPasteSplits.COPY_EXPIRY_MILLIS) {
         copiedSplits = null
-        logConsole(true, "CopyPasteSplits: cleared stale copy (>10min) on '$appEvent'")
+        if (debugMenuEnabled || DEBUG) logConsole("CopyPasteSplits: cleared stale copy (>10min) on '$appEvent'")
       }
     }
   }
@@ -198,24 +232,73 @@ class Main : FeatureModule(), PreferencesListener {
   
   private class MenuConfigDialog:SecondaryDialog(mdGUI, null, STRING_CONFIG, false), OKButtonListener {
     
+    private val menuSettingsOnOpen = prefs.getTableSetting(EXTN_ID + SETTING_MASTER_KEY, null) ?: StreamTable()
+    
     private val enableMenuDupCheckbox = JCheckBox(STRING_MENU_DUP_ENABLED).apply {
-      isSelected = prefs.getBoolSetting(EXTN_ID + SETTING_MENU_DUP_ENABLED, true)
+      isSelected = getMenuBoolSetting(menuSettingsOnOpen, SETTING_MENU_DUP_ENABLED, true)
     }
-
+    
     private val enableMenuVSTCheckbox = JCheckBox(STRING_MENU_VST_ENABLED).apply {
-      isSelected = prefs.getBoolSetting(EXTN_ID + SETTING_MENU_VST_ENABLED, true)
+      isSelected = getMenuBoolSetting(menuSettingsOnOpen, SETTING_MENU_VST_ENABLED, true)
     }
-
+    
     private val enableMenuJumpCheckbox = JCheckBox(STRING_MENU_JUMP_ENABLED).apply {
-      isSelected = prefs.getBoolSetting(EXTN_ID + SETTING_MENU_JUMP_ENABLED, true)
+      isSelected = getMenuBoolSetting(menuSettingsOnOpen, SETTING_MENU_JUMP_ENABLED, true)
     }
-
+    
     private val enableMenuCopyPasteCheckbox = JCheckBox(STRING_MENU_COPYPASTE_ENABLED).apply {
-      isSelected = prefs.getBoolSetting(EXTN_ID + SETTING_MENU_COPYPASTE_ENABLED, true)
+      isSelected = getMenuBoolSetting(menuSettingsOnOpen, SETTING_MENU_COPYPASTE_ENABLED, true)
     }
-
+    
+    private val enableMenuTemplateCheckbox = JCheckBox(STRING_MENU_TEMPLATE_ENABLED).apply {
+      isSelected = getMenuBoolSetting(menuSettingsOnOpen, SETTING_MENU_TEMPLATE_ENABLED, true)
+    }
+    
+    private val enableMenuRebalanceCheckbox = JCheckBox(STRING_MENU_REBALANCE_ENABLED).apply {
+      isSelected = getMenuBoolSetting(menuSettingsOnOpen, SETTING_MENU_REBALANCE_ENABLED, true)
+    }
+    
+    private val includeSingleSplitCheckbox = JCheckBox(STRING_TEMPLATE_INCLUDE_SINGLE_SPLIT).apply {
+      isSelected = getMenuBoolSetting(menuSettingsOnOpen, SETTING_TEMPLATE_INCLUDE_SINGLE_SPLIT, false)
+      isEnabled = enableMenuTemplateCheckbox.isSelected
+    }
+    
+    private val templateMatchAccountCheckbox = JCheckBox(STRING_TEMPLATE_MATCH_ACCOUNT).apply {
+      isSelected = getMenuBoolSetting(menuSettingsOnOpen, SETTING_TEMPLATE_MATCH_ACCOUNT, false)
+      isEnabled = enableMenuTemplateCheckbox.isSelected
+    }
+    
+    private val excludeExpiredRemindersCheckbox = JCheckBox(STRING_TEMPLATE_EXCLUDE_EXPIRED).apply {
+      isSelected = getMenuBoolSetting(menuSettingsOnOpen, SETTING_TEMPLATE_EXCLUDE_EXPIRED, false)
+      isEnabled = enableMenuTemplateCheckbox.isSelected
+    }
+    
+    private val templateNameFilterField = JTextField(getMenuStringSetting(menuSettingsOnOpen, SETTING_TEMPLATE_NAME_FILTER, ""), 20).apply {
+      isEnabled = enableMenuTemplateCheckbox.isSelected
+    }
+    
+    private val alwaysConfirmTotalCheckbox = JCheckBox(STRING_ALWAYS_CONFIRM_TOTAL).apply {
+      isSelected = getMenuBoolSetting(menuSettingsOnOpen, SETTING_ALWAYS_CONFIRM_TOTAL, false)
+      isEnabled = enableMenuCopyPasteCheckbox.isSelected || enableMenuTemplateCheckbox.isSelected
+    }
+    
+    private val hamiltonLinkLabel = JLabel(STRING_HAMILTON_LINK_TEXT).apply {
+      foreground = Util.blue
+      cursor = java.awt.Cursor(java.awt.Cursor.HAND_CURSOR)
+      toolTipText = STRING_HAMILTON_LINK_TOOLTIP
+      addMouseListener(object:java.awt.event.MouseAdapter() {
+        override fun mouseClicked(e:java.awt.event.MouseEvent) {
+          mdGUI.showInternetURL(HAMILTON_WIKI_URL)
+        }
+      })
+    }
+    
+    private val enableMenuCopyRawCheckbox = JCheckBox(STRING_MENU_COPY_RAW_ENABLED).apply {
+      isSelected = getMenuBoolSetting(menuSettingsOnOpen, SETTING_MENU_COPY_RAW_ENABLED, false)
+    }
+    
     private val enableMenuDebugCheckbox = JCheckBox(STRING_DEBUG_ENABLED).apply {
-      isSelected = extensionContext!!.debugMenuEnabled
+      isSelected = getMenuBoolSetting(menuSettingsOnOpen, SETTING_MENU_DEBUG_ENABLED, false)
     }
     
     private val vstBaseCurrLabel = JLabel(STRING_MENU_VST_DISP_CURR.labelify)
@@ -234,6 +317,18 @@ class Main : FeatureModule(), PreferencesListener {
       vstBaseCurrChoice = JComboBox(currencyModel).also { it.isEnabled = enableMenuVSTCheckbox.isSelected}
       
       enableMenuVSTCheckbox.addActionListener { vstBaseCurrChoice!!.isEnabled = enableMenuVSTCheckbox.isSelected }
+
+      enableMenuTemplateCheckbox.addActionListener {
+        includeSingleSplitCheckbox.isEnabled = enableMenuTemplateCheckbox.isSelected
+        templateMatchAccountCheckbox.isEnabled = enableMenuTemplateCheckbox.isSelected
+        excludeExpiredRemindersCheckbox.isEnabled = enableMenuTemplateCheckbox.isSelected
+        templateNameFilterField.isEnabled = enableMenuTemplateCheckbox.isSelected
+        alwaysConfirmTotalCheckbox.isEnabled = enableMenuCopyPasteCheckbox.isSelected || enableMenuTemplateCheckbox.isSelected
+      }
+      
+      enableMenuCopyPasteCheckbox.addActionListener {
+        alwaysConfirmTotalCheckbox.isEnabled = enableMenuCopyPasteCheckbox.isSelected || enableMenuTemplateCheckbox.isSelected
+      }
       
       val ct = vstBaseCurrChoice?.selectedItem as? CurrencyType ?: book.currencies.baseType
       val currIdString = prefs.getSetting(UserPreferences.GUI_POPUP_USER_CURR_ID_OVERRIDE, ct.idString)
@@ -242,9 +337,15 @@ class Main : FeatureModule(), PreferencesListener {
       layout = BorderLayout()
       
       val form = JPanel(GridBagLayout())
+      form.border = EmptyBorder(16, 20, 12, 20)
       var y = 0
       
-      form.add(enableMenuDupCheckbox, GridC.getc(0, y++).west().insets(4, 4, 4, 4))
+      form.add(JSeparator(), GridC.getc(0, y++).west().wx(1f).fillboth().insets(6, 0, 6, 0))
+
+      form.add(enableMenuCopyRawCheckbox, GridC.getc(0, y++).west().insets(4, 4, 4, 4))
+      
+      form.add(JSeparator(), GridC.getc(0, y++).west().wx(1f).fillboth().insets(6, 0, 6, 0))
+      
       form.add(enableMenuVSTCheckbox, GridC.getc(0, y++).west().insets(4, 4, 2, 4))
       
       val currPanel = JPanel(GridBagLayout())
@@ -253,15 +354,44 @@ class Main : FeatureModule(), PreferencesListener {
       
       form.add(currPanel, GridC.getc(0, y++).west().insets(0, 24, 4, 4))
       
+      form.add(JSeparator(), GridC.getc(0, y++).west().wx(1f).fillboth().insets(6, 0, 6, 0))
+      
+      form.add(enableMenuDupCheckbox, GridC.getc(0, y++).west().insets(4, 4, 4, 4))
+
+      form.add(JSeparator(), GridC.getc(0, y++).west().wx(1f).fillboth().insets(6, 0, 6, 0))
+
+      form.add(enableMenuCopyPasteCheckbox, GridC.getc(0, y++).west().insets(4, 4, 4, 4))
+      form.add(enableMenuTemplateCheckbox, GridC.getc(0, y++).west().insets(4, 4, 4, 4))
+      form.add(includeSingleSplitCheckbox, GridC.getc(0, y++).west().insets(0, 24, 4, 4))
+      form.add(templateMatchAccountCheckbox, GridC.getc(0, y++).west().insets(0, 24, 4, 4))
+      form.add(excludeExpiredRemindersCheckbox, GridC.getc(0, y++).west().insets(0, 24, 4, 4))
+      
+      val templateFilterPanel = JPanel(GridBagLayout())
+      templateFilterPanel.add(JLabel(STRING_TEMPLATE_NAME_FILTER.labelify), GridC.getc(0, 0).west().insets(0, 0, 0, 6))
+      templateFilterPanel.add(templateNameFilterField, GridC.getc(1, 0).west().insets(0, 0, 0, 0))
+      form.add(templateFilterPanel, GridC.getc(0, y++).west().insets(0, 24, 4, 4))
+      
+      form.add(enableMenuRebalanceCheckbox, GridC.getc(0, y++).west().insets(4, 4, 4, 4))
+      
+      form.add(alwaysConfirmTotalCheckbox, GridC.getc(0, y++).west().insets(0, 24, 4, 4))
+      
+      form.add(JSeparator(), GridC.getc(0, y++).west().wx(1f).fillboth().insets(6, 0, 6, 0))
+      
       form.add(enableMenuJumpCheckbox, GridC.getc(0, y++).west().insets(4, 4, 4, 4))
       
-      form.add(enableMenuCopyPasteCheckbox, GridC.getc(0, y++).west().insets(4, 4, 4, 4))
+      form.add(JSeparator(), GridC.getc(0, y++).west().wx(1f).fillboth().insets(6, 0, 6, 0))
       
       form.add(enableMenuDebugCheckbox, GridC.getc(0, y++).west().insets(4, 4, 4, 4))
       
-      add(form, BorderLayout.CENTER)
+      form.add(JSeparator(), GridC.getc(0, y++).west().wx(1f).fillboth().insets(6, 0, 6, 0))
+
+      form.add(hamiltonLinkLabel, GridC.getc(0, y++).west().insets(8, 4, 4, 4))
       
-      add(OKButtonPanel(mdGUI, this, OKButtonPanel.QUESTION_OK_CANCEL), BorderLayout.SOUTH)
+      add(form, BorderLayout.CENTER)
+      val buttonPanel = JPanel(BorderLayout())
+      buttonPanel.border = EmptyBorder(0, 0, 12, 12)
+      buttonPanel.add(OKButtonPanel(mdGUI, this, OKButtonPanel.QUESTION_OK_CANCEL), BorderLayout.CENTER)
+      add(buttonPanel, BorderLayout.SOUTH)
       
       setEscapeKeyCancels(true)
       pack()
@@ -278,11 +408,23 @@ class Main : FeatureModule(), PreferencesListener {
     override fun buttonPressed(answer:Int) {
       when (answer) {
         OKButtonPanel.ANSWER_OK -> {
-          prefs.setSetting(EXTN_ID + SETTING_MENU_DUP_ENABLED, enableMenuDupCheckbox.isSelected)
-          prefs.setSetting(EXTN_ID + SETTING_MENU_VST_ENABLED, enableMenuVSTCheckbox.isSelected)
-          prefs.setSetting(EXTN_ID + SETTING_MENU_JUMP_ENABLED, enableMenuJumpCheckbox.isSelected)
-          prefs.setSetting(EXTN_ID + SETTING_MENU_COPYPASTE_ENABLED, enableMenuCopyPasteCheckbox.isSelected)
-          prefs.setSetting(EXTN_ID + SETTING_MENU_DEBUG_ENABLED, enableMenuDebugCheckbox.isSelected)
+          
+          val menuSettings = prefs.getTableSetting(EXTN_ID + SETTING_MASTER_KEY, null) ?: StreamTable()
+          menuSettings[SETTING_MENU_DUP_ENABLED] = enableMenuDupCheckbox.isSelected
+          menuSettings[SETTING_MENU_VST_ENABLED] = enableMenuVSTCheckbox.isSelected
+          menuSettings[SETTING_MENU_JUMP_ENABLED] = enableMenuJumpCheckbox.isSelected
+          menuSettings[SETTING_MENU_COPYPASTE_ENABLED] = enableMenuCopyPasteCheckbox.isSelected
+          menuSettings[SETTING_MENU_TEMPLATE_ENABLED] = enableMenuTemplateCheckbox.isSelected
+          menuSettings[SETTING_MENU_REBALANCE_ENABLED] = enableMenuRebalanceCheckbox.isSelected
+          menuSettings[SETTING_MENU_DEBUG_ENABLED] = enableMenuDebugCheckbox.isSelected
+          menuSettings[SETTING_TEMPLATE_INCLUDE_SINGLE_SPLIT] = includeSingleSplitCheckbox.isSelected
+          menuSettings[SETTING_TEMPLATE_MATCH_ACCOUNT] = templateMatchAccountCheckbox.isSelected
+          menuSettings[SETTING_TEMPLATE_EXCLUDE_EXPIRED] = excludeExpiredRemindersCheckbox.isSelected
+          menuSettings[SETTING_TEMPLATE_NAME_FILTER] = templateNameFilterField.text.trim()
+          menuSettings[SETTING_ALWAYS_CONFIRM_TOTAL] = alwaysConfirmTotalCheckbox.isSelected
+          menuSettings[SETTING_MENU_COPY_RAW_ENABLED] = enableMenuCopyRawCheckbox.isSelected
+
+          prefs.setSetting(EXTN_ID + SETTING_MASTER_KEY, menuSettings)
           
           val book = mdMain?.currentAccountBook
           val base = mdMain?.currentAccountBook?.currencies?.baseType
@@ -297,10 +439,8 @@ class Main : FeatureModule(), PreferencesListener {
           if (newBaseCurr.idString != base.idString) {
             prefs.setSetting(UserPreferences.GUI_POPUP_USER_CURR_ID_OVERRIDE, newBaseCurr.idString)
           }
-          
           goAway()
         }
-        
         OKButtonPanel.ANSWER_CANCEL -> { goAway() }
       }
     } //// end buttonPressed ////
@@ -308,14 +448,9 @@ class Main : FeatureModule(), PreferencesListener {
   } //// end MenuConfigDialog ////
   
   override fun getName(): String { return getModuleMetaData().moduleName }
+  private fun addPreferencesListener() { context?.let { mdMain?.preferences?.addListener(this) } }
+  private fun removePreferencesListener() { context?.let { mdMain?.preferences?.removeListener(this) }
   
-  private fun addPreferencesListener() {
-    context?.let { mdMain?.preferences?.addListener(this) }
-  }
-  
-  private fun removePreferencesListener() {
-    context?.let { mdMain?.preferences?.removeListener(this)
-    }
   }
   
   override fun preferencesUpdated() {
@@ -325,18 +460,26 @@ class Main : FeatureModule(), PreferencesListener {
   private fun nukeLegacyPrefKeys() {
     //TODO - eliminate this at some point
     val prefs = mdMain?.preferences ?: return
-    listOf(SETTING_MENU_DUP_ENABLED,
-           SETTING_MENU_VST_ENABLED,
-           SETTING_MENU_JUMP_ENABLED,
-           SETTING_MENU_COPYPASTE_ENABLED,
-           SETTING_MENU_DEBUG_ENABLED
+    listOf(
+      SETTING_MENU_DUP_ENABLED,
+      SETTING_MENU_VST_ENABLED,
+      SETTING_MENU_JUMP_ENABLED,
+      SETTING_MENU_COPYPASTE_ENABLED,
+      SETTING_MENU_TEMPLATE_ENABLED,
+      SETTING_MENU_DEBUG_ENABLED
     ).forEach { key ->
-      prefs.setSetting(EXTN_ID + key.removePrefix("."), null as String?)
+      prefs.setSetting("$EXTN_ID$key", null as String?)
+      prefs.setSetting("$EXTN_ID.$key", null as String?)
     }
   }
 
 
-  val debugMenuEnabled get() = mdMain?.preferences?.getBoolSetting(EXTN_ID + SETTING_MENU_DEBUG_ENABLED, false) ?: false
+  val debugMenuEnabled
+    get():Boolean {
+      val prefs = mdMain?.preferences ?: return false
+      val menuSettings = prefs.getTableSetting(EXTN_ID + SETTING_MASTER_KEY, null) ?: return false
+      return getMenuBoolSetting(menuSettings, SETTING_MENU_DEBUG_ENABLED, false)
+    }
   
   companion object {
 
@@ -363,13 +506,36 @@ class Main : FeatureModule(), PreferencesListener {
     const val STRING_MENU_VST_DISP_CURR = "Display Currency"
     const val STRING_MENU_JUMP_ENABLED = "Enable context menu: 'Jump to date'"
     const val STRING_MENU_COPYPASTE_ENABLED = "Enable context menu: 'Copy/Paste Splits'"
+    const val STRING_MENU_TEMPLATE_ENABLED = "Enable context menu: 'Apply Splits Template'"
+    const val STRING_MENU_REBALANCE_ENABLED = "Enable context menu: 'Rebalance Splits'"
+    const val STRING_TEMPLATE_INCLUDE_SINGLE_SPLIT = "Include single split reminders"
+    const val STRING_TEMPLATE_MATCH_ACCOUNT = "Reminder account must match target account"
+    const val STRING_TEMPLATE_EXCLUDE_EXPIRED = "Exclude expired/inactive reminders"
+    const val STRING_TEMPLATE_NAME_FILTER = "Filter reminder list by name contains"
+    const val STRING_MENU_COPY_RAW_ENABLED = "Enable context menu: 'Copy Raw Details to Clipboard'"
+    const val STRING_ALWAYS_CONFIRM_TOTAL = "Always confirm total when pasting splits"
     const val STRING_DEBUG_ENABLED = "Enable debug messages"
+    const val STRING_HAMILTON_LINK_TEXT = "About the largest-remainder (Hamilton's) allocation method"
+    const val STRING_HAMILTON_LINK_TOOLTIP = "Opens the Wikipedia article in your browser"
+    const val HAMILTON_WIKI_URL = "https://en.wikipedia.org/wiki/Largest_remainder_method"
     
-    const val SETTING_MENU_DUP_ENABLED = ".menu.enabled.duplicate"
-    const val SETTING_MENU_VST_ENABLED = ".menu.enabled.valueseltxns"
-    const val SETTING_MENU_JUMP_ENABLED = ".menu.enabled.jump"
-    const val SETTING_MENU_COPYPASTE_ENABLED = ".menu.enabled.copypaste"
-    const val SETTING_MENU_DEBUG_ENABLED = ".menu.enabled.debug"
+    const val SETTING_MASTER_KEY = ".settings"
+    const val SETTING_MENU_DUP_ENABLED = "menu.enabled.duplicate"
+    const val SETTING_MENU_VST_ENABLED = "menu.enabled.valueseltxns"
+    const val SETTING_MENU_JUMP_ENABLED = "menu.enabled.jump"
+    const val SETTING_MENU_COPYPASTE_ENABLED = "menu.enabled.copypaste"
+    const val SETTING_MENU_TEMPLATE_ENABLED = "menu.enabled.template"
+    const val SETTING_MENU_REBALANCE_ENABLED = "menu.enabled.rebalance"
+    const val SETTING_MENU_DEBUG_ENABLED = "menu.enabled.debug"
+    const val SETTING_TEMPLATE_INCLUDE_SINGLE_SPLIT = "paste.template.include_single_split"
+    const val SETTING_TEMPLATE_MATCH_ACCOUNT = "paste.template.match_account"
+    const val SETTING_TEMPLATE_EXCLUDE_EXPIRED = "paste.template.exclude_expired"
+    const val SETTING_TEMPLATE_NAME_FILTER = "paste.template.name_filter"
+    const val SETTING_MENU_COPY_RAW_ENABLED = "menu.enabled.copyraw"
+    const val SETTING_ALWAYS_CONFIRM_TOTAL = "paste.always_confirm_total"
+    
+    private fun getMenuBoolSetting(table:StreamTable, key:String, default:Boolean):Boolean = table.getBoolean(key, default)
+    private fun getMenuStringSetting(table:StreamTable, key:String, default:String):String { return (table[key] as? String) ?: default }
     
     // advanced_search is new for MD2026(5500)
     internal val advancedSearchType:ActionContextType? by lazy {
@@ -379,4 +545,3 @@ class Main : FeatureModule(), PreferencesListener {
     
   } // end companion object
 }
-
