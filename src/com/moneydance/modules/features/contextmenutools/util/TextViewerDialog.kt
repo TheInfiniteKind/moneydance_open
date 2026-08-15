@@ -52,6 +52,7 @@ class TextViewerDialog(
     textArea.lineWrap = false
     textArea.wrapStyleWord = false
     textArea.border = EmptyBorder(10, 10, 10, 10)
+    textArea.caretPosition = 0   // ensure the view opens scrolled to the START, not wherever focus/setText left it
 
     try {
       textArea.font = mdGUI.fonts.code
@@ -83,12 +84,27 @@ class TextViewerDialog(
 
     isResizable = true
     pack()
+
+    // default to a large, screen-relative size rather than whatever the small bounded
+    // JTextArea(10,70) would otherwise produce - only affects the FIRST-EVER open; if a
+    // sizeKey/locationKey remembered size exists from a previous session, SecondaryDialog's own
+    // loadSizeAndLocation() applies afterward (when the caller sets isVisible = true) and takes
+    // over from here, respecting whatever size the user last left it at.
+    val screenSize = Toolkit.getDefaultToolkit().screenSize
+    val defaultWidth = (screenSize.width * 0.8).toInt()
+    val defaultHeight = (screenSize.height * 0.75).toInt()
+    size = Dimension(maxOf(preferredSize.width, defaultWidth), maxOf(preferredSize.height, defaultHeight))
+
     minimumSize = Dimension(
       maxOf(preferredSize.width, MIN_DIALOG_SIZE.width),
       maxOf(preferredSize.height, MIN_DIALOG_SIZE.height)
     )
-    if (size.width < preferredSize.width || size.height < preferredSize.height) {
-      setLocationRelativeTo(parent)
+    setLocationRelativeTo(parent)
+
+    // belt-and-braces: scroll back to top after the window is actually shown, in case anything
+    // (focus grab, layout pass) scrolls it after this point
+    javax.swing.SwingUtilities.invokeLater {
+      scrollPane.viewport.viewPosition = java.awt.Point(0, 0)
     }
   }
 
