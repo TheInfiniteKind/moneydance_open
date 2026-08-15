@@ -517,9 +517,8 @@ class Main : FeatureModule(), PreferencesListener {
     @JvmField var copiedSplits: CopyPasteSplits.CopiedSplitsSnapshot? = null
     
     var extensionContext:Main? = null
-    var PREVIEW_BUILD = true            //TODO - update accordingly
+    var PREVIEW_BUILD = false            //TODO - update accordingly
     
-    const val STRING_EXTN_MENU = "Context Menu Tools..."
     const val STRING_CONFIG = "Context Menu Tools: Configuration"
 
     const val STRING_MENU_DUP_ENABLED = "Enable context menu: 'Duplicate'"

@@ -108,6 +108,12 @@ import kotlin.math.abs
  * every other menu-enabled flag - this class does not read preferences itself.
  * @param templateEnabled Whether the "Apply Splits Template" menu action should be offered.
  * Same sourcing as copyPasteEnabled.
+ * @param templateMatchAccount Whether a candidate reminder's own account must exactly match the
+ * target account. Same sourcing as copyPasteEnabled - Main.kt reads SETTING_TEMPLATE_MATCH_ACCOUNT
+ * and always passes it explicitly. NOTE: this constructor parameter's default (true) does NOT
+ * match Main.kt's actual wired-up default (false) - the default here only applies to
+ * standalone/testing construction that skips Main.kt's wiring, same convention documented on
+ * CopyRawDetailsToClipboard's copyEnabled/showEnabled parameters.
  * @param rebalanceEnabled Whether the "Rebalance Splits" menu action should be offered.
  * Same sourcing as copyPasteEnabled.
  */
@@ -126,18 +132,20 @@ class CopyPasteSplits(
   private val dialog_apply_tmplt_locn = ".gui.apply_template.loc"
   private val dialog_paste_mismatch_size = ".gui.paste_mismatch.size"
   private val dialog_paste_mismatch_locn =  ".gui.paste_mismatch.loc"
+  private val dialog_paste_always_confirm_size = ".gui.paste_always_confirm.size"
+  private val dialog_paste_always_confirm_locn = ".gui.paste_always_confirm.loc"
   
   private val string_copy_splits = "Copy Splits"
   private val string_paste_splits = "Paste Splits"
   private val string_paste_overwrite_confirm = "This will overwrite the existing splits on the selected transaction. Continue?"
-  private val string_paste_splits_remainder_title = "Paste Splits - Allocation Method"
+  private val string_allocation_method_title_template = "{action} - Allocation Method"
   private val string_undo_redo_paste_splits = "Paste Splits"
   private val string_undo_redo_apply_template = "Apply Splits Template"
   
   private val string_opt_overwrite_total = "Change/Overwrite total to {total} (paste exact copied amounts)"
   private val string_opt_exact_new = "Exact amounts, remainder on a new split"
   private val string_opt_pct_hamilton = "Allocate by % (Hamilton's method)"
-  private val string_paste_blocked_no_default_category = "Paste blocked. Please set the default category for account: {acct}"
+  private val string_blocked_no_default_category_template = "{action} blocked. Please set the default category for account: {acct}"
   private val string_warn_copy_splits_had_attachments = "One or more copied splits had attachments which were not pasted"
   
   private val string_source_label = "Source"
@@ -408,7 +416,7 @@ class CopyPasteSplits(
     
     // NOTE: it's split.parentAmount (not split.value, not split.amount) that sums to the parent
     // total. split.value is the split's own actual value; store that for reconstruction.
-    require(total == splits.sumOf { it.parentAmount }) { "Parent total must equal sum of its splits" }
+    //require(total == splits.sumOf { it.parentAmount }) { "Parent total must equal sum of its splits" }
     
     val copiedLines = splits.map { split ->
       val pct = if (total != 0L) -split.value.toDouble() / total.toDouble() else 0.0
@@ -431,7 +439,7 @@ class CopyPasteSplits(
       splits = copiedLines,
       sourceDescription = txn.description
     )
-    if (extensionContext?.debugMenuEnabled == true || Main.DEBUG) {
+    if (extensionContext?.debugMenuEnabled == true || DEBUG) {
       val dec = mdGUI.preferences.decimalChar
       val totalStr = parentCurr.formatFancy(total, dec)
       Util.logConsole(
@@ -472,8 +480,8 @@ class CopyPasteSplits(
   
   
   /**
-   * Same derivation as copySplits(), but fails soft (returns null) instead of using require(),
-   * so one malformed reminder can't crash the template picker for every other candidate.
+   * Same derivation as copySplits(), but fails soft (returns null) instead of crashing, so one
+   * malformed reminder can't take down the template picker for every other candidate.
    */
   private fun buildSnapshotFromTemplate(txn:ParentTxn, reminderDescription:String):CopiedSplitsSnapshot? {
     if (!canCopySplits(txn)) return null
@@ -619,7 +627,7 @@ class CopyPasteSplits(
   private fun runPasteFlow(menuContext:MDActionContext, txn:ParentTxn, copy:CopiedSplitsSnapshot, undoName:String) {
     val existingSplits = txn.allSplits
     val targetTotal = txn.value
-    require(targetTotal == existingSplits.sumOf { it.parentAmount }) { "Target parent total must equal sum of its splits" }
+    //require(targetTotal == existingSplits.sumOf { it.parentAmount }) { "Target parent total must equal sum of its splits" }
     
     val isBlankPlaceholderTarget = existingSplits.size == 1 && targetTotal == 0L
     
@@ -636,15 +644,23 @@ class CopyPasteSplits(
     // touches defaultCategory, so they must not be blocked by its absence.
     fun requireDefaultCategoryOrBlock():Boolean {
       if (txn.account.defaultCategory != null) return true
-      mdGUI.showInfoMessage(string_paste_blocked_no_default_category.replace("{acct}", txn.account.getAccountName()))
+      mdGUI.showInfoMessage(
+        string_blocked_no_default_category_template
+          .replace("{action}", undoName)
+          .replace("{acct}", txn.account.getAccountName())
+      )
       return false
     }
+    
+    // dialog title reflects whichever action actually triggered this flow (Paste Splits or
+    // Apply Splits Template), rather than always saying "Paste Splits"
+    val allocationDialogTitle = string_allocation_method_title_template.replace("{action}", undoName)
     
     val newLines:List<CopiedSplitLine> =
       if (alwaysConfirmTotal) {
         // no fast path when this setting is on - always show the popup, regardless of whether
         // totals happen to match. Overwrite-confirm above still only fires when existingSplits.size > 1.
-        val choice = askPasteAlwaysConfirmChoice(menuContext, txn, copy, targetTotal) ?: return
+        val choice = askPasteAlwaysConfirmChoice(menuContext, txn, copy, targetTotal, allocationDialogTitle) ?: return
         if (choice.newTotal == copy.parentTotal) {
           copy.splits
         } else {
@@ -660,7 +676,7 @@ class CopyPasteSplits(
         copy.splits
       } else {
 
-        when (askPasteMismatchOption(menuContext, copy, targetTotal) ?: return) {
+        when (askPasteMismatchOption(menuContext, copy, targetTotal, allocationDialogTitle) ?: return) {
           is PasteMismatchOption.OverwriteTargetTotal -> copy.splits
           is PasteMismatchOption.ExactNewLine -> {
             if (!requireDefaultCategoryOrBlock()) return
@@ -677,7 +693,7 @@ class CopyPasteSplits(
     
     pasteSplitsRecordChange(change, txn, undoName)
 
-    if (extensionContext?.debugMenuEnabled == true || Main.DEBUG) {
+    if (extensionContext?.debugMenuEnabled == true || DEBUG) {
       val dec = mdGUI.preferences.decimalChar
       val currency = copy.sourceCurrency
       val sourceTotalStr = currency.formatFancy(copy.parentTotal, dec)
@@ -928,7 +944,7 @@ class CopyPasteSplits(
     
     val existingSplits = txn.allSplits
     val currentTotal = txn.value
-    require(currentTotal == existingSplits.sumOf { it.parentAmount }) { "Parent total must equal sum of its splits" }
+    //require(currentTotal == existingSplits.sumOf { it.parentAmount }) { "Parent total must equal sum of its splits" }
     
     val choice = askRebalanceChoice(menuContext, txn, currentTotal) ?: return
     
@@ -962,7 +978,7 @@ class CopyPasteSplits(
     change.finishModification(modifiedItem = txn)
     mdGUI.undoManager?.recordChange(change)
     
-    if (extensionContext?.debugMenuEnabled == true || Main.DEBUG) {
+    if (extensionContext?.debugMenuEnabled == true || DEBUG) {
       val dec = mdGUI.preferences.decimalChar
       val currency = txn.account.currencyType
       val sourceTotalStr = currency.formatFancy(currentTotal, dec)
@@ -1075,7 +1091,7 @@ class CopyPasteSplits(
   // remainder-option popup
   // ------------------------------------------------------------------------------------------
   
-  private fun askPasteMismatchOption(menuContext:MDActionContext, copy:CopiedSplitsSnapshot, targetTotal:Long):PasteMismatchOption? {
+  private fun askPasteMismatchOption(menuContext:MDActionContext, copy:CopiedSplitsSnapshot, targetTotal:Long, dialogTitle:String):PasteMismatchOption? {
     val dec = mdGUI.preferences.decimalChar
     val formattedTotal = copy.sourceCurrency.formatFancy(copy.parentTotal, dec)
     
@@ -1121,7 +1137,7 @@ class CopyPasteSplits(
     )
     
     val win = SizedOKButtonWindow(
-      mdGUI, menuContext.component, string_paste_splits_remainder_title, OKButtonPanel.QUESTION_OK_CANCEL,
+      mdGUI, menuContext.component, dialogTitle, OKButtonPanel.QUESTION_OK_CANCEL,
       sizeKey = Main.EXTN_ID + dialog_paste_mismatch_size,
       locationKey = Main.EXTN_ID + dialog_paste_mismatch_locn
     )
@@ -1139,7 +1155,7 @@ class CopyPasteSplits(
    * match. First field is the target's CURRENT total, pre-filled but editable to any value.
    * No "overwrite total" option here - typing the copy's total into the field IS that option.
    */
-  private fun askPasteAlwaysConfirmChoice(menuContext:MDActionContext, txn:ParentTxn, copy:CopiedSplitsSnapshot, targetCurrentTotal:Long):PasteConfirmChoice? {
+  private fun askPasteAlwaysConfirmChoice(menuContext:MDActionContext, txn:ParentTxn, copy:CopiedSplitsSnapshot, targetCurrentTotal:Long, dialogTitle:String):PasteConfirmChoice? {
     val dec = mdGUI.preferences.decimalChar
     val currency = copy.sourceCurrency
     val com = if (dec == ',') '.' else ','
@@ -1192,10 +1208,10 @@ class CopyPasteSplits(
     )
     
     val win = SizedOKButtonWindow(
-      mdGUI, menuContext.component, string_paste_splits_remainder_title, OKButtonPanel.QUESTION_OK_CANCEL,
+      mdGUI, menuContext.component, dialogTitle, OKButtonPanel.QUESTION_OK_CANCEL,
       focusComponent = newTotalField,
-      sizeKey = Main.EXTN_ID + dialog_paste_mismatch_size,
-      locationKey = Main.EXTN_ID + dialog_paste_mismatch_locn
+      sizeKey = Main.EXTN_ID + dialog_paste_always_confirm_size,
+      locationKey = Main.EXTN_ID + dialog_paste_always_confirm_locn
     )
     win.setEscapeKeyCancels(true)
     

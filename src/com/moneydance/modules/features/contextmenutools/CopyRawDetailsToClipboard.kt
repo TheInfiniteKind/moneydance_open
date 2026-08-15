@@ -135,7 +135,10 @@ class CopyRawDetailsToClipboard(
         "$typeName: ${dateFmt.format(item.dateInt)}, ${item.description}, '$acctName', $currId, $valueStr"
       }
       is Account -> {
-        "$typeName: '${item.fullAccountName}', ${item.getAccountType()}, ${item.currencyType.getIDString()}"
+        // currencyType is a Java platform type - nullability isn't guaranteed for every account
+        // type, so guard against a null here instead of risking an NPE.
+        val currIdStr = item.currencyType?.getIDString() ?: "null"
+        "$typeName: '${item.fullAccountName}', ${item.getAccountType()}, $currIdStr"
       }
       is Reminder -> {
         val txn = item.transaction

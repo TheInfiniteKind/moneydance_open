@@ -30,7 +30,7 @@ MENU OPTIONS (in the order they appear)
   - Paste Splits
   - Apply Splits Template (from Reminders)
   - Rebalance Splits
-  - Jump to Date in Register
+  - Jump to date in register
 
 
 CONFIGURATION SCREEN
@@ -60,26 +60,31 @@ your clipboard.
 
 SHOW VALUE OF SELECTED TRANSACTIONS
 --------------------------------------
-Select one or more transactions and choose this option to see their combined total, converted
+Select two or more transactions and choose this option to see their combined total, converted
 into a currency of your choice (set in the config screen). This feature knows how to correctly
 summarise complex investment transactions or different types.
 
 
 DUPLICATE TRANSACTIONS...
 ----------------------------
-Right-click a transaction and choose one of the Duplicate options to create a copy of it:
+Right-click a transaction and choose one of the Duplicate options to create a copy of it. With a
+single transaction selected, only "Adjust duplicated date(s) by one month" is available - the
+other three options below only appear when 2 or more transactions are selected:
 
   - With the same date(s) - the duplicate keeps the original transaction's date(s), no prompt
+    (2 or more transactions only)
 
-  - Enter new date - prompts for one specific new date, used for a single transaction
+  - Enter new date - prompts for one specific new date, applied to every duplicated transaction
+    (2 or more transactions only)
     ** may also let you enter a new value - see below
 
   - Adjust duplicated date(s) - prompts for a relative shift (days/months/years), applied to
     every duplicated transaction - suits duplicating several transactions at once
+    (2 or more transactions only)
     ** may also let you enter a new value - see below
 
   - Adjust duplicated date(s) by one month - shortcut that duplicates one month forward
-    automatically, no prompt
+    automatically, no prompt - available whether you've selected one transaction or several
 
 ** When duplicating 2 or more single-split transactions, where every selected transaction
    currently shares the same absolute value and the same currency, where none of the accounts
