@@ -9,6 +9,7 @@ import com.infinitekind.util.labelify
 import com.moneydance.apps.md.controller.*
 import com.moneydance.apps.md.view.gui.*
 import com.moneydance.awt.GridC
+import com.moneydance.modules.features.contextmenutools.util.TextViewerDialog
 import com.moneydance.modules.features.contextmenutools.util.Util
 import com.moneydance.modules.features.contextmenutools.util.Util.logConsole
 import java.awt.BorderLayout
@@ -294,6 +295,18 @@ class Main : FeatureModule(), PreferencesListener {
       })
     }
     
+    private val helpInfoButton = JButton(STRING_INFO_BUTTON).apply {
+      addActionListener {
+        val readmeText = Util.loadTextResource("readme.txt")
+        val win = TextViewerDialog(
+          mdGUI, this@MenuConfigDialog, STRING_HELP_INFO_TITLE, readmeText, STRING_COPY_TO_CLIPBOARD,
+          sizeKey = "$EXTN_ID.gui.help_info.size",
+          locationKey = "$EXTN_ID.gui.help_info.loc"
+        )
+        win.isVisible = true
+      }
+    }
+    
     private val enableMenuCopyRawCheckbox = JCheckBox(STRING_MENU_COPY_RAW_ENABLED).apply {
       isSelected = getMenuBoolSetting(menuSettingsOnOpen, SETTING_MENU_COPY_RAW_ENABLED, false)
     }
@@ -395,7 +408,8 @@ class Main : FeatureModule(), PreferencesListener {
       
       add(form, BorderLayout.CENTER)
       val buttonPanel = JPanel(BorderLayout())
-      buttonPanel.border = EmptyBorder(0, 0, 12, 12)
+      buttonPanel.border = EmptyBorder(0, 20, 12, 12)
+      buttonPanel.add(helpInfoButton, BorderLayout.WEST)
       buttonPanel.add(OKButtonPanel(mdGUI, this, OKButtonPanel.QUESTION_OK_CANCEL), BorderLayout.CENTER)
       add(buttonPanel, BorderLayout.SOUTH)
       
@@ -526,6 +540,9 @@ class Main : FeatureModule(), PreferencesListener {
     const val STRING_HAMILTON_LINK_TEXT = "About the largest-remainder (Hamilton's) allocation method"
     const val STRING_HAMILTON_LINK_TOOLTIP = "Opens the Wikipedia article in your browser"
     const val HAMILTON_WIKI_URL = "https://en.wikipedia.org/wiki/Largest_remainder_method"
+    const val STRING_INFO_BUTTON = "Info"
+    const val STRING_HELP_INFO_TITLE = "Context Menu Tools - Help / Info"
+    const val STRING_COPY_TO_CLIPBOARD = "Copy to Clipboard"
     
     const val SETTING_MASTER_KEY = ".settings"
     const val SETTING_MENU_DUP_ENABLED = "menu.enabled.duplicate"

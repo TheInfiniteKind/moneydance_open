@@ -43,6 +43,7 @@ class SizedOKButtonWindow(
   }
   
   init {
+    this.name = com.moneydance.modules.features.contextmenutools.Main.EXTN_ID
     if (sizeKey != null || locationKey != null) {
       setRememberSizeLocationKeys(sizeKey, locationKey)
     }

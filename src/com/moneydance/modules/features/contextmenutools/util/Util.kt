@@ -5,6 +5,7 @@ import com.infinitekind.moneydance.model.UndoableChange
 import com.infinitekind.util.AppDebug
 import com.infinitekind.util.DateUtil.today
 import com.moneydance.modules.features.contextmenutools.Main
+import com.moneydance.modules.features.contextmenutools.Main.Companion.extensionContext
 import java.awt.Color
 import java.awt.Component
 import java.awt.Dialog
@@ -143,6 +144,20 @@ object Util {
       javax.swing.ImageIcon(img)
     } catch (e:Throwable) {
       null
+    }
+  }
+  
+  /** Loads a UTF-8 text resource bundled in the extension jar, e.g. "/contextmenutools_readme.txt"
+   *  at the resource root. Returns a placeholder message instead of throwing if the resource is
+   *  missing or unreadable. */
+  fun loadTextResource(resourcePath:String):String {
+    return try {
+      extensionContext?.javaClass?.getResourceAsStream(resourcePath)
+        ?.bufferedReader(Charsets.UTF_8)
+        ?.use { it.readText() }
+      ?: "<Resource not found: $resourcePath>"
+    } catch (e:Exception) {
+      "<Error loading resource '$resourcePath': $e>"
     }
   }
 }

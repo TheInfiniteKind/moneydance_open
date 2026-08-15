@@ -39,6 +39,9 @@ class TextViewerDialog(
   }
 
   init {
+
+    this.name = com.moneydance.modules.features.contextmenutools.Main.EXTN_ID
+
     setEscapeKeyCancels(true)
 
     val textArea = JTextArea(10, 70)   // bounded preferred size, matching MD's own showRawItemDetails reference -
