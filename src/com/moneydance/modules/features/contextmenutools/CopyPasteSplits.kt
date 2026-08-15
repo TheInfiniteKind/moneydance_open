@@ -595,7 +595,10 @@ class CopyPasteSplits(
     
     // real check: any occurrences within the relevant window?
     val searchWindow = if (lastDateInt > 0) lastDateInt else 20991231
-    return getNextOccurrences(searchWindow).isEmpty()
+
+    // getNextOccurrences() not available in devkit API version being used for Jenkins build...
+    //return getNextOccurrences(searchWindow).isEmpty()
+    return getNextOccurance(searchWindow) == 0
   }
   
   // ------------------------------------------------------------------------------------------
