@@ -86,6 +86,7 @@ class Main : FeatureModule(), PreferencesListener {
     val templateMatchAccount = getMenuBoolSetting(menuSettings, SETTING_TEMPLATE_MATCH_ACCOUNT, false)
     val excludeExpiredReminders = getMenuBoolSetting(menuSettings, SETTING_TEMPLATE_EXCLUDE_EXPIRED, false)
     val copyRawMenuEnabled = getMenuBoolSetting(menuSettings, SETTING_MENU_COPY_RAW_ENABLED, false)
+    val showRawMenuEnabled = getMenuBoolSetting(menuSettings, SETTING_MENU_SHOW_RAW_ENABLED, false)
     val alwaysConfirmTotal = getMenuBoolSetting(menuSettings, SETTING_ALWAYS_CONFIRM_TOTAL, false)
     
     if (debugMenuEnabled || DEBUG) {
@@ -114,7 +115,7 @@ class Main : FeatureModule(), PreferencesListener {
     // Copy Raw Details to Clipboard: no context-type or account-type restriction whatsoever -
     // applies wherever any txns are received, so it's wired unconditionally, before the
     // quick-exit check below (which only bails when BOTH txns and accts are empty).
-    actions += CopyRawDetailsToClipboard(enabled = copyRawMenuEnabled)
+    actions += CopyRawDetailsToClipboard(copyEnabled = copyRawMenuEnabled, showEnabled = showRawMenuEnabled)
       .getActions(menuContext = context, listAccts = listAccts, listTxns = listTxns)
     
     // quick do-nothing exit if there are no items/accounts to process...
@@ -297,6 +298,10 @@ class Main : FeatureModule(), PreferencesListener {
       isSelected = getMenuBoolSetting(menuSettingsOnOpen, SETTING_MENU_COPY_RAW_ENABLED, false)
     }
     
+    private val enableMenuShowRawCheckbox = JCheckBox(STRING_MENU_SHOW_RAW_ENABLED).apply {
+      isSelected = getMenuBoolSetting(menuSettingsOnOpen, SETTING_MENU_SHOW_RAW_ENABLED, false)
+    }
+    
     private val enableMenuDebugCheckbox = JCheckBox(STRING_DEBUG_ENABLED).apply {
       isSelected = getMenuBoolSetting(menuSettingsOnOpen, SETTING_MENU_DEBUG_ENABLED, false)
     }
@@ -342,6 +347,7 @@ class Main : FeatureModule(), PreferencesListener {
       
       form.add(JSeparator(), GridC.getc(0, y++).west().wx(1f).fillboth().insets(6, 0, 6, 0))
 
+      form.add(enableMenuShowRawCheckbox, GridC.getc(0, y++).west().insets(4, 4, 4, 4))
       form.add(enableMenuCopyRawCheckbox, GridC.getc(0, y++).west().insets(4, 4, 4, 4))
       
       form.add(JSeparator(), GridC.getc(0, y++).west().wx(1f).fillboth().insets(6, 0, 6, 0))
@@ -423,6 +429,7 @@ class Main : FeatureModule(), PreferencesListener {
           menuSettings[SETTING_TEMPLATE_NAME_FILTER] = templateNameFilterField.text.trim()
           menuSettings[SETTING_ALWAYS_CONFIRM_TOTAL] = alwaysConfirmTotalCheckbox.isSelected
           menuSettings[SETTING_MENU_COPY_RAW_ENABLED] = enableMenuCopyRawCheckbox.isSelected
+          menuSettings[SETTING_MENU_SHOW_RAW_ENABLED] = enableMenuShowRawCheckbox.isSelected
 
           prefs.setSetting(EXTN_ID + SETTING_MASTER_KEY, menuSettings)
           
@@ -513,6 +520,7 @@ class Main : FeatureModule(), PreferencesListener {
     const val STRING_TEMPLATE_EXCLUDE_EXPIRED = "Exclude expired/inactive reminders"
     const val STRING_TEMPLATE_NAME_FILTER = "Filter reminder list by name contains"
     const val STRING_MENU_COPY_RAW_ENABLED = "Enable context menu: 'Copy Raw Details to Clipboard'"
+    const val STRING_MENU_SHOW_RAW_ENABLED = "Enable context menu: 'Show Raw Details'"
     const val STRING_ALWAYS_CONFIRM_TOTAL = "Always confirm total when pasting splits"
     const val STRING_DEBUG_ENABLED = "Enable debug messages"
     const val STRING_HAMILTON_LINK_TEXT = "About the largest-remainder (Hamilton's) allocation method"
@@ -532,6 +540,7 @@ class Main : FeatureModule(), PreferencesListener {
     const val SETTING_TEMPLATE_EXCLUDE_EXPIRED = "paste.template.exclude_expired"
     const val SETTING_TEMPLATE_NAME_FILTER = "paste.template.name_filter"
     const val SETTING_MENU_COPY_RAW_ENABLED = "menu.enabled.copyraw"
+    const val SETTING_MENU_SHOW_RAW_ENABLED = "menu.enabled.showraw"
     const val SETTING_ALWAYS_CONFIRM_TOTAL = "paste.always_confirm_total"
     
     private fun getMenuBoolSetting(table:StreamTable, key:String, default:Boolean):Boolean = table.getBoolean(key, default)
