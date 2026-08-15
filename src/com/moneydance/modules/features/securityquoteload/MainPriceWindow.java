@@ -2700,8 +2700,8 @@ public class MainPriceWindow extends JFrame implements TaskListener {
 					}
 					
 					if (txPrice == 0.0) {
-						double shares = Math.abs(latestTxn.getValue()) / Math.pow(10.0, securityAccount.getCurrencyType().getDecimalPlaces());
-						double cash = Math.abs(parent.getValue()) / Math.pow(10.0, parent.getAccount().getCurrencyType().getDecimalPlaces());
+						double shares = securityAccount.getCurrencyType().getDoubleValue(Math.abs(latestTxn.getValue()));
+						double cash = parent.getAccount().getCurrencyType().getDoubleValue(Math.abs(parent.getValue()));
 						if (shares > 0.0) {
 							txPrice = cash / shares;
 						}
