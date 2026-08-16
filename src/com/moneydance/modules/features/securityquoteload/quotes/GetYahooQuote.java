@@ -288,7 +288,7 @@ public class GetYahooQuote extends GetQuoteTask {
                 crntDate = timeStamp.get(Calendar.YEAR)*10000;
                 crntDate += (timeStamp.get(Calendar.MONTH)+1)*100;
                 crntDate += timeStamp.get(Calendar.DAY_OF_MONTH);
-                if (crntDate < lastPriceDate)
+                if (crntDate <= lastPriceDate)
                     break;
             }
 

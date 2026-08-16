@@ -205,7 +205,7 @@ public class GetAlphaQuoteHD extends GetQuoteTask{
             }
             else {
                 if (!dateValid) continue;
-                if (date < lastPriceDate || !params.getHistory())
+                if (date <= lastPriceDate || !params.getHistory())
                     return;
                 QuotePrice historyPrice = new QuotePrice();
                 historyPrice.setTicker(ticker);

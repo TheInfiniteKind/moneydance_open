@@ -1361,6 +1361,17 @@ public class MainPriceWindow extends JFrame implements TaskListener {
 					default:
 						break;
 					}
+					
+					if (line != null && line.getAlternateTicker() != null && !line.getAlternateTicker().isBlank()) {
+						Integer txDate = getLatestTxnDate(line);
+						if (txDate != null && txDate > 0) {
+							int syncLimit = com.infinitekind.util.DateUtil.incrementDate(txDate, 0, 0, -1);
+							if (lastPriceDate == -1 || syncLimit < lastPriceDate) {
+								lastPriceDate = syncLimit;
+							}
+						}
+					}
+					
 					if (!newTicker.equals(ticker)) {
 						alteredTickers.put(newTicker, ticker);
 						Main.debugInst.debug("MainPriceWindow", "getPrices", MRBDebug.DETAILED, "Ticker changed from " + ticker + " to " + newTicker);
@@ -1519,6 +1530,16 @@ public class MainPriceWindow extends JFrame implements TaskListener {
       alteredTickers = new TreeMap();
 			if (!originalTicker.isEmpty() && !(originalTicker.compareToIgnoreCase(ticker)==0)) {
         alteredTickers.put(ticker, originalTicker);
+				SecurityTableLine origLine = securitiesTable.get(originalTicker);
+				if (origLine != null) {
+					Integer txDate = getLatestTxnDate(origLine);
+					if (txDate != null && txDate > 0) {
+						int syncLimit = com.infinitekind.util.DateUtil.incrementDate(txDate, 0, 0, -1);
+						if (lastPriceDate == -1 || syncLimit < lastPriceDate) {
+							lastPriceDate = syncLimit;
+						}
+					}
+				}
 			}
 			MRBEDTInvoke.showURL(Main.context,"moneydance:fmodule:" + Constants.PROGRAMNAME + ":" + Constants.STARTQUOTECMD + "?numquotes=1");
 
@@ -2667,22 +2688,7 @@ public class MainPriceWindow extends JFrame implements TaskListener {
 				Account securityAccount = secLine.getAccount();
 				if (securityAccount == null) continue;
 				
-				TxnSet txns = txnSet.getTransactionsForAccount(securityAccount);
-				if (txns == null || txns.getSize() == 0) continue;
-				
-				AbstractTxn latestTxn = null;
-				for (AbstractTxn txn : txns) {
-					ParentTxn parent = txn.getParentTxn();
-					if (parent == null) continue;
-					
-					InvestTxnType invType = parent.getInvestTxnType();
-					if (invType == InvestTxnType.BUY || invType == InvestTxnType.SELL ||
-					    invType == InvestTxnType.BUY_XFER || invType == InvestTxnType.SELL_XFER) {
-						if (latestTxn == null || txn.getDateInt() > latestTxn.getDateInt()) {
-							latestTxn = txn;
-						}
-					}
-				}
+				AbstractTxn latestTxn = getLatestTxn(secLine);
 				
 				if (latestTxn != null) {
 					ParentTxn parent = latestTxn.getParentTxn();
@@ -2818,5 +2824,32 @@ public class MainPriceWindow extends JFrame implements TaskListener {
 		} else {
 			JOptionPane.showMessageDialog(this, "No selected lines with Alt Tickers and matching transactions were updated.", "Sync Complete", JOptionPane.INFORMATION_MESSAGE);
 		}
+	}
+	
+	private AbstractTxn getLatestTxn(SecurityTableLine line) {
+		Account securityAccount = line.getAccount();
+		if (securityAccount == null) return null;
+		TransactionSet txnSet = Main.context.getCurrentAccountBook().getTransactionSet();
+		TxnSet txns = txnSet.getTransactionsForAccount(securityAccount);
+		AbstractTxn latestTxn = null;
+		for (AbstractTxn txn : txns) {
+			if (txn instanceof SplitTxn) {
+				ParentTxn parent = txn.getParentTxn();
+				if (parent == null) continue;
+				InvestTxnType invType = parent.getInvestTxnType();
+				if (invType == InvestTxnType.BUY || invType == InvestTxnType.SELL ||
+				    invType == InvestTxnType.BUY_XFER || invType == InvestTxnType.SELL_XFER) {
+					if (latestTxn == null || txn.getDateInt() > latestTxn.getDateInt()) {
+						latestTxn = txn;
+					}
+				}
+			}
+		}
+		return latestTxn;
+	}
+	
+	private Integer getLatestTxnDate(SecurityTableLine line) {
+		AbstractTxn txn = getLatestTxn(line);
+		return txn == null ? -1 : txn.getDateInt();
 	}
 }

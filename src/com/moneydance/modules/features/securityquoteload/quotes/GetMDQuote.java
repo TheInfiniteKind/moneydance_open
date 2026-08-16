@@ -324,7 +324,7 @@ public class GetMDQuote extends GetQuoteTask {
                 price=0L;
             }
 
-            if (tradeDateValid && tradeDateInt < lastPriceDate)
+            if (tradeDateValid && tradeDateInt <= lastPriceDate)
               break;
 
             if (priceFound && tradeDateValid) {
