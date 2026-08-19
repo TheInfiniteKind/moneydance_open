@@ -328,29 +328,12 @@ class CopyPasteSplits(
   private fun isEligibleAccountType(acct:Account):Boolean =
     acct.getAccountType() == Account.AccountType.BANK || acct.getAccountType() == Account.AccountType.CREDIT_CARD
   
-  private fun isAllUnreconciled(txn:ParentTxn):Boolean =
-    txn.clearedStatus == AbstractTxn.ClearedStatus.UNRECONCILED &&
-    txn.allSplits.all { it.clearedStatus == AbstractTxn.ClearedStatus.UNRECONCILED }
-  
   /** Every existing split's currency matches the parent account's currency - same shape as the
    *  copy-source consistency check in canCopySplits, applied here to a paste/template TARGET. */
   private fun hasCurrencyConsistentSplits(txn:ParentTxn):Boolean {
     val parentCurr = txn.account.currencyType
     return txn.allSplits.all { it.account.currencyType == parentCurr }
   }
-  
-  /**
-   * "Has ol data" = wasDownloaded() is true on the split itself (not the parent). Presence alone
-   * is disqualifying, regardless of isNew()/matchType - a split carrying its own download/match
-   * data means a separate action was taken on ANOTHER account that specifically targets this
-   * split (e.g. a bank transfer's other side confirming a match against it). Remove/recreate
-   * would destroy that cross-account link permanently, whether or not the user has "accepted" it
-   * on this side. Parent-level ol.* data is deliberately ignored - it's just import/match
-   * metadata about the transaction as a whole, doesn't get touched by paste/template/rebalance
-   * regardless of splits changing, and carries no such external dependency.
-   */
-  private fun hasAnyProtectedSplit(txn:ParentTxn):Boolean =
-    txn.allSplits.any { it.wasDownloaded() }
   
   private fun copyEligibilityReason(txn:ParentTxn):String? {
     // NOTE: copy source can be in any cleared state - unreconciled check applies to paste target only
@@ -519,94 +502,16 @@ class CopyPasteSplits(
       return
     }
     
-    val chosen = askTemplateChoice(menuContext, candidates) ?: return
+    val chosen = pickReminder(
+      mdGUI, menuContext.component, string_apply_template_title, candidates,
+      sizeKey = Main.EXTN_ID + dialog_apply_tmplt_size,
+      locationKey = Main.EXTN_ID + dialog_apply_tmplt_locn,
+      showSplitPercentages = true
+    ) ?: return
     val copy = buildSnapshotFromTemplate(chosen.transaction, chosen.description) ?: return
     if (!canPasteSplits(txn, copy)) return   // re-validate at click time
     
     runPasteFlow(menuContext, txn, copy, string_undo_redo_apply_template)
-  }
-  
-  private inner class TemplateReminderCellRenderer:JPanel(GridBagLayout()), ListCellRenderer<Reminder> {
-    private val label = JLabel()
-    private val subLabel = JLabel()
-    private val colors = mdGUI.colors
-    
-    init {
-      add(label, GridC.getc(0, 0).wx(1f).fillboth())
-      add(subLabel, GridC.getc(0, 1).wx(1f).fillboth().leftInset(10))
-      border = EmptyBorder(4, 6, 4, 4)
-    }
-    
-    override fun getListCellRendererComponent(list:JList<out Reminder>, value:Reminder, index:Int, isSelected:Boolean, cellHasFocus:Boolean):Component {
-      isOpaque = true
-      background = if (isSelected) colors.sidebarSelectedBG else colors.listBackground
-      
-      val templateTxn = value.transaction
-      val dec = mdGUI.preferences.decimalChar
-      val totalStr = templateTxn.account.currencyType.formatFancy(templateTxn.value, dec)
-      
-      val expiredSuffix = if (value.isInactiveOrExpired()) " (EXPIRED)" else ""
-      label.text = value.description + expiredSuffix
-      label.foreground = if (isSelected) colors.sidebarSelectedFG else colors.defaultTextForeground
-      
-      val total = templateTxn.value
-      val percents = templateTxn.allSplits.map { split ->
-        val pct = if (total != 0L) -split.value.toDouble() / total.toDouble() * 100.0 else 0.0
-        String.format("%.0f%%", pct)
-      }
-      val percentStr = percents.joinToString(", ")
-      
-      subLabel.text = "$totalStr (splits: $percentStr)"
-      subLabel.foreground = if (isSelected) colors.sidebarSelectedFG else colors.secondaryTextFG
-      subLabel.font = mdGUI.fonts.mini
-      
-      return this
-    }
-  }
-  
-  private fun askTemplateChoice(menuContext:MDActionContext, candidates:List<Reminder>):Reminder? {
-    val listModel = DefaultListModel<Reminder>()
-    candidates.forEach { listModel.addElement(it) }
-    
-    val list = JList(listModel)
-    list.cellRenderer = TemplateReminderCellRenderer()
-    list.selectionMode = ListSelectionModel.SINGLE_SELECTION
-    list.selectedIndex = 0
-    
-    val scrollPane = JScrollPane(list, JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED, JScrollPane.HORIZONTAL_SCROLLBAR_NEVER)
-    val panel = JPanel(BorderLayout())
-    panel.border = EmptyBorder(16, 16, 16, 16)
-    panel.add(scrollPane, BorderLayout.CENTER)
-    
-    val win = SizedOKButtonWindow(
-      mdGUI, menuContext.component, string_apply_template_title, OKButtonPanel.QUESTION_OK_CANCEL, focusComponent = list,
-      sizeKey = Main.EXTN_ID + dialog_apply_tmplt_size,
-      locationKey = Main.EXTN_ID + dialog_apply_tmplt_locn
-    )
-    win.setEscapeKeyCancels(true)
-    
-    val result = win.showDialog(panel)
-    if (result != OKButtonPanel.ANSWER_OK) return null
-    
-    return list.selectedValue
-  }
-  
-  /**
-   * True if this reminder is inactive/expired - either deliberately (lastDateInt set before
-   * initialDateInt, a known convention for marking a reminder permanently inert) or because it
-   * genuinely has no future occurrences left (per Moneydance's real calculation, not a
-   * re-derivation of the date rules).
-   */
-  private fun Reminder.isInactiveOrExpired():Boolean {
-    // deliberate inert marker
-    if (lastDateInt != 0 && lastDateInt < initialDateInt) return true
-    
-    // real check: any occurrences within the relevant window?
-    val searchWindow = if (lastDateInt > 0) lastDateInt else 20991231
-
-    // getNextOccurrences() not available in devkit API version being used for Jenkins build...
-    //return getNextOccurrences(searchWindow).isEmpty()
-    return getNextOccurance(searchWindow) == 0
   }
   
   // ------------------------------------------------------------------------------------------
