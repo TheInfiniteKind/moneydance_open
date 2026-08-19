@@ -6,20 +6,37 @@ import com.moneydance.awt.AwtUtil
 import java.awt.BorderLayout
 import java.awt.Component
 import java.awt.Dimension
+import java.awt.FlowLayout
 import java.awt.Toolkit
 import java.awt.datatransfer.StringSelection
+import java.awt.event.ActionEvent
+import java.awt.event.KeyEvent
+import javax.swing.AbstractAction
 import javax.swing.JButton
+import javax.swing.JComponent
+import javax.swing.JLabel
+import javax.swing.JOptionPane
 import javax.swing.JPanel
 import javax.swing.JScrollPane
 import javax.swing.JTextArea
+import javax.swing.JTextField
+import javax.swing.KeyStroke
 import javax.swing.border.EmptyBorder
+import javax.swing.event.AncestorEvent
+import javax.swing.event.AncestorListener
+import javax.swing.text.DefaultHighlighter
+import kotlin.math.max
+import kotlin.math.min
 
 /**
- * Minimal read-only text viewer with a single "Copy to Clipboard" button - no OK/Cancel pair,
+ * Minimal read-only text viewer with "Copy to Clipboard" and "Find" buttons - no OK/Cancel pair,
  * closing is just the window's own native close control or Escape (setEscapeKeyCancels), same
  * as any normal window. Modeled on StatusPopupDialog's plain-SecondaryDialog-subclass pattern,
  * but without the modal/severity-icon/kill/updateMessages machinery that class carries for its
  * own (different) purpose.
+ *
+ * Find (Ctrl/Cmd+F or the Find button) opens a small Next/Previous/Cancel prompt and highlights
+ * matches in the text - same interaction as Moneydance's own Console window search.
  *
  * @param sizeKey Preferences key for remembering window size. Optional - omit to not persist.
  * @param locationKey Preferences key for remembering window location. Optional - omit to not persist.
@@ -36,7 +53,12 @@ class TextViewerDialog(
 
   companion object {
     private val MIN_DIALOG_SIZE = Dimension(420, 320)
+    private const val SEARCH_ICON_PATH = "com/moneydance/apps/md/view/gui/glyphs/glyph_search.png"
   }
+
+  private val textArea = JTextArea(10, 70)   // bounded preferred size, matching MD's own showRawItemDetails reference -
+                                              // JScrollPane handles anything beyond this via scrollbars, instead of
+                                              // pack() sizing the window to fit the entire (potentially huge) raw dump
 
   init {
 
@@ -44,9 +66,6 @@ class TextViewerDialog(
 
     setEscapeKeyCancels(true)
 
-    val textArea = JTextArea(10, 70)   // bounded preferred size, matching MD's own showRawItemDetails reference -
-                                        // JScrollPane handles anything beyond this via scrollbars, instead of
-                                        // pack() sizing the window to fit the entire (potentially huge) raw dump
     textArea.text = if (text.endsWith("\n")) text else "$text\n"
     textArea.isEditable = false
     textArea.lineWrap = false
@@ -67,8 +86,18 @@ class TextViewerDialog(
       } catch (_:Exception) { }
     }
 
+    val findAction = FindAction()
+    val findIcon = Util.loadIcon(SEARCH_ICON_PATH)
+    val findButton = if (findIcon != null) JButton(findIcon) else JButton("\uD83D\uDD0D")
+    findButton.toolTipText = mdGUI.strings().find___
+    findButton.addActionListener(findAction)
+
+    getRootPane().actionMap.put("find-text", findAction)
+    getRootPane().getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke(KeyEvent.VK_F, MoneydanceGUI.ACCELERATOR_MASK), "find-text")
+
     val buttonPanel = JPanel(BorderLayout())
-    buttonPanel.border = EmptyBorder(0, 0, 8, 8)
+    buttonPanel.border = EmptyBorder(8, 8, 8, 8)
+    buttonPanel.add(findButton, BorderLayout.WEST)
     buttonPanel.add(copyButton, BorderLayout.EAST)
 
     val content = JPanel(BorderLayout())
@@ -109,4 +138,109 @@ class TextViewerDialog(
   }
 
   override fun goneAway() {}
+
+  private inner class FindAction:AbstractAction() {
+
+    var lastSearch = ""
+    var lastPosn = -1
+    var previousEndPosn = -1
+    var lastDirection = 0
+
+    override fun actionPerformed(e:ActionEvent?) {
+
+      val strings = mdGUI.strings()
+
+      val p = JPanel(FlowLayout())
+      val lbl = JLabel(strings.find___)
+      val tf = JTextField(lastSearch, 20)
+      p.add(lbl)
+      p.add(tf)
+
+      tf.addAncestorListener(
+        object:AncestorListener {
+          override fun ancestorAdded(event:AncestorEvent?) {
+            val comp:JTextField = event?.component as JTextField
+            comp.requestFocusInWindow()
+            comp.selectAll()
+            comp.removeAncestorListener(this)
+          }
+
+          override fun ancestorRemoved(event:AncestorEvent?) {}
+          override fun ancestorMoved(event:AncestorEvent?) {}
+        }
+      )
+
+      val searchOptions = arrayOf(strings.next, strings.previous, strings.cancel)
+      val defaultDirection = searchOptions[lastDirection]
+      val response = JOptionPane.showOptionDialog(this@TextViewerDialog,
+                                                  p,
+                                                  strings.find___,
+                                                  JOptionPane.OK_CANCEL_OPTION,
+                                                  JOptionPane.QUESTION_MESSAGE,
+                                                  null,
+                                                  searchOptions,
+                                                  defaultDirection)
+
+      var searchWhat:String? = null
+
+      var lSwitch = false
+      if (response == 0 || response == 1) {
+        if (response != lastDirection) lSwitch = true
+        lastDirection = response
+        searchWhat = tf.getText().trim()
+      }
+
+      if (searchWhat == null || searchWhat == "") return
+
+      val theText = textArea.getText()
+      val highlighter = textArea.highlighter
+      highlighter.removeAllHighlights()
+
+      var startPos = 0
+      val pos:Int
+      var endPos:Int
+      val direction:String
+      if (response == 0) {
+        direction = "[${strings.next}]"
+        if (searchWhat == lastSearch) {
+          startPos = lastPosn
+          if (lSwitch)
+            startPos += searchWhat.length + 1
+        }
+        lastSearch = searchWhat
+
+        pos = theText.indexOf(searchWhat, startPos, true)
+
+      } else {
+        direction = "[${strings.previous}]"
+        endPos = theText.length - 1
+
+        if (searchWhat == lastSearch) {
+          if (previousEndPosn < 0) previousEndPosn = theText.length - 1
+          endPos = max(0, previousEndPosn)
+          if (lSwitch) endPos = max(0, lastPosn - 1)
+        }
+        lastSearch = searchWhat
+
+        pos = theText.lastIndexOf(searchWhat, endPos, true)
+      }
+
+      if (pos >= 0) {
+        textArea.setCaretPosition(pos)
+        highlighter.addHighlight(pos, min(pos + searchWhat.length, theText.length), DefaultHighlighter.DefaultPainter)
+        if (response == 0) {
+          lastPosn = pos + searchWhat.length
+          previousEndPosn = theText.length - 1
+        } else {
+          lastPosn = pos - searchWhat.length
+          previousEndPosn = pos - 1
+        }
+      } else {
+        lastPosn = 0
+        previousEndPosn = theText.length - 1
+        mdGUI.showInfoMessage(this@TextViewerDialog, "Searching ${direction} text not found")
+      }
+    }
+
+  }
 }
