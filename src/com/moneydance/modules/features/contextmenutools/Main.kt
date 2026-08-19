@@ -13,6 +13,7 @@ import com.moneydance.modules.features.contextmenutools.util.TextViewerDialog
 import com.moneydance.modules.features.contextmenutools.util.Util
 import com.moneydance.modules.features.contextmenutools.util.Util.logConsole
 import java.awt.BorderLayout
+import java.awt.Dimension
 import java.awt.GridBagLayout
 import javax.swing.*
 import javax.swing.border.EmptyBorder
@@ -82,6 +83,12 @@ class Main : FeatureModule(), PreferencesListener {
     val copyPasteMenuEnabled = getMenuBoolSetting(menuSettings, SETTING_MENU_COPYPASTE_ENABLED, true)
     val templateMenuEnabled = getMenuBoolSetting(menuSettings, SETTING_MENU_TEMPLATE_ENABLED, true)
     val rebalanceMenuEnabled = getMenuBoolSetting(menuSettings, SETTING_MENU_REBALANCE_ENABLED, true)
+    val updateReminderMenuEnabled = getMenuBoolSetting(menuSettings, SETTING_MENU_UPDATE_REMINDER_ENABLED, true)
+    val showOtherSideMenuEnabled = getMenuBoolSetting(menuSettings, SETTING_MENU_SHOW_OTHER_SIDE_ENABLED, true)
+    val warnCategorySplit = getMenuBoolSetting(menuSettings, SETTING_WARN_CATEGORY_SPLIT, true)
+    val defaultFullAcctPaths = mdGUI.preferences.getBoolSetting(UserPreferences.SHOW_FULL_ACCT_PATH, true)
+    val showFullAcctNames = getMenuBoolSetting(menuSettings, SETTING_SHOW_FULL_ACCT_NAMES, defaultFullAcctPaths)
+    val includeSingleSplitTxns = getMenuBoolSetting(menuSettings, SETTING_INCLUDE_SINGLE_SPLIT_TXNS, false)
     val templateIncludeSingleSplit = getMenuBoolSetting(menuSettings, SETTING_TEMPLATE_INCLUDE_SINGLE_SPLIT, false)
     val templateNameFilter = getMenuStringSetting(menuSettings, SETTING_TEMPLATE_NAME_FILTER, "")
     val templateMatchAccount = getMenuBoolSetting(menuSettings, SETTING_TEMPLATE_MATCH_ACCOUNT, false)
@@ -138,6 +145,8 @@ class Main : FeatureModule(), PreferencesListener {
         rebalanceEnabled = rebalanceMenuEnabled,
         alwaysConfirmTotal = alwaysConfirmTotal
       ).getActions(menuContext = context, listAccts = listAccts, listTxns = listTxns)
+      if (updateReminderMenuEnabled) actions += UpdateReminderValue().getActions(menuContext = context, listAccts = listAccts, listTxns = listTxns)
+      if (showOtherSideMenuEnabled) actions += ShowOtherSideSelectSplit(warnBeforeCategorySplit = warnCategorySplit, showFullAccountNames = showFullAcctNames, includeSingleSplitTxns = includeSingleSplitTxns).getActions(menuContext = context, listAccts = listAccts, listTxns = listTxns)
     }
     
     if (isDataEntryRegisterActionType(contextType = context.type, includeSecReg = false) || isSearchActionType(contextType = context.type)) {
@@ -169,8 +178,7 @@ class Main : FeatureModule(), PreferencesListener {
     logConsole(true, "::unload() called....")
     removePreferencesListener()
 
-    @Suppress("UsePropertyAccessSyntax")
-    val secWindows = mdGUI.getSecondaryWindows().toList()
+    val secWindows = mdGUI.secondaryWindows.toList()
 
     try {
       secWindows.forEach { win ->
@@ -234,6 +242,9 @@ class Main : FeatureModule(), PreferencesListener {
   
   private class MenuConfigDialog:SecondaryDialog(mdGUI, null, STRING_CONFIG, false), OKButtonListener {
     
+    private val dialog_config_size = ".gui.config.size"
+    private val dialog_config_locn = ".gui.config.loc"
+    
     private val menuSettingsOnOpen = prefs.getTableSetting(EXTN_ID + SETTING_MASTER_KEY, null) ?: StreamTable()
     
     private val enableMenuDupCheckbox = JCheckBox(STRING_MENU_DUP_ENABLED).apply {
@@ -258,6 +269,33 @@ class Main : FeatureModule(), PreferencesListener {
     
     private val enableMenuRebalanceCheckbox = JCheckBox(STRING_MENU_REBALANCE_ENABLED).apply {
       isSelected = getMenuBoolSetting(menuSettingsOnOpen, SETTING_MENU_REBALANCE_ENABLED, true)
+    }
+    
+    private val enableMenuUpdateReminderCheckbox = JCheckBox(STRING_MENU_UPDATE_REMINDER_ENABLED).apply {
+      isSelected = getMenuBoolSetting(menuSettingsOnOpen, SETTING_MENU_UPDATE_REMINDER_ENABLED, true)
+    }
+    
+    private val enableMenuShowOtherSideCheckbox = JCheckBox(STRING_MENU_SHOW_OTHER_SIDE_ENABLED).apply {
+      isSelected = getMenuBoolSetting(menuSettingsOnOpen, SETTING_MENU_SHOW_OTHER_SIDE_ENABLED, true)
+    }
+    
+    private val warnCategorySplitCheckbox = JCheckBox(STRING_WARN_CATEGORY_SPLIT).apply {
+      isSelected = getMenuBoolSetting(menuSettingsOnOpen, SETTING_WARN_CATEGORY_SPLIT, true)
+      isEnabled = enableMenuShowOtherSideCheckbox.isSelected
+    }
+    
+    private val showFullAccountNamesCheckbox = JCheckBox(STRING_SHOW_FULL_ACCT_NAMES).apply {
+      // first-ever use: default to whatever Moneydance's own "show full account path" preference
+      // is set to. Once this is saved (even unchanged), our own stored value takes over
+      // permanently - it does NOT keep following Moneydance's preference if that changes later.
+      val defaultFullPaths = mdGUI.preferences.getBoolSetting(UserPreferences.SHOW_FULL_ACCT_PATH, true)
+      isSelected = getMenuBoolSetting(menuSettingsOnOpen, SETTING_SHOW_FULL_ACCT_NAMES, defaultFullPaths)
+      isEnabled = enableMenuShowOtherSideCheckbox.isSelected
+    }
+    
+    private val includeSingleSplitTxnsCheckbox = JCheckBox(STRING_INCLUDE_SINGLE_SPLIT_TXNS).apply {
+      isSelected = getMenuBoolSetting(menuSettingsOnOpen, SETTING_INCLUDE_SINGLE_SPLIT_TXNS, false)
+      isEnabled = enableMenuShowOtherSideCheckbox.isSelected
     }
     
     private val includeSingleSplitCheckbox = JCheckBox(STRING_TEMPLATE_INCLUDE_SINGLE_SPLIT).apply {
@@ -348,6 +386,12 @@ class Main : FeatureModule(), PreferencesListener {
         alwaysConfirmTotalCheckbox.isEnabled = enableMenuCopyPasteCheckbox.isSelected || enableMenuTemplateCheckbox.isSelected
       }
       
+      enableMenuShowOtherSideCheckbox.addActionListener {
+        warnCategorySplitCheckbox.isEnabled = enableMenuShowOtherSideCheckbox.isSelected
+        showFullAccountNamesCheckbox.isEnabled = enableMenuShowOtherSideCheckbox.isSelected
+        includeSingleSplitTxnsCheckbox.isEnabled = enableMenuShowOtherSideCheckbox.isSelected
+      }
+      
       val ct = vstBaseCurrChoice?.selectedItem as? CurrencyType ?: book.currencies.baseType
       val currIdString = prefs.getSetting(UserPreferences.GUI_POPUP_USER_CURR_ID_OVERRIDE, ct.idString)
       ctable.getCurrencyByIDString(currIdString)?.let { vstBaseCurrChoice?.selectedItem = it }
@@ -359,12 +403,9 @@ class Main : FeatureModule(), PreferencesListener {
       var y = 0
       
       form.add(JSeparator(), GridC.getc(0, y++).west().wx(1f).fillboth().insets(6, 0, 6, 0))
-
       form.add(enableMenuShowRawCheckbox, GridC.getc(0, y++).west().insets(4, 4, 4, 4))
       form.add(enableMenuCopyRawCheckbox, GridC.getc(0, y++).west().insets(4, 4, 4, 4))
-      
       form.add(JSeparator(), GridC.getc(0, y++).west().wx(1f).fillboth().insets(6, 0, 6, 0))
-      
       form.add(enableMenuVSTCheckbox, GridC.getc(0, y++).west().insets(4, 4, 2, 4))
       
       val currPanel = JPanel(GridBagLayout())
@@ -372,13 +413,9 @@ class Main : FeatureModule(), PreferencesListener {
       currPanel.add(vstBaseCurrChoice!!, GridC.getc(1, 0).west().insets(0, 0, 0, 0))
       
       form.add(currPanel, GridC.getc(0, y++).west().insets(0, 24, 4, 4))
-      
       form.add(JSeparator(), GridC.getc(0, y++).west().wx(1f).fillboth().insets(6, 0, 6, 0))
-      
       form.add(enableMenuDupCheckbox, GridC.getc(0, y++).west().insets(4, 4, 4, 4))
-
       form.add(JSeparator(), GridC.getc(0, y++).west().wx(1f).fillboth().insets(6, 0, 6, 0))
-
       form.add(enableMenuCopyPasteCheckbox, GridC.getc(0, y++).west().insets(4, 4, 4, 4))
       form.add(enableMenuTemplateCheckbox, GridC.getc(0, y++).west().insets(4, 4, 4, 4))
       form.add(includeSingleSplitCheckbox, GridC.getc(0, y++).west().insets(0, 24, 4, 4))
@@ -389,24 +426,37 @@ class Main : FeatureModule(), PreferencesListener {
       templateFilterPanel.add(JLabel(STRING_TEMPLATE_NAME_FILTER.labelify), GridC.getc(0, 0).west().insets(0, 0, 0, 6))
       templateFilterPanel.add(templateNameFilterField, GridC.getc(1, 0).west().insets(0, 0, 0, 0))
       form.add(templateFilterPanel, GridC.getc(0, y++).west().insets(0, 24, 4, 4))
-      
-      form.add(enableMenuRebalanceCheckbox, GridC.getc(0, y++).west().insets(4, 4, 4, 4))
-      
-      form.add(alwaysConfirmTotalCheckbox, GridC.getc(0, y++).west().insets(0, 24, 4, 4))
-      
-      form.add(JSeparator(), GridC.getc(0, y++).west().wx(1f).fillboth().insets(6, 0, 6, 0))
-      
-      form.add(enableMenuJumpCheckbox, GridC.getc(0, y++).west().insets(4, 4, 4, 4))
-      
-      form.add(JSeparator(), GridC.getc(0, y++).west().wx(1f).fillboth().insets(6, 0, 6, 0))
-      
-      form.add(enableMenuDebugCheckbox, GridC.getc(0, y++).west().insets(4, 4, 4, 4))
-      
-      form.add(JSeparator(), GridC.getc(0, y++).west().wx(1f).fillboth().insets(6, 0, 6, 0))
 
+      form.add(enableMenuRebalanceCheckbox, GridC.getc(0, y++).west().insets(4, 4, 4, 4))
+      form.add(alwaysConfirmTotalCheckbox, GridC.getc(0, y++).west().insets(0, 24, 4, 4))
+      form.add(JSeparator(), GridC.getc(0, y++).west().wx(1f).fillboth().insets(6, 0, 6, 0))
+      form.add(enableMenuUpdateReminderCheckbox, GridC.getc(0, y++).west().insets(4, 4, 4, 4))
+      
+      form.add(JSeparator(), GridC.getc(0, y++).west().wx(1f).fillboth().insets(6, 0, 6, 0))
+      
+      form.add(enableMenuShowOtherSideCheckbox, GridC.getc(0, y++).west().insets(4, 4, 4, 4))
+      
+      form.add(warnCategorySplitCheckbox, GridC.getc(0, y++).west().insets(0, 24, 4, 4))
+      
+      form.add(showFullAccountNamesCheckbox, GridC.getc(0, y++).west().insets(0, 24, 4, 4))
+      
+      form.add(includeSingleSplitTxnsCheckbox, GridC.getc(0, y++).west().insets(0, 24, 4, 4))
+      form.add(JSeparator(), GridC.getc(0, y++).west().wx(1f).fillboth().insets(6, 0, 6, 0))
+      form.add(enableMenuJumpCheckbox, GridC.getc(0, y++).west().insets(4, 4, 4, 4))
+      form.add(JSeparator(), GridC.getc(0, y++).west().wx(1f).fillboth().insets(6, 0, 6, 0))
+      form.add(enableMenuDebugCheckbox, GridC.getc(0, y++).west().insets(4, 4, 4, 4))
+      form.add(JSeparator(), GridC.getc(0, y++).west().wx(1f).fillboth().insets(6, 0, 6, 0))
       form.add(hamiltonLinkLabel, GridC.getc(0, y++).west().insets(8, 4, 4, 4))
       
-      add(form, BorderLayout.CENTER)
+      // wrap in a height-capped scrollpane rather than adding form directly - otherwise pack()
+      // below sizes the window to the form's full natural height, which now that there are this
+      // many options would mean an excessively (near full-screen) tall window.
+      val scrollPane = JScrollPane(form, JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED, JScrollPane.HORIZONTAL_SCROLLBAR_NEVER)
+      scrollPane.border = BorderFactory.createEmptyBorder()
+      val cappedHeight = minOf(form.preferredSize.height, 550)
+      scrollPane.preferredSize = Dimension(form.preferredSize.width, cappedHeight)
+      add(scrollPane, BorderLayout.CENTER)
+
       val buttonPanel = JPanel(BorderLayout())
       buttonPanel.border = EmptyBorder(0, 20, 12, 12)
       buttonPanel.add(helpInfoButton, BorderLayout.WEST)
@@ -414,9 +464,14 @@ class Main : FeatureModule(), PreferencesListener {
       add(buttonPanel, BorderLayout.SOUTH)
       
       setEscapeKeyCancels(true)
+      setRememberSizeLocationKeys(Main.EXTN_ID + dialog_config_size, Main.EXTN_ID + dialog_config_locn)
       pack()
+      // first-run default only - a remembered size from a previous session (via
+      // setRememberSizeLocationKeys above) is applied afterward, when setVisible(true) is
+      // called, and takes over from here.
+      size = Dimension(maxOf(preferredSize.width, 575), maxOf(preferredSize.height, 750))
       setLocationRelativeTo(null)
-      isResizable = false
+      minimumSize = Dimension(preferredSize.width, 300)
     }
     
     override fun goneAway() {
@@ -436,6 +491,11 @@ class Main : FeatureModule(), PreferencesListener {
           menuSettings[SETTING_MENU_COPYPASTE_ENABLED] = enableMenuCopyPasteCheckbox.isSelected
           menuSettings[SETTING_MENU_TEMPLATE_ENABLED] = enableMenuTemplateCheckbox.isSelected
           menuSettings[SETTING_MENU_REBALANCE_ENABLED] = enableMenuRebalanceCheckbox.isSelected
+          menuSettings[SETTING_MENU_UPDATE_REMINDER_ENABLED] = enableMenuUpdateReminderCheckbox.isSelected
+          menuSettings[SETTING_MENU_SHOW_OTHER_SIDE_ENABLED] = enableMenuShowOtherSideCheckbox.isSelected
+          menuSettings[SETTING_WARN_CATEGORY_SPLIT] = warnCategorySplitCheckbox.isSelected
+          menuSettings[SETTING_SHOW_FULL_ACCT_NAMES] = showFullAccountNamesCheckbox.isSelected
+          menuSettings[SETTING_INCLUDE_SINGLE_SPLIT_TXNS] = includeSingleSplitTxnsCheckbox.isSelected
           menuSettings[SETTING_MENU_DEBUG_ENABLED] = enableMenuDebugCheckbox.isSelected
           menuSettings[SETTING_TEMPLATE_INCLUDE_SINGLE_SPLIT] = includeSingleSplitCheckbox.isSelected
           menuSettings[SETTING_TEMPLATE_MATCH_ACCOUNT] = templateMatchAccountCheckbox.isSelected
@@ -528,6 +588,11 @@ class Main : FeatureModule(), PreferencesListener {
     const val STRING_MENU_COPYPASTE_ENABLED = "Enable context menu: 'Copy/Paste Splits'"
     const val STRING_MENU_TEMPLATE_ENABLED = "Enable context menu: 'Apply Splits Template'"
     const val STRING_MENU_REBALANCE_ENABLED = "Enable context menu: 'Rebalance Splits'"
+    const val STRING_MENU_UPDATE_REMINDER_ENABLED = "Enable context menu: 'Update Reminder Value'"
+    const val STRING_MENU_SHOW_OTHER_SIDE_ENABLED = "Enable context menu: 'Show Other Side: Select Split'"
+    const val STRING_WARN_CATEGORY_SPLIT = "Warn before showing a Category split"
+    const val STRING_SHOW_FULL_ACCT_NAMES = "Show full account names (not just account name)"
+    const val STRING_INCLUDE_SINGLE_SPLIT_TXNS = "Include single-split transactions"
     const val STRING_TEMPLATE_INCLUDE_SINGLE_SPLIT = "Include single split reminders"
     const val STRING_TEMPLATE_MATCH_ACCOUNT = "Reminder account must match target account"
     const val STRING_TEMPLATE_EXCLUDE_EXPIRED = "Exclude expired/inactive reminders"
@@ -550,6 +615,11 @@ class Main : FeatureModule(), PreferencesListener {
     const val SETTING_MENU_COPYPASTE_ENABLED = "menu.enabled.copypaste"
     const val SETTING_MENU_TEMPLATE_ENABLED = "menu.enabled.template"
     const val SETTING_MENU_REBALANCE_ENABLED = "menu.enabled.rebalance"
+    const val SETTING_MENU_UPDATE_REMINDER_ENABLED = "menu.enabled.update_reminder"
+    const val SETTING_MENU_SHOW_OTHER_SIDE_ENABLED = "menu.enabled.show_other_side"
+    const val SETTING_WARN_CATEGORY_SPLIT = "show_other_side.warn_category_split"
+    const val SETTING_SHOW_FULL_ACCT_NAMES = "show_other_side.show_full_acct_names"
+    const val SETTING_INCLUDE_SINGLE_SPLIT_TXNS = "show_other_side.include_single_split"
     const val SETTING_MENU_DEBUG_ENABLED = "menu.enabled.debug"
     const val SETTING_TEMPLATE_INCLUDE_SINGLE_SPLIT = "paste.template.include_single_split"
     const val SETTING_TEMPLATE_MATCH_ACCOUNT = "paste.template.match_account"

@@ -14,6 +14,22 @@ import java.awt.Dialog
 fun String.prefixExtnID(): String { return "${Main.EXTN_ID}: $this"}
 
 /**
+ * Logs why a menu action was withheld entirely, or offered with fewer options than usual, gated
+ * on either the extension's own "Enable debug messages" checkbox OR Moneydance's launch debug
+ * flag. Shared by any action class that wants this exact shape (caller builds the full message,
+ * source is the calling class's own display name for the log prefix).
+ *
+ * NOTE: CopyPasteSplits.kt has its own separate logBlockedIfDebug with a different shape (takes
+ * a ParentTxn and builds richer context itself) and a different gate (debugMenuEnabled only, no
+ * DEBUG) - that one is deliberately NOT unified with this one, since doing so would change its
+ * existing, shipped behavior rather than just share identical logic.
+ */
+fun logBlockedIfDebug(source:String, message:String) {
+  if (extensionContext?.debugMenuEnabled != true && !Main.DEBUG) return
+  Util.logConsole(false, "$source: $message")
+}
+
+/**
  * UndoableChange.name became a public var in MD2026. For compatibility with pre-2026 builds,
  * try the setName() method first, then fall back to reflection on the private field. Silently
  * does nothing if neither exists (older/unexpected builds).

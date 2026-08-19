@@ -13,11 +13,9 @@ import com.moneydance.apps.md.view.gui.txnreg.TxnRegister
 import com.moneydance.awt.GridC
 import com.moneydance.awt.JCurrencyField
 import com.moneydance.awt.JDateField
-import com.moneydance.modules.features.contextmenutools.Main.Companion.DEBUG
-import com.moneydance.modules.features.contextmenutools.Main.Companion.extensionContext
 import com.moneydance.modules.features.contextmenutools.Main.Companion.mdGUI
 import com.moneydance.modules.features.contextmenutools.util.SizedOKButtonWindow
-import com.moneydance.modules.features.contextmenutools.util.Util
+import com.moneydance.modules.features.contextmenutools.util.logBlockedIfDebug
 import com.moneydance.modules.features.contextmenutools.util.setNameCompat
 import java.awt.GridBagLayout
 import java.awt.event.ActionListener
@@ -96,10 +94,10 @@ class DuplicateTransactions: ContextMenuAction {
               { duplicateTxns(adjustOption = DuplicateTxnDateOption.ADJUST_ONE_MONTH, menuContext = menuContext, txns = listTxns) }
               actions.add(duplicateTxnAdjustOneMonthAction)
             } else {
-              logBlockedIfDebug("Selected transactions (${listTxns.size}) span multiple accounts")
+              logBlockedIfDebug(string_duplicate, "Selected transactions (${listTxns.size}) span multiple accounts")
             }
           } else {
-            logBlockedIfDebug("Account type not eligible for account '${firstAcct.getAccountName()}' ($acctType)")
+            logBlockedIfDebug(string_duplicate, "Account type not eligible for account '${firstAcct.getAccountName()}' ($acctType)")
           }
         }
       }
@@ -107,16 +105,6 @@ class DuplicateTransactions: ContextMenuAction {
       return actions
     }
   
-  /**
-   * Logs why the Duplicate menu was withheld entirely, or offered with fewer options than usual,
-   * gated on either the extension's own "Enable debug messages" checkbox OR Moneydance's launch
-   * debug flag. NOTE: this differs from CopyPasteSplits.kt's own logBlockedIfDebug, which gates
-   * on debugMenuEnabled only - this one deliberately also honours DEBUG, per author's request.
-   */
-  private fun logBlockedIfDebug(message:String) {
-    if (extensionContext?.debugMenuEnabled != true && !DEBUG) return
-    Util.logConsole(false, "$string_duplicate: $message")
-  }
   
   private fun addAction(label:String, cmd:String, listener:ActionListener):MDAction {
     return MDAction.make(label).command(cmd).callback(listener)

@@ -36,7 +36,7 @@ import kotlin.math.min
  * own (different) purpose.
  *
  * Find (Ctrl/Cmd+F or the Find button) opens a small Next/Previous/Cancel prompt and highlights
- * matches in the text - same interaction as Moneydance's own Console window search.
+ * matches in the text.
  *
  * @param sizeKey Preferences key for remembering window size. Optional - omit to not persist.
  * @param locationKey Preferences key for remembering window location. Optional - omit to not persist.

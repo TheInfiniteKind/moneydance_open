@@ -10,8 +10,6 @@ import com.moneydance.modules.features.contextmenutools.Main.Companion.DEBUG
 import com.moneydance.modules.features.contextmenutools.Main.Companion.extensionContext
 import com.moneydance.modules.features.contextmenutools.Main.Companion.mdGUI
 import com.moneydance.modules.features.contextmenutools.util.*
-import java.awt.BorderLayout
-import java.awt.Component
 import java.awt.Cursor
 import java.awt.GridBagLayout
 import java.awt.Insets
@@ -451,6 +449,7 @@ class CopyPasteSplits(
     
     return book.reminders.allReminders.filter { reminder ->
       val templateTxn = reminder.transaction
+      reminder.getReminderType() == Reminder.Type.TRANSACTION &&
       canCopySplits(templateTxn) &&
       templateTxn.account.currencyType == targetCurrency &&
       (!templateMatchAccount || templateTxn.account == targetAccount) &&
@@ -797,15 +796,12 @@ class CopyPasteSplits(
   // ------------------------------------------------------------------------------------------
   
   private fun applyPastedSplits(target:ParentTxn, lines:List<CopiedSplitLine>) {
-    // remove existing splits first (confirmed API: ParentTxn.removeSplit(SplitTxn?): Boolean)
+    // remove existing splits first
     val existing = target.allSplits.toList()
     for (split in existing) {
       target.removeSplit(split)
     }
     
-    // confirmed API: SplitTxn.makeSplitTxn(parentTxn, parentAmount, splitAmount, rate, account,
-    // description, txnId, status) then ParentTxn.addSplit(newSplit). Same-currency splits only
-    // (enforced at copy/paste eligibility), so parentAmount == splitAmount in magnitude.
     for (line in lines) {
       // makeSplitTxn(parentTxn, parentAmount, splitAmount, rate, ...) internally sets
       // splitAmount field = splitAmount_param, parentAmount field = -parentAmount_param.

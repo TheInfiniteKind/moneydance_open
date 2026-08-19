@@ -30,6 +30,10 @@ MENU OPTIONS (in the order they appear)
   - Paste Splits
   - Apply Splits Template (from Reminders)
   - Rebalance Splits
+  - Update Reminder...
+      - and transaction's value
+      - from selected transaction
+  - Show Other Side: Select Split
   - Jump to date in register
 
 
@@ -131,6 +135,9 @@ The target must pass the exact same rules as a Paste target above (protected dat
 unreconciled, currency-consistent splits) - the only difference is what currency it needs to
 match: a Reminder's own transaction currency, rather than a previously copied one.
 
+Only Reminders set up as transaction-type reminders are ever considered as a source - plain
+note-style reminders are always excluded, with no config option to include them.
+
 At least one Reminder must also qualify as a valid source (same rules as Copy above applies to
 the Reminder's own transaction) before this option appears at all. Which Reminders show up in
 the picker can be narrowed further in the config screen:
@@ -157,6 +164,58 @@ Allowed when:
 
 You'll be asked for a new total (or leave it as-is to just change the ratio) and whether to keep
 each split's existing proportion or divide the new total equally across all splits.
+
+
+UPDATE REMINDER VALUE
+-------------------------
+Right-click a single transaction in a Bank or Credit Card account and, depending on what's
+found, one of two options appears - only ever one of the two, never both. Only Reminders set up
+as transaction-type reminders are ever considered - plain note-style reminders are always
+excluded.
+
+  - Update Reminder and transaction's value - shown when the transaction has a single split, and
+    exactly one active Reminder in the same account has a single split with the exact same
+    value. Opens a dialog showing the reminder's current ("From") value and lets you enter a new
+    one, with Reset (back to the transaction's value) and Rewind (back to the reminder's current
+    value) buttons alongside the field. A checkbox lets you also update the selected
+    transaction's own value to match, in the same undo step - only available when the
+    transaction and all its splits are Unreconciled and hold no protected downloaded/online-bank
+    data; it's ticked by default whenever it's available.
+
+    If more than one reminder shares that same value, or none of them share the transaction's
+    exact description, you'll first see a short list to choose from before the value dialog
+    appears - this is just a confirmation step, not a strict block. The list is ordered by how
+    closely each reminder matches the transaction (value, then number of splits, then shared
+    categories), most likely match first, rather than alphabetically.
+
+  - Update Reminder from selected transaction - shown instead whenever no reminder's value
+    exactly matches (or the transaction has more than one split). Opens a list of every eligible
+    reminder in the same account, again ordered by closeness to the selected transaction rather
+    than alphabetically; whichever one you pick has its stored transaction completely replaced
+    with a copy of the one you selected - description, splits, categories, and all, not just the
+    value. Useful for keeping a reminder in step with a downloaded transaction whose description
+    or categorisation doesn't resemble anything the reminder was originally set up with.
+
+This feature only ever changes the Reminder itself (and, if you tick the checkbox in the first
+option, the transaction you right-clicked) - it never touches any other transaction in your
+register, and a downloaded/matched transaction is never modified by this feature regardless of
+which option you use.
+
+
+SHOW OTHER SIDE: SELECT SPLIT
+---------------------------------
+Right-click a transaction with 2 or more splits and pick this option to jump straight to any
+other part of it - the parent, or any sibling split - instead of clicking through the register
+manually. Only appears when there's actually a choice to make; a transaction with just one split
+gets no menu item at all. The menu text shows how many splits the transaction has.
+
+The list shows every option labelled by position: "Parent" if you started from a split row, plus
+every OTHER split numbered by its position in the transaction - skipping whichever one you're
+currently on, without renumbering the rest (e.g. right-click split 3 of 5 and the list reads
+Parent, 1, 2, 4, 5). Each entry also shows its account, account type, and amount.
+
+Security type accounts are shown in the list but greyed out and can't be selected -
+there's nothing useful to jump to for those.
 
 
 JUMP TO DATE IN REGISTER
