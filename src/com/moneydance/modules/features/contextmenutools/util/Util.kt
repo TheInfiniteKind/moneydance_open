@@ -1,6 +1,7 @@
 package com.moneydance.modules.features.contextmenutools.util
 
 import com.infinitekind.moneydance.model.AbstractTxn
+import com.infinitekind.moneydance.model.Reminder
 import com.infinitekind.moneydance.model.UndoableChange
 import com.infinitekind.util.AppDebug
 import com.infinitekind.util.DateUtil.today
@@ -53,6 +54,29 @@ val noMatchConstantCompat:Any by lazy {
     ?: throw IllegalStateException("NO_MATCH field reflection returned null")
   } catch (e:Exception) {
     throw IllegalStateException("Failed to reflect AbstractTxn.DownloadMatchType.NO_MATCH via reflection", e)
+  }
+}
+
+/**
+ * Reminder.getNextOccurrences(maximumDate: Int? = null): List<Int> exists at runtime on
+ * Moneydance build 5202+, but not in the earlier compile-time API jar this module builds
+ * against - same situation as AbstractTxn.downloadMatchTypeCompat above. Unlike that one, this
+ * fails soft (returns null) rather than throwing: callers use this for decorative "next few
+ * dates" display info, not a decision-critical value, so a reflection failure (older runtime, or
+ * an unexpected return type) should fall back silently to Reminder.getNextOccurance() (singular,
+ * always available) rather than break the caller.
+ *
+ * Real signature confirmed: `fun getNextOccurrences(maximumDate: Int? = null): List<Int>`. The
+ * nullable Int parameter is boxed (java.lang.Integer) at the bytecode level - reflecting with
+ * Integer::class.java, not Int::class.java. The return type is always a List<Int> (boxed
+ * Integer elements at runtime), never an IntArray.
+ */
+fun Reminder.getNextOccurrencesCompat(maximumDate:Int? = null):List<Int>? {
+  return try {
+    val method = this.javaClass.getMethod("getNextOccurrences", Integer::class.java)
+    (method.invoke(this, maximumDate) as? List<*>)?.filterIsInstance<Int>()
+  } catch (e:Exception) {
+    null
   }
 }
 
