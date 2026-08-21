@@ -39,7 +39,5 @@ fun Reminder.isInactiveOrExpired():Boolean {
   // real check: any occurrences within the relevant window?
   val searchWindow = if (lastDateInt > 0) lastDateInt else 20991231
   
-  // getNextOccurrences() not available in devkit API version being used for Jenkins build...
-  //return getNextOccurrences(searchWindow).isEmpty()
-  return getNextOccurance(searchWindow) == 0
+  return getNextOccurrences(searchWindow).isEmpty()
 }

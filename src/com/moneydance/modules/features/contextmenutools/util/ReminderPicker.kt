@@ -118,14 +118,11 @@ private fun categoryOverlap(a:ParentTxn, b:ParentTxn):Int {
 }
 
 /** Next 3 scheduled dates (or fewer), formatted for display. Bound is 1 year + 1 day forward,
- *  same as Moneydance's own reminder detail panel. getNextOccurrencesCompat may return null on
- *  an older runtime (reflection unavailable) - falls back to the always-available singular
- *  getNextOccurance for a single date in that case. */
+ *  same as Moneydance's own reminder detail panel. */
 fun upcomingDatesStr(mdGUI:MoneydanceGUI, reminder:Reminder):String {
   val dateFmt = mdGUI.preferences.shortDateFormatter
   val searchBound = DateUtil.incrementDate(today, 1, 0, 1)
-  val nextDates = reminder.getNextOccurrencesCompat(searchBound)?.take(3)
-    ?: reminder.getNextOccurance(searchBound).let { if (it != 0) listOf(it) else emptyList() }
+  val nextDates = reminder.getNextOccurrences(searchBound).take(3)
   return if (nextDates.isEmpty()) "None scheduled" else nextDates.joinToString(", ") { dateFmt.format(it) }
 }
 
