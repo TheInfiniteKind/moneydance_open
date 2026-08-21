@@ -139,8 +139,9 @@ Only Reminders set up as transaction-type reminders are ever considered as a sou
 note-style reminders are always excluded, with no config option to include them.
 
 At least one Reminder must also qualify as a valid source (same rules as Copy above applies to
-the Reminder's own transaction) before this option appears at all. Which Reminders show up in
-the picker can be narrowed further in the config screen:
+the Reminder's own transaction) before this option appears at all. Double-click a Reminder in
+the picker (instead of selecting it and clicking OK) to apply it straight away. Which Reminders
+show up in the picker can be narrowed further in the config screen:
   - require the Reminder's own account to exactly match the target account
   - include or exclude Reminders that only have a single split
   - exclude Reminders that are expired/inactive
@@ -206,16 +207,38 @@ SHOW OTHER SIDE: SELECT SPLIT
 ---------------------------------
 Right-click a transaction with 2 or more splits and pick this option to jump straight to any
 other part of it - the parent, or any sibling split - instead of clicking through the register
-manually. Only appears when there's actually a choice to make; a transaction with just one split
-gets no menu item at all. The menu text shows how many splits the transaction has.
+manually. By default this only appears for transactions with 2 or more splits; a config option
+(see below) can turn it on for single-split transactions too. The menu text shows how many
+splits the transaction has.
 
-The list shows every option labelled by position: "Parent" if you started from a split row, plus
-every OTHER split numbered by its position in the transaction - skipping whichever one you're
-currently on, without renumbering the rest (e.g. right-click split 3 of 5 and the list reads
-Parent, 1, 2, 4, 5). Each entry also shows its account, account type, and amount.
+At the top of the window you'll see a summary of the transaction you right-clicked: whether it's
+the Parent or a Split, its account, description, date, and value.
 
-Security type accounts are shown in the list but greyed out and can't be selected -
+Below that, the list shows every option labelled by position: "Parent" if you started from a
+split row, plus every OTHER split numbered by its position in the transaction - skipping
+whichever one you're currently on, without renumbering the rest (e.g. right-click split 3 of 5
+and the list reads Parent, 1, 2, 4, 5). Each entry shows its account, account type, and amount.
+Double-click an entry (instead of selecting it and clicking OK) to jump straight there.
+
+Security and Root type accounts are shown in the list but greyed out and can't be selected -
 there's nothing useful to jump to for those.
+
+For investment transactions, each entry's first line shows what role that split actually plays
+(Buy, Sell, Dividend, Fee, and so on) instead of just repeating the transaction's description on
+every row - the account/amount details stay on the second line as usual.
+
+If the split you're about to jump to is a Category (an Income or Expense account), you'll be
+asked to confirm first by default - editing transactions from inside a Category register can be
+confusing, so this is a chance to back out. This can be turned off in the config screen.
+
+Three related options in the config screen, all under this feature's own checkbox:
+  - Warn before showing a Category split - the confirmation above (default on)
+  - Show full account names (not just account name) - switches every account name shown in this
+    feature between the full account path and just the short name; defaults to whatever your
+    Moneydance "show full account path" preference is set to the first time you use it, then
+    stays as you've set it here regardless of that preference changing later
+  - Include single-split transactions - turns this feature on even for transactions with only
+    one split, where the only "other side" to jump to is the parent (or vice versa) (default off)
 
 
 JUMP TO DATE IN REGISTER
@@ -229,8 +252,9 @@ The config screen has an "Enable debug messages" checkbox. Turning it on makes t
 write extra diagnostic information to Moneydance's console/log (accessed via Help / Console
 Window) - mainly useful if something isn't behaving as expected and you want to see what the
 extension is actually doing. In particular, this will show messages when the Copy Splits, Paste
-Splits, Apply Splits Template, or Rebalance Splits menu items have been blocked, explaining
-exactly why the option was not allowed.
+Splits, Apply Splits Template, Rebalance Splits, Duplicate Transactions, or Update Reminder
+Value menu items have been blocked, explaining exactly why the option was not allowed. Show
+Other Side: Select Split does not currently have this diagnostic logging.
 
 
 WHY ISN'T AN OPTION SHOWING? (reading the console)
