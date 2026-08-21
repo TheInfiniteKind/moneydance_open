@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# extract_data.py - build: 1050 - June 2026 - Stuart Beesley
+# extract_data.py - build: 1050 - August 2026 - Stuart Beesley
 #                   You can auto invoke by launching MD with one of the following:
 #                           '-d [datasetpath] -invoke=moneydance:fmodule:extract_data:autoextract:noquit'
 #                           '-d [datasetpath] -invoke=moneydance:fmodule:extract_data:autoextract:quit'
@@ -110,6 +110,7 @@
 # build: 1050 - Upgrade MyCostCalculation to v10 for MD2026(5500)
 # build: 1050 - Misc AI suggested fixes...
 # build: 1050 - fix for EIT with security splits now allowing multi-same-day as of MD2026(5501)
+# build: 1050 - fix for default reminder sort, and also comparator if/elif bug
 # build: 1050 - ???
 
 # todo - EAR: Switch to 'proper' usage of DateRangeChooser() (rather than my own 'copy')
@@ -10081,12 +10082,12 @@ Visit: %s (Author's site)
                                             for _iii in range(0, self.getColumnCount()):
                                                 if _iii == 0:
                                                     sorter.setComparator(_iii, self.MyTextNumberComparator("%"))
-                                                if _iii == 9 or _iii == 14:
+                                                elif _iii == 9 or _iii == 14:
                                                     sorter.setComparator(_iii, self.MyTextNumberComparator("N"))
                                                 else:
                                                     sorter.setComparator(_iii, self.MyTextNumberComparator("T"))
                                             if GlobalVars.saveRemindersSortKeys is None:
-                                                self.getRowSorter().toggleSortOrder(0)
+                                                self.getRowSorter().toggleSortOrder(1)  # set default sort to necxt date
                                             else:
                                                 self.getRowSorter().setSortKeys(GlobalVars.saveRemindersSortKeys)
 
