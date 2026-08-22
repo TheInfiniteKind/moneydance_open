@@ -2699,7 +2699,7 @@ public class MainPriceWindow extends JFrame implements TaskListener {
 						InvestFields invest = new InvestFields();
 						invest.setFieldStatus(parent);
 						if (invest.hasPrice && invest.price > 0.0) {
-							txPrice = 1.0 / CurrencyUtil.getUserRate(invest.curr, invest.secCurr, invest.price);
+							txPrice = invest.price;
 						}
 					} catch (Exception ex) {
 						// Fallback to cash / shares
