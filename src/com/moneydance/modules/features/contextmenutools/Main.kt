@@ -28,8 +28,14 @@ interface ContextMenuAction {
 /**
  * A collection of context menu (right click) tools that hook into Moneydance's context menu...
  *
- * @author Stuart Beesley - March 2026
- * @since MD2024.4(5253)
+ * NOTE: on the first call to [getActionsForContext] it's possible that the user might see a slight lag. This will not occur
+ *       on subsequent calls. This can be caused by Moneydance's internal code pre-populating [Reminder]'s next occurences cache when first
+ *       called. Once the cache is present, then access is speedy. This would be triggered by calls to [isInactiveOrExpired] which
+ *       is ascertaining whether a Reminder is expired via it's next occurence date. Of course, if the user has already accessed
+ *       reminders, then this cache will already be populated. A design decision was made to leave this as-is for now...
+ *
+ * @author Stuart Beesley - March-August 2026
+ * @since MD2024.4(5253) - requires MD2024.4 API moneydance.jar to compile
  */
 class Main : FeatureModule(), PreferencesListener {
   
@@ -66,8 +72,6 @@ class Main : FeatureModule(), PreferencesListener {
    *
    * @param context Information about the context, including
    * @return a list of actions that the UI can perform on the
-   *
-   * @since Moneydance 2024 (build 5100)
    */
   override fun getActionsForContext(context:MDActionContext):List<Action> {
 

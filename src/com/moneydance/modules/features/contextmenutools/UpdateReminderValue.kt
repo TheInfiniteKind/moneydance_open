@@ -100,8 +100,6 @@ class UpdateReminderValue(
   private val string_reset_tooltip = "Reset to the selected transaction's value"
   private val string_rewind_tooltip = "Rewind to the reminder's current value"
 
-  // real Moneydance-bundled icons - same resource paths already confirmed working elsewhere in
-  // this extension (CopyPasteSplits.kt's askRebalanceChoice/askPasteAlwaysConfirmChoice)
   private val ICON_RESET_PATH = "com/moneydance/apps/md/view/gui/glyphs/reset.png"
   private val ICON_REWIND_PATH = "com/moneydance/apps/md/view/gui/glyphs/horizontal-left.png"
 
@@ -345,9 +343,7 @@ class UpdateReminderValue(
   private fun applyReminderAndTxnUpdate(reminder:Reminder, txn:ParentTxn, newValue:Long, alsoUpdateTxn:Boolean) {
     // newValue is parent-convention (matches reminderTxn.value/txn.value - what's displayed and
     // typed in the dialog). SplitTxn.setAmount expects split-convention (samt), which for a
-    // single-split transaction is the exact negation of parent-convention (pamt) - confirmed
-    // against DuplicateTransactions.applyNewValue()'s own working precedent, which computes its
-    // split value in split.value's own sign and passes the same number to both setAmount args.
+    // single-split transaction is the exact negation of parent-convention (pamt).
     val splitConventionValue = -newValue
 
     val change = UndoableChange()

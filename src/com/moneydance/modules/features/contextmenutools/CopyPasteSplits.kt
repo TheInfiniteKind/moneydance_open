@@ -449,8 +449,8 @@ class CopyPasteSplits(
     val reminders = cachedReminders ?: (Main.mdMain?.currentAccountBook ?: return emptyList()).reminders.allReminders
     
     return reminders.filter { reminder ->
+      if (reminder.getReminderType() != Reminder.Type.TRANSACTION) return@filter false
       val templateTxn = reminder.transaction
-      reminder.getReminderType() == Reminder.Type.TRANSACTION &&
       canCopySplits(templateTxn) &&
       templateTxn.account.currencyType == targetCurrency &&
       (!templateMatchAccount || templateTxn.account == targetAccount) &&

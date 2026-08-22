@@ -26,8 +26,7 @@ import javax.swing.Action
  * an identity lookup for a transaction that already happened, so an expired or since-modified
  * reminder should still be found if it's the one that actually created this transaction).
  *
- * TODO: placeholder for additional narrowing rules if the plain UUID.date search ever proves too
- * broad in practice.
+ * TODO: placeholder for additional narrowing rules if the plain UUID.date search ever proves too broad in practice.
  */
 class EditOriginatingReminder(
   private val allReminders:List<Reminder>? = null

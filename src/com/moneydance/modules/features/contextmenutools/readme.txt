@@ -15,11 +15,13 @@ reminders, currencies, securities, reports, budgets, and more.
 If an expected menu item isn't appearing, there may be a rule preventing it - see the relevant
 section below, or "Why isn't an option showing?" near the end of this guide.
 
+NOTE: On the first call to the context menu within a Moneydance session, there might be a slight lag before the menu
+      appears. There will be no lag on subsequent calls. This is due to Moneydance performing an operation to read
+      reminders, calculate, and cache the results... This happens on any feature that first accesses a Reminder and
+      looks at the next occurence date.
 
 MENU OPTIONS (in the order they appear)
 ------------------------------------------
-  - Show Raw Details
-  - Copy Raw Details to Clipboard
   - Show Value of Selected Transactions
   - Duplicate Transactions...
       - With the same date(s)
@@ -33,9 +35,11 @@ MENU OPTIONS (in the order they appear)
   - Update Reminder...
       - and transaction's value
       - from selected transaction
-  - Show Other Side: Select Split
   - Edit Originating Reminder
+  - Show Other Side: Select Split
   - Jump to date in register
+  - Show Raw Details
+  - Copy Raw Details to Clipboard
 
 
 CONFIGURATION SCREEN
@@ -44,23 +48,6 @@ Use Moneydance's Extension Menu, and select "Context Menu Tools" to open the set
 Every feature above can be turned on or off individually, and a few have extra options of their
 own (shown indented underneath the relevant checkbox). Click OK to save, Cancel to discard
 changes.
-
-
-SHOW RAW DETAILS
--------------------
-Copies the underlying raw data for whatever is selected - transactions, accounts, reminders,
-budgets, currencies, reports, more or less anything - and shows it in a read-only window. Useful
-if you just want to look, without disturbing whatever you currently have on the clipboard. Has
-its own "Copy to Clipboard" button if you decide you want it after all. Asks for confirmation if
-you select more than 10 items, purely to avoid opening an enormous window by accident.
-
-
-COPY RAW DETAILS TO CLIPBOARD
---------------------------------
-Same raw data as above, but copied straight to your clipboard instead of shown in a window -
-mostly useful for troubleshooting or sending details to support. Works on any selection size; if
-you select more than 10 items you'll be asked to confirm first, since it's about to overwrite
-your clipboard.
 
 
 SHOW VALUE OF SELECTED TRANSACTIONS
@@ -204,6 +191,18 @@ register, and a downloaded/matched transaction is never modified by this feature
 which option you use.
 
 
+EDIT ORIGINATING REMINDER
+-----------------------------
+Right-click a transaction and choose this option to open, ready for editing, the Reminder that
+automatically created it - useful when a scheduled bill's amount or other details have changed
+and you want to bring the Reminder in line, starting from the transaction it already produced.
+
+This only appears when Moneydance's own record of the transaction links it back to a specific
+Reminder - the same internal identifier Moneydance itself creates when a Reminder auto-commits a
+transaction, not a guess based on matching description or value. If the transaction wasn't
+auto-committed from a Reminder, or that link can't be found, this option simply doesn't appear.
+
+
 SHOW OTHER SIDE: SELECT SPLIT
 ---------------------------------
 Right-click a transaction with 2 or more splits and pick this option to jump straight to any
@@ -242,21 +241,26 @@ Three related options in the config screen, all under this feature's own checkbo
     one split, where the only "other side" to jump to is the parent (or vice versa) (default off)
 
 
-EDIT ORIGINATING REMINDER
------------------------------
-Right-click a transaction and choose this option to open, ready for editing, the Reminder that
-automatically created it - useful when a scheduled bill's amount or other details have changed
-and you want to bring the Reminder in line, starting from the transaction it already produced.
-
-This only appears when Moneydance's own record of the transaction links it back to a specific
-Reminder - the same internal identifier Moneydance itself creates when a Reminder auto-commits a
-transaction, not a guess based on matching description or value. If the transaction wasn't
-auto-committed from a Reminder, or that link can't be found, this option simply doesn't appear.
-
-
 JUMP TO DATE IN REGISTER
 ----------------------------
 Quickly jump the register to a specific date, instead of scrolling.
+
+
+SHOW RAW DETAILS
+-------------------
+Copies the underlying raw data for whatever is selected - transactions, accounts, reminders,
+budgets, currencies, reports, more or less anything - and shows it in a read-only window. Useful
+if you just want to look, without disturbing whatever you currently have on the clipboard. Has
+its own "Copy to Clipboard" button if you decide you want it after all. Asks for confirmation if
+you select more than 10 items, purely to avoid opening an enormous window by accident.
+
+
+COPY RAW DETAILS TO CLIPBOARD
+--------------------------------
+Same raw data as above, but copied straight to your clipboard instead of shown in a window -
+mostly useful for troubleshooting or sending details to support. Works on any selection size; if
+you select more than 10 items you'll be asked to confirm first, since it's about to overwrite
+your clipboard.
 
 
 DEBUG MESSAGES

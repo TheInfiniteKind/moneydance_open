@@ -16,11 +16,6 @@ fun String.prefixExtnID(): String { return "${Main.EXTN_ID}: $this"}
  * on either the extension's own "Enable debug messages" checkbox OR Moneydance's launch debug
  * flag. Shared by any action class that wants this exact shape (caller builds the full message,
  * source is the calling class's own display name for the log prefix).
- *
- * NOTE: CopyPasteSplits.kt has its own separate logBlockedIfDebug with a different shape (takes
- * a ParentTxn and builds richer context itself) and a different gate (debugMenuEnabled only, no
- * DEBUG) - that one is deliberately NOT unified with this one, since doing so would change its
- * existing, shipped behavior rather than just share identical logic.
  */
 fun logBlockedIfDebug(source:String, message:String) {
   if (extensionContext?.debugMenuEnabled != true && !Main.DEBUG) return
