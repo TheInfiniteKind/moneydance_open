@@ -107,6 +107,7 @@ public class MainPriceWindow extends JFrame implements TaskListener {
 	private JButton closeBtn;
 	private JButton saveBtn;
 	private JButton saveValBtn;
+	private JButton syncMultipliersBtn;
 	private JButton getPricesBtn;
 	private JButton getRatesBtn;
 	private JButton exportBtn;
@@ -332,6 +333,13 @@ public class MainPriceWindow extends JFrame implements TaskListener {
       //save();
     });
 		buttonsPanel.add(saveValBtn, GridC.getc(gridX++, gridY).insets(10, 10, 10, 10));
+		/*
+		 * Button Sync Multipliers
+		 */
+		syncMultipliersBtn = new JButton("Sync Multipliers");
+		syncMultipliersBtn.setToolTipText("Automatically sync multipliers based on latest BUY/SELL transaction");
+		syncMultipliersBtn.addActionListener(e -> syncMultipliers());
+		buttonsPanel.add(syncMultipliersBtn, GridC.getc(gridX++, gridY).insets(10, 10, 10, 10));
 
 		/*
 		 * Get Rates
@@ -509,21 +517,25 @@ public class MainPriceWindow extends JFrame implements TaskListener {
 			exportBtn.setVisible(true);
 			selectAll.setEnabled(true);
 			saveValBtn.setEnabled(true);
+			syncMultipliersBtn.setEnabled(true);
 			getPricesBtn.setEnabled(true);
 			saveBtn.setEnabled(true);
 			exportBtn.setEnabled(true);
+			syncMultipliersBtn.setVisible(true);
 			break;
 		case 1:
 			if (params.getCurrency() && params.getDisplayOption() == Constants.CurrencyDisplay.SEPARATE) {
 				selectedTab = Constants.SELECTEDCURRENCY;
 				selectAll.setVisible(true);
 				saveValBtn.setVisible(true);
+				syncMultipliersBtn.setVisible(false);
 				getRatesBtn.setVisible(true);
 				getPricesBtn.setVisible(false);
 				saveBtn.setVisible(true);
 				exportBtn.setVisible(true);
 				selectAll.setEnabled(true);
 				saveValBtn.setEnabled(true);
+				syncMultipliersBtn.setEnabled(false);
 				getRatesBtn.setEnabled(true);
 				getPricesBtn.setEnabled(false);
 				saveBtn.setEnabled(true);
@@ -532,12 +544,14 @@ public class MainPriceWindow extends JFrame implements TaskListener {
 				selectedTab = Constants.SELECTEDPARAMETER;
 				selectAll.setVisible(false);
 				saveValBtn.setVisible(false);
+				syncMultipliersBtn.setVisible(false);
 				getRatesBtn.setVisible(false);
 				getPricesBtn.setVisible(false);
 				saveBtn.setVisible(false);
 				exportBtn.setVisible(false);
 				selectAll.setEnabled(false);
 				saveValBtn.setEnabled(false);
+				syncMultipliersBtn.setEnabled(false);
 				getRatesBtn.setEnabled(false);
 				getPricesBtn.setEnabled(false);
 				saveBtn.setEnabled(false);
@@ -548,12 +562,14 @@ public class MainPriceWindow extends JFrame implements TaskListener {
 			selectedTab = Constants.SELECTEDPARAMETER;
 			selectAll.setVisible(false);
 			saveValBtn.setVisible(false);
+			syncMultipliersBtn.setVisible(false);
 			getRatesBtn.setVisible(false);
 			getPricesBtn.setVisible(false);
 			saveBtn.setVisible(false);
 			exportBtn.setVisible(false);
 			selectAll.setEnabled(false);
 			saveValBtn.setEnabled(false);
+			syncMultipliersBtn.setEnabled(false);
 			getRatesBtn.setEnabled(false);
 			getPricesBtn.setEnabled(false);
 			saveBtn.setEnabled(false);
@@ -573,6 +589,7 @@ public class MainPriceWindow extends JFrame implements TaskListener {
 						line.setYahooAlternate(security.getYahooAlternate());
 						line.setAlphaAlternate(security.getAlphaAlternate());
 						line.setMarketDataAlternate(security.getMarketDataAlternate());
+						line.setMultiplier(security.getMultiplier());
 					} else
 						accountSources.remove(security.getTicker());
 				} else {
@@ -585,6 +602,7 @@ public class MainPriceWindow extends JFrame implements TaskListener {
 						newLine.setYahooAlternate(security.getYahooAlternate());
 						newLine.setAlphaAlternate(security.getAlphaAlternate());
 						newLine.setMarketDataAlternate(security.getMarketDataAlternate());
+						newLine.setMultiplier(security.getMultiplier());
 						accountSources.put(security.getTicker(), newLine);
 					}
 				}
@@ -733,6 +751,7 @@ public class MainPriceWindow extends JFrame implements TaskListener {
 									dacct.setAlphaAlternate(line.getAlphaAlternate());
 									dacct.setMarketDataAlternate(line.getMarketDataAlternate());
 									dacct.setSource(line.getSource());
+									dacct.setMultiplier(line.getMultiplier());
 								} else
 									dacct.setSource(0);
 								if (iSnapIndex < 0) {
@@ -789,8 +808,9 @@ public class MainPriceWindow extends JFrame implements TaskListener {
 							securityLine.setFtAlternate(sourceLine.getFtAlternate());
 							securityLine.setYahooAlternate(sourceLine.getYahooAlternate());
 							securityLine.setAlphaAlternate(sourceLine.getAlphaAlternate());
-              securityLine.setMarketDataAlternate(sourceLine.getMarketDataAlternate());
+							securityLine.setMarketDataAlternate(sourceLine.getMarketDataAlternate());
 							securityLine.setSource(sourceLine.getSource());
+							securityLine.setMultiplier(sourceLine.getMultiplier());
 						} else {
 							securityLine.setSource(0);
 							securityLine.setExchange(null);
@@ -1341,6 +1361,17 @@ public class MainPriceWindow extends JFrame implements TaskListener {
 					default:
 						break;
 					}
+					
+					if (line != null && line.getAlternateTicker() != null && !line.getAlternateTicker().isBlank()) {
+						Integer txDate = getLatestTxnDate(line);
+						if (txDate != null && txDate > 0) {
+							int syncLimit = com.infinitekind.util.DateUtil.incrementDate(txDate, 0, 0, -1);
+							if (lastPriceDate == -1 || syncLimit < lastPriceDate) {
+								lastPriceDate = syncLimit;
+							}
+						}
+					}
+					
 					if (!newTicker.equals(ticker)) {
 						alteredTickers.put(newTicker, ticker);
 						Main.debugInst.debug("MainPriceWindow", "getPrices", MRBDebug.DETAILED, "Ticker changed from " + ticker + " to " + newTicker);
@@ -1499,6 +1530,16 @@ public class MainPriceWindow extends JFrame implements TaskListener {
       alteredTickers = new TreeMap();
 			if (!originalTicker.isEmpty() && !(originalTicker.compareToIgnoreCase(ticker)==0)) {
         alteredTickers.put(ticker, originalTicker);
+				SecurityTableLine origLine = securitiesTable.get(originalTicker);
+				if (origLine != null) {
+					Integer txDate = getLatestTxnDate(origLine);
+					if (txDate != null && txDate > 0) {
+						int syncLimit = com.infinitekind.util.DateUtil.incrementDate(txDate, 0, 0, -1);
+						if (lastPriceDate == -1 || syncLimit < lastPriceDate) {
+							lastPriceDate = syncLimit;
+						}
+					}
+				}
 			}
 			MRBEDTInvoke.showURL(Main.context,"moneydance:fmodule:" + Constants.PROGRAMNAME + ":" + Constants.STARTQUOTECMD + "?numquotes=1");
 
@@ -1747,6 +1788,13 @@ public class MainPriceWindow extends JFrame implements TaskListener {
 			stockPrice = newPrice.getSecurityPrice();
 			lowPrice = newPrice.getLowPrice();
 			highPrice = newPrice.getHighPrice();
+		}
+		if (secLine != null && secLine.getMultiplier() != null && secLine.getMultiplier() != 1.0) {
+			stockPrice *= secLine.getMultiplier();
+			if (lowPrice != 0.0) lowPrice *= secLine.getMultiplier();
+			if (highPrice != 0.0) highPrice *= secLine.getMultiplier();
+			Main.debugInst.debug("MainPriceWindow", "updatePrices", MRBDebug.SUMMARY,
+					"Applied security multiplier " + secLine.getMultiplier() + ", new stockPrice: " + stockPrice);
 		}
 		/*
 		 * get currency type for trade
@@ -2087,6 +2135,13 @@ public class MainPriceWindow extends JFrame implements TaskListener {
 			stockPrice = newPrice.getSecurityPrice();
 			lowPrice = newPrice.getLowPrice();
 			highPrice = newPrice.getHighPrice();
+		}
+		if (secLine != null && secLine.getMultiplier() != null && secLine.getMultiplier() != 1.0) {
+			stockPrice *= secLine.getMultiplier();
+			if (lowPrice != 0.0) lowPrice *= secLine.getMultiplier();
+			if (highPrice != 0.0) highPrice *= secLine.getMultiplier();
+			Main.debugInst.debug("MainPriceWindow", "updateHistory", MRBDebug.SUMMARY,
+					"Applied security multiplier " + secLine.getMultiplier() + ", new stockPrice: " + stockPrice);
 		} /*
 			 * get currency type for trade
 			 */
@@ -2149,6 +2204,9 @@ public class MainPriceWindow extends JFrame implements TaskListener {
 			HistoryPrice history = new HistoryPrice(newPrice.getTradeDate(), stockPrice, highPrice * dRate,
 					lowPrice * dRate, newPrice.getVolume());
 			historyList.add(history);
+			Main.debugInst.debug("MainPriceWindow", "updateHistory", MRBDebug.INFO,
+				"Downloaded history item: Ticker=" + ticker + ", Date=" + newPrice.getTradeDate() + 
+				", Price=" + stockPrice + " (rawPrice: " + newPrice.getSecurityPrice() + ")");
 		}
 		SwingUtilities.invokeLater(() -> secPricesModel.fireTableDataChanged());
 	}
@@ -2619,5 +2677,179 @@ public class MainPriceWindow extends JFrame implements TaskListener {
 		public void setCol(int col){
 			this.col=col;
 		}
+	}
+
+	private void syncMultipliers() {
+		TransactionSet txnSet = Main.context.getCurrentAccountBook().getTransactionSet();
+		boolean updatedAny = false;
+		
+		for (SecurityTableLine secLine : securitiesTable.values()) {
+			if (secLine.getSelected() && secLine.getAlternateTicker() != null && !secLine.getAlternateTicker().isEmpty()) {
+				Account securityAccount = secLine.getAccount();
+				if (securityAccount == null) continue;
+				
+				AbstractTxn latestTxn = getLatestTxn(secLine);
+				
+				if (latestTxn != null) {
+					ParentTxn parent = latestTxn.getParentTxn();
+					int txDate = latestTxn.getDateInt();
+					double txPrice = 0.0;
+					
+					try {
+						InvestFields invest = new InvestFields();
+						invest.setFieldStatus(parent);
+						if (invest.hasPrice && invest.price > 0.0) {
+							txPrice = 1.0 / CurrencyUtil.getUserRate(invest.curr, invest.secCurr, invest.price);
+						}
+					} catch (Exception ex) {
+						// Fallback to cash / shares
+					}
+					
+					if (txPrice == 0.0) {
+						double shares = securityAccount.getCurrencyType().getDoubleValue(Math.abs(latestTxn.getValue()));
+						double cash = parent.getAccount().getCurrencyType().getDoubleValue(Math.abs(parent.getValue()));
+						if (shares > 0.0) {
+							txPrice = cash / shares;
+						}
+					}
+					
+					if (txPrice == 0.0) continue;
+					
+					Double altPrice = null;
+					String altTicker = secLine.getAlternateTicker();
+					
+					Main.debugInst.debug("MainPriceWindow", "syncMultipliers", MRBDebug.INFO,
+						"Syncing ticker: " + secLine.getTicker() + " (Alt: " + altTicker + "). Looking for txDate: " + txDate + " (txPrice: " + txPrice + ")");
+					
+					// Check the current security's downloaded history first (as Alt Ticker history gets mapped back to the main row)
+					if (secLine.getHistory() != null) {
+						Main.debugInst.debug("MainPriceWindow", "syncMultipliers", MRBDebug.INFO,
+							"Checking current security's history list in memory. Size: " + secLine.getHistory().size());
+						for (HistoryPrice hp : secLine.getHistory()) {
+							Main.debugInst.debug("MainPriceWindow", "syncMultipliers", MRBDebug.INFO,
+								"  Main Memory History item: Date=" + hp.getDate() + ", Price=" + hp.getPrice());
+							if (hp.getDate() == txDate) {
+								altPrice = hp.getPrice();
+								break;
+							}
+						}
+					}
+					
+					// Look up in downloaded Alt Security row history next
+					if (altPrice == null) {
+						SecurityTableLine altSecLine = securitiesTable.get(altTicker);
+						if (altSecLine != null) {
+							Main.debugInst.debug("MainPriceWindow", "syncMultipliers", MRBDebug.INFO,
+								"Found Alt Security row in table. History size: " + (altSecLine.getHistory() == null ? "null" : altSecLine.getHistory().size()));
+							if (altSecLine.getHistory() != null) {
+								for (HistoryPrice hp : altSecLine.getHistory()) {
+									Main.debugInst.debug("MainPriceWindow", "syncMultipliers", MRBDebug.INFO,
+										"  Alt Memory History item: Date=" + hp.getDate() + ", Price=" + hp.getPrice());
+									if (hp.getDate() == txDate) {
+										altPrice = hp.getPrice();
+									}
+								}
+							}
+						} else {
+							Main.debugInst.debug("MainPriceWindow", "syncMultipliers", MRBDebug.INFO,
+								"Alt Security row " + altTicker + " NOT found in securitiesTable!");
+						}
+					}
+					
+					// Look up in downloaded currency/rate history next
+					if (altPrice == null) {
+						CurrencyTableLine altCurLine = currenciesTable.get(altTicker);
+						if (altCurLine != null) {
+							Main.debugInst.debug("MainPriceWindow", "syncMultipliers", MRBDebug.INFO,
+								"Found Alt Currency row in table. History size: " + (altCurLine.getHistory() == null ? "null" : altCurLine.getHistory().size()));
+							if (altCurLine.getHistory() != null) {
+								for (HistoryPrice hp : altCurLine.getHistory()) {
+									Main.debugInst.debug("MainPriceWindow", "syncMultipliers", MRBDebug.INFO,
+										"  Memory Currency History item: Date=" + hp.getDate() + ", Price=" + hp.getPrice());
+									if (hp.getDate() == txDate) {
+										altPrice = hp.getPrice();
+									}
+								}
+							}
+						}
+					}
+					
+					// Fall back to saved Moneydance database snapshots
+					if (altPrice == null) {
+						CurrencyType altCurrency = Main.context.getCurrentAccountBook().getCurrencies().getCurrencyByIDString(altTicker);
+						if (altCurrency != null) {
+							CurrencySnapshot snap = altCurrency.getSnapshotForDate(txDate);
+							if (snap != null) {
+								altPrice = 1.0 / snap.getRate();
+							}
+						}
+					}
+					
+					if (altPrice == null) {
+						String input = JOptionPane.showInputDialog(this, 
+							"For security " + secLine.getAccountName() + " (" + secLine.getTicker() + "),\n" +
+							"found last transaction on " + Main.cdate.format(txDate) + " at price " + String.format("%.4f", txPrice) + ".\n" +
+							"Please enter the price of the Alt Ticker (" + altTicker + ") on that date:",
+							"Sync Multiplier - Alt Ticker Price Required", JOptionPane.QUESTION_MESSAGE);
+						if (input != null && !input.trim().isEmpty()) {
+							try {
+								altPrice = Double.parseDouble(input.trim().replace(Main.decimalChar, '.'));
+							} catch (NumberFormatException e) {
+								JOptionPane.showMessageDialog(this, "Invalid price entered. Skipping " + secLine.getTicker());
+							}
+						}
+					}
+					
+					if (altPrice != null && altPrice > 0.0) {
+						double newMultiplier = txPrice / altPrice;
+						secLine.setMultiplier(newMultiplier);
+						
+						if (accountSources.containsKey(secLine.getTicker())) {
+							accountSources.get(secLine.getTicker()).setMultiplier(newMultiplier);
+						}
+						
+						updatedAny = true;
+						Main.debugInst.debug("MainPriceWindow", "syncMultipliers", MRBDebug.SUMMARY,
+							"Updated multiplier for " + secLine.getTicker() + " to " + newMultiplier + 
+							" based on transaction on " + txDate + " (txPrice: " + txPrice + ", altPrice: " + altPrice + ")");
+					}
+				}
+			}
+		}
+		
+		if (updatedAny) {
+			params.saveAccountSources(accountSources);
+			secPricesModel.fireTableDataChanged();
+			JOptionPane.showMessageDialog(this, "Multipliers synced successfully.\n\nIMPORTANT: Please click 'Get Prices' again to download and apply the new multipliers to the active table prices before saving.", "Sync Complete", JOptionPane.INFORMATION_MESSAGE);
+		} else {
+			JOptionPane.showMessageDialog(this, "No selected lines with Alt Tickers and matching transactions were updated.", "Sync Complete", JOptionPane.INFORMATION_MESSAGE);
+		}
+	}
+	
+	private AbstractTxn getLatestTxn(SecurityTableLine line) {
+		Account securityAccount = line.getAccount();
+		if (securityAccount == null) return null;
+		TransactionSet txnSet = Main.context.getCurrentAccountBook().getTransactionSet();
+		TxnSet txns = txnSet.getTransactionsForAccount(securityAccount);
+		AbstractTxn latestTxn = null;
+		for (AbstractTxn txn : txns) {
+			if (txn instanceof SplitTxn) {
+				ParentTxn parent = txn.getParentTxn();
+				if (parent == null) continue;
+				InvestTxnType invType = parent.getInvestTxnType();
+				if (invType == InvestTxnType.BUY || invType == InvestTxnType.SELL ||
+				    invType == InvestTxnType.BUY_XFER || invType == InvestTxnType.SELL_XFER) {
+					if (latestTxn == null || txn.getDateInt() > latestTxn.getDateInt()) {
+						latestTxn = txn;
+					}
+				}
+			}
+		}
+		return latestTxn;
+	}
+	
+	private Integer getLatestTxnDate(SecurityTableLine line) {
+		AbstractTxn txn = getLatestTxn(line);
+		return txn == null ? -1 : txn.getDateInt();
 	}
 }

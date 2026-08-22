@@ -601,6 +601,7 @@ public class Parameters{
 			newLine.setMarketDataAlternate(crntLine.getMarketDataAlternate());
 			newLine.setExchange(crntLine.getExchange());
 			newLine.setSource(crntLine.getSource());
+			newLine.setMultiplier(crntLine.getMultiplier());
 			newList.add(newLine);
 		}
 		tempParams.setListAccounts(newList);
