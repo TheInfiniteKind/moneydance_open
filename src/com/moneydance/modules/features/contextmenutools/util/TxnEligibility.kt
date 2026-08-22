@@ -41,3 +41,11 @@ fun Reminder.isInactiveOrExpired():Boolean {
   
   return getNextOccurrences(searchWindow).isEmpty()
 }
+
+/**
+ * True if txn's own ID matches Moneydance's auto-commit convention for this reminder
+ * ("{reminderUUID}.{txn's date}" - see ReminderSet.autoCommitReminder). Identity match, not a
+ * heuristic - only confirmed for auto-committed occurrences.
+ */
+fun isUUIDDateMatch(txn:ParentTxn, reminder:Reminder):Boolean =
+  txn.UUID == "${reminder.UUID}.${txn.dateInt}"

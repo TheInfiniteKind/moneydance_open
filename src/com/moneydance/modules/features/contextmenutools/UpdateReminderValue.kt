@@ -170,7 +170,7 @@ class UpdateReminderValue:ContextMenuAction {
    * match here and falls through to the value tier below.
    */
   private fun uuidDateMatchCandidates(txn:ParentTxn, eligiblePool:List<Reminder>):List<Reminder> =
-    eligiblePool.filter { reminder -> txn.UUID == "${reminder.UUID}.${txn.dateInt}" }
+    eligiblePool.filter { reminder -> isUUIDDateMatch(txn, reminder) }
 
   /** Exact value match (raw, signed) within the structurally-eligible pool. */
   private fun valueMatchCandidates(txn:ParentTxn, eligiblePool:List<Reminder>):List<Reminder> {

@@ -108,7 +108,7 @@ private fun valueBand(candidateValue:Long, referenceValue:Long):Int {
  * heuristic guess.
  */
 private fun uuidDatePenalty(referenceTxn:ParentTxn, candidate:Reminder):Int =
-  if (referenceTxn.UUID == "${candidate.UUID}.${referenceTxn.dateInt}") 0 else 1
+  if (isUUIDDateMatch(referenceTxn, candidate)) 0 else 1
 
 /** Count of distinct split-target accounts the two transactions have in common. */
 private fun categoryOverlap(a:ParentTxn, b:ParentTxn):Int {

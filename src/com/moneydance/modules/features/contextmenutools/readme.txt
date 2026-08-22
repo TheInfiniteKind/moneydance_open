@@ -34,6 +34,7 @@ MENU OPTIONS (in the order they appear)
       - and transaction's value
       - from selected transaction
   - Show Other Side: Select Split
+  - Edit Originating Reminder
   - Jump to date in register
 
 
@@ -239,6 +240,18 @@ Three related options in the config screen, all under this feature's own checkbo
     stays as you've set it here regardless of that preference changing later
   - Include single-split transactions - turns this feature on even for transactions with only
     one split, where the only "other side" to jump to is the parent (or vice versa) (default off)
+
+
+EDIT ORIGINATING REMINDER
+-----------------------------
+Right-click a transaction and choose this option to open, ready for editing, the Reminder that
+automatically created it - useful when a scheduled bill's amount or other details have changed
+and you want to bring the Reminder in line, starting from the transaction it already produced.
+
+This only appears when Moneydance's own record of the transaction links it back to a specific
+Reminder - the same internal identifier Moneydance itself creates when a Reminder auto-commits a
+transaction, not a guess based on matching description or value. If the transaction wasn't
+auto-committed from a Reminder, or that link can't be found, this option simply doesn't appear.
 
 
 JUMP TO DATE IN REGISTER
