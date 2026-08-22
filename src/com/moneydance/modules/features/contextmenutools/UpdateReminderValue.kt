@@ -65,7 +65,9 @@ import javax.swing.border.EmptyBorder
  * ParentTxn wherever this class touches either, since the getter's fresh-construction path does
  * NOT call it itself (only the transaction SETTER does).
  */
-class UpdateReminderValue:ContextMenuAction {
+class UpdateReminderValue(
+  private val allReminders:List<Reminder>? = null
+):ContextMenuAction {
 
   private val LOG_SOURCE = "UpdateReminderValue"
 
@@ -124,12 +126,16 @@ class UpdateReminderValue:ContextMenuAction {
    * BANK/CREDIT_CARD on the reminder side, since it's the same account). No split-count or
    * per-split-currency restriction here - those are applied narrower, only for the Scenario A
    * exact-match subset below.
+   *
+   * @param cachedReminders When provided (menu-build time only, from Main.kt's per-click cache),
+   * used instead of fetching book.reminders.allReminders again. Click-time re-validation calls
+   * omit this and always fetch fresh, since data may have changed since the menu was built.
    */
-  private fun findCandidateReminders(txn:ParentTxn):List<Reminder> {
+  private fun findCandidateReminders(txn:ParentTxn, cachedReminders:List<Reminder>? = null):List<Reminder> {
     if (!isEligibleAccountType(txn.account)) return emptyList()
-    val book = txn.account.book
+    val reminders = cachedReminders ?: txn.account.book.reminders.allReminders
 
-    return book.reminders.allReminders.filter { reminder ->
+    return reminders.filter { reminder ->
       reminder.getReminderType() == Reminder.Type.TRANSACTION &&
       !reminder.isInactiveOrExpired() &&
       reminder.transaction.account == txn.account
@@ -195,7 +201,7 @@ class UpdateReminderValue:ContextMenuAction {
       return emptyList()
     }
 
-    val pool = findCandidateReminders(txn)
+    val pool = findCandidateReminders(txn, allReminders)
     if (pool.isEmpty()) {
       logBlockedIfDebug(LOG_SOURCE, "No eligible reminders found for account '${txn.account.fullAccountName}'")
       return emptyList()

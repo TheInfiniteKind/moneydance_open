@@ -123,7 +123,8 @@ class CopyPasteSplits(
   private val templateMatchAccount:Boolean = true,
   private val excludeExpiredReminders:Boolean = false,
   private val rebalanceEnabled:Boolean = true,
-  private val alwaysConfirmTotal:Boolean = false
+  private val alwaysConfirmTotal:Boolean = false,
+  private val allReminders:List<Reminder>? = null
 ):ContextMenuAction {
   
   private val dialog_apply_tmplt_size = ".gui.apply_template.size"
@@ -282,7 +283,7 @@ class CopyPasteSplits(
     if (templateEnabled) {
       val targetReason = targetEligibilityReason(txn)
       if (targetReason == null) {
-        if (findTemplateCandidates(txn.account).isNotEmpty()) {
+        if (findTemplateCandidates(txn.account, allReminders).isNotEmpty()) {
           actions += addAction(label = string_apply_splits_template, cmd = "apply_splits_template") {
             applySplitsTemplate(menuContext, txn)
           }
@@ -442,12 +443,12 @@ class CopyPasteSplits(
    * be excluded (default excluded), and an optional name filter restricts by reminder description
    * (case-insensitive, substring match).
    */
-  private fun findTemplateCandidates(targetAccount:Account):List<Reminder> {
-    val book = Main.mdMain?.currentAccountBook ?: return emptyList()
+  private fun findTemplateCandidates(targetAccount:Account, cachedReminders:List<Reminder>? = null):List<Reminder> {
     val nameFilter = templateNameFilter.trim()
     val targetCurrency = targetAccount.currencyType
+    val reminders = cachedReminders ?: (Main.mdMain?.currentAccountBook ?: return emptyList()).reminders.allReminders
     
-    return book.reminders.allReminders.filter { reminder ->
+    return reminders.filter { reminder ->
       val templateTxn = reminder.transaction
       reminder.getReminderType() == Reminder.Type.TRANSACTION &&
       canCopySplits(templateTxn) &&

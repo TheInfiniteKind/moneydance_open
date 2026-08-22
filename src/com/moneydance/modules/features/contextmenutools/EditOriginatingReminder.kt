@@ -29,7 +29,9 @@ import javax.swing.Action
  * TODO: placeholder for additional narrowing rules if the plain UUID.date search ever proves too
  * broad in practice.
  */
-class EditOriginatingReminder:ContextMenuAction {
+class EditOriginatingReminder(
+  private val allReminders:List<Reminder>? = null
+):ContextMenuAction {
 
   private val string_edit_originating_reminder = "Edit Originating Reminder"
 
@@ -37,7 +39,7 @@ class EditOriginatingReminder:ContextMenuAction {
     if (listTxns.size != 1) return emptyList()
     val txn = listTxns.first().parentTxn
 
-    val match = findOriginatingReminder(txn) ?: return emptyList()
+    findOriginatingReminder(txn, allReminders) ?: return emptyList()
 
     val action = addAction(label = string_edit_originating_reminder, cmd = "edit_originating_reminder")
     { editReminder(menuContext, txn) }
@@ -48,10 +50,12 @@ class EditOriginatingReminder:ContextMenuAction {
     return MDAction.make(label).command(cmd).callback(listener)
   }
 
-  /** Same-account, transaction-type reminders only, no expiry filter - see class kdoc. */
-  private fun findOriginatingReminder(txn:ParentTxn):Reminder? {
-    val book = txn.account.book
-    return book.reminders.allReminders.firstOrNull { reminder ->
+  /** Same-account, transaction-type reminders only, no expiry filter - see class kdoc.
+   *  @param cachedReminders When provided (menu-build time only), used instead of a fresh
+   *  book.reminders.allReminders fetch. Click-time re-validation omits this. */
+  private fun findOriginatingReminder(txn:ParentTxn, cachedReminders:List<Reminder>? = null):Reminder? {
+    val reminders = cachedReminders ?: txn.account.book.reminders.allReminders
+    return reminders.firstOrNull { reminder ->
       reminder.getReminderType() == Reminder.Type.TRANSACTION &&
       reminder.transaction.account == txn.account &&
       isUUIDDateMatch(txn, reminder)

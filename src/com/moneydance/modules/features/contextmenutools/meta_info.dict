@@ -3,7 +3,7 @@
   "vendor_url" = "https://github.com/TheInfiniteKind/moneydance_open"
   "module_name" = "Context Menu Tools"
   "module_name.en-GB" = "Context Menu Tools"
-  "module_desc" = "Enables additional context menu (right click) tools (transactions: value, duplicate, copy/paste/apply/rebalance splits, update reminder, show other side, jump, show/copy raw details)"
+  "module_desc" = "Enables additional context menu (right click) tools (transactions: value, duplicate, copy/paste/apply/rebalance splits, update reminder, edit originating reminder, show other side, jump, show/copy raw details)"
   "id" = "contextmenutools"
   "module_build" = "13"
   "minbuild" = "5253"

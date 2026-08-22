@@ -3,6 +3,7 @@ package com.moneydance.modules.features.contextmenutools
 import com.infinitekind.moneydance.model.AbstractTxn
 import com.infinitekind.moneydance.model.Account
 import com.infinitekind.moneydance.model.CurrencyType
+import com.infinitekind.moneydance.model.Reminder
 import com.infinitekind.util.AppDebug
 import com.infinitekind.util.StreamTable
 import com.infinitekind.util.labelify
@@ -86,6 +87,18 @@ class Main : FeatureModule(), PreferencesListener {
     val updateReminderMenuEnabled = getMenuBoolSetting(menuSettings, SETTING_MENU_UPDATE_REMINDER_ENABLED, true)
     val showOtherSideMenuEnabled = getMenuBoolSetting(menuSettings, SETTING_MENU_SHOW_OTHER_SIDE_ENABLED, true)
     val editOriginatingReminderMenuEnabled = getMenuBoolSetting(menuSettings, SETTING_MENU_EDIT_ORIGINATING_REMINDER_ENABLED, true)
+    
+    // menu-build-time only reminder cache - avoids CopyPasteSplits/UpdateReminderValue/
+    // EditOriginatingReminder each independently calling book.reminders.allReminders (which
+    // rebuilds a fresh list from scratch every call, no caching of its own) when more than one
+    // of them is eligible on the same right-click. Click-time re-validation inside each of those
+    // classes is untouched - it still fetches fresh, since data may have changed since the menu
+    // was built.
+    val allRemindersCache:List<Reminder>? =
+      if (listTxns.size == 1 && (templateMenuEnabled || updateReminderMenuEnabled || editOriginatingReminderMenuEnabled))
+        listTxns.first().account.book.reminders.allReminders
+      else null
+
     val warnCategorySplit = getMenuBoolSetting(menuSettings, SETTING_WARN_CATEGORY_SPLIT, true)
     val defaultFullAcctPaths = mdGUI.preferences.getBoolSetting(UserPreferences.SHOW_FULL_ACCT_PATH, true)
     val showFullAcctNames = getMenuBoolSetting(menuSettings, SETTING_SHOW_FULL_ACCT_NAMES, defaultFullAcctPaths)
@@ -146,10 +159,11 @@ class Main : FeatureModule(), PreferencesListener {
         templateMatchAccount = templateMatchAccount,
         excludeExpiredReminders = excludeExpiredReminders,
         rebalanceEnabled = rebalanceMenuEnabled,
-        alwaysConfirmTotal = alwaysConfirmTotal
+        alwaysConfirmTotal = alwaysConfirmTotal,
+        allReminders = allRemindersCache
       ).getActions(menuContext = context, listAccts = listAccts, listTxns = listTxns)
-      if (updateReminderMenuEnabled) actions += UpdateReminderValue().getActions(menuContext = context, listAccts = listAccts, listTxns = listTxns)
-      if (editOriginatingReminderMenuEnabled) actions += EditOriginatingReminder().getActions(menuContext = context, listAccts = listAccts, listTxns = listTxns)
+      if (updateReminderMenuEnabled) actions += UpdateReminderValue(allReminders = allRemindersCache).getActions(menuContext = context, listAccts = listAccts, listTxns = listTxns)
+      if (editOriginatingReminderMenuEnabled) actions += EditOriginatingReminder(allReminders = allRemindersCache).getActions(menuContext = context, listAccts = listAccts, listTxns = listTxns)
       if (showOtherSideMenuEnabled) actions += ShowOtherSideSelectSplit(warnBeforeCategorySplit = warnCategorySplit, showFullAccountNames = showFullAcctNames, includeSingleSplitTxns = includeSingleSplitTxns).getActions(menuContext = context, listAccts = listAccts, listTxns = listTxns)
     }
     
@@ -247,8 +261,8 @@ class Main : FeatureModule(), PreferencesListener {
   
   private class MenuConfigDialog:SecondaryDialog(mdGUI, null, STRING_CONFIG, false), OKButtonListener {
     
-    private val dialog_config_size = ".gui.config.size"
-    private val dialog_config_locn = ".gui.config.loc"
+    private val dialogConfigSize = ".gui.config.size"
+    private val dialogConfigLocn = ".gui.config.loc"
     
     private val menuSettingsOnOpen = prefs.getTableSetting(EXTN_ID + SETTING_MASTER_KEY, null) ?: StreamTable()
     
@@ -476,7 +490,7 @@ class Main : FeatureModule(), PreferencesListener {
       add(buttonPanel, BorderLayout.SOUTH)
       
       setEscapeKeyCancels(true)
-      setRememberSizeLocationKeys(Main.EXTN_ID + dialog_config_size, Main.EXTN_ID + dialog_config_locn)
+      setRememberSizeLocationKeys(EXTN_ID + dialogConfigSize, EXTN_ID + dialogConfigLocn)
       pack()
       // first-run default only - a remembered size from a previous session (via
       // setRememberSizeLocationKeys above) is applied afterward, when setVisible(true) is
