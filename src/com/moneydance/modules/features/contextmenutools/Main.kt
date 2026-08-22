@@ -122,13 +122,15 @@ class Main : FeatureModule(), PreferencesListener {
     }
 
     // Copy Raw Details to Clipboard: no context-type or account-type restriction whatsoever -
-    // applies wherever any txns are received, so it's wired unconditionally, before the
-    // quick-exit check below (which only bails when BOTH txns and accts are empty).
-    actions += CopyRawDetailsToClipboard(copyEnabled = copyRawMenuEnabled, showEnabled = showRawMenuEnabled)
+    // applies wherever any txns are received, so it's computed unconditionally, before the
+    // quick-exit check below (which only bails when BOTH txns and accts are empty). Held here
+    // rather than appended immediately - it's placed at the END of the menu (see the return
+    // points below), since it's a generic diagnostic tool, not a data-editing action.
+    val rawDetailsActions = CopyRawDetailsToClipboard(copyEnabled = copyRawMenuEnabled, showEnabled = showRawMenuEnabled)
       .getActions(menuContext = context, listAccts = listAccts, listTxns = listTxns)
     
     // quick do-nothing exit if there are no items/accounts to process...
-    if (listTxns.isEmpty() && listAccts.isEmpty()) return actions
+    if (listTxns.isEmpty() && listAccts.isEmpty()) return rawDetailsActions
     
     if (isDataEntryRegisterActionType(contextType = context.type, includeSecReg = true) || isSearchActionType(contextType = context.type)) {
       if (vstMenuEnabled) actions += ValueSelectedTxns().getActions(menuContext = context, listAccts = listAccts, listTxns = listTxns)
@@ -147,14 +149,15 @@ class Main : FeatureModule(), PreferencesListener {
         alwaysConfirmTotal = alwaysConfirmTotal
       ).getActions(menuContext = context, listAccts = listAccts, listTxns = listTxns)
       if (updateReminderMenuEnabled) actions += UpdateReminderValue().getActions(menuContext = context, listAccts = listAccts, listTxns = listTxns)
-      if (showOtherSideMenuEnabled) actions += ShowOtherSideSelectSplit(warnBeforeCategorySplit = warnCategorySplit, showFullAccountNames = showFullAcctNames, includeSingleSplitTxns = includeSingleSplitTxns).getActions(menuContext = context, listAccts = listAccts, listTxns = listTxns)
       if (editOriginatingReminderMenuEnabled) actions += EditOriginatingReminder().getActions(menuContext = context, listAccts = listAccts, listTxns = listTxns)
+      if (showOtherSideMenuEnabled) actions += ShowOtherSideSelectSplit(warnBeforeCategorySplit = warnCategorySplit, showFullAccountNames = showFullAcctNames, includeSingleSplitTxns = includeSingleSplitTxns).getActions(menuContext = context, listAccts = listAccts, listTxns = listTxns)
     }
     
     if (isDataEntryRegisterActionType(contextType = context.type, includeSecReg = false) || isSearchActionType(contextType = context.type)) {
       if (jumpMenuEnabled) actions += JumpToDate().getActions(menuContext = context, listAccts = listAccts, listTxns = listTxns)
     }
     
+    actions += rawDetailsActions
     return actions
   }
   
@@ -409,9 +412,6 @@ class Main : FeatureModule(), PreferencesListener {
       var y = 0
       
       form.add(JSeparator(), GridC.getc(0, y++).west().wx(1f).fillboth().insets(6, 0, 6, 0))
-      form.add(enableMenuShowRawCheckbox, GridC.getc(0, y++).west().insets(4, 4, 4, 4))
-      form.add(enableMenuCopyRawCheckbox, GridC.getc(0, y++).west().insets(4, 4, 4, 4))
-      form.add(JSeparator(), GridC.getc(0, y++).west().wx(1f).fillboth().insets(6, 0, 6, 0))
       form.add(enableMenuVSTCheckbox, GridC.getc(0, y++).west().insets(4, 4, 2, 4))
       
       val currPanel = JPanel(GridBagLayout())
@@ -440,6 +440,9 @@ class Main : FeatureModule(), PreferencesListener {
       
       form.add(JSeparator(), GridC.getc(0, y++).west().wx(1f).fillboth().insets(6, 0, 6, 0))
       
+      form.add(enableMenuEditOriginatingReminderCheckbox, GridC.getc(0, y++).west().insets(4, 4, 4, 4))
+      form.add(JSeparator(), GridC.getc(0, y++).west().wx(1f).fillboth().insets(6, 0, 6, 0))
+      
       form.add(enableMenuShowOtherSideCheckbox, GridC.getc(0, y++).west().insets(4, 4, 4, 4))
       
       form.add(warnCategorySplitCheckbox, GridC.getc(0, y++).west().insets(0, 24, 4, 4))
@@ -448,9 +451,10 @@ class Main : FeatureModule(), PreferencesListener {
       
       form.add(includeSingleSplitTxnsCheckbox, GridC.getc(0, y++).west().insets(0, 24, 4, 4))
       form.add(JSeparator(), GridC.getc(0, y++).west().wx(1f).fillboth().insets(6, 0, 6, 0))
-      form.add(enableMenuEditOriginatingReminderCheckbox, GridC.getc(0, y++).west().insets(4, 4, 4, 4))
-      form.add(JSeparator(), GridC.getc(0, y++).west().wx(1f).fillboth().insets(6, 0, 6, 0))
       form.add(enableMenuJumpCheckbox, GridC.getc(0, y++).west().insets(4, 4, 4, 4))
+      form.add(JSeparator(), GridC.getc(0, y++).west().wx(1f).fillboth().insets(6, 0, 6, 0))
+      form.add(enableMenuShowRawCheckbox, GridC.getc(0, y++).west().insets(4, 4, 4, 4))
+      form.add(enableMenuCopyRawCheckbox, GridC.getc(0, y++).west().insets(4, 4, 4, 4))
       form.add(JSeparator(), GridC.getc(0, y++).west().wx(1f).fillboth().insets(6, 0, 6, 0))
       form.add(enableMenuDebugCheckbox, GridC.getc(0, y++).west().insets(4, 4, 4, 4))
       form.add(JSeparator(), GridC.getc(0, y++).west().wx(1f).fillboth().insets(6, 0, 6, 0))
