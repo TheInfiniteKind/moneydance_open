@@ -2,6 +2,7 @@ package com.moneydance.modules.features.contextmenutools
 
 import com.infinitekind.moneydance.model.AbstractTxn
 import com.infinitekind.moneydance.model.Account
+import com.infinitekind.util.DateUtil.calculateDaysBetween
 import com.infinitekind.util.labelify
 import com.moneydance.apps.md.controller.MDActionContext
 import com.moneydance.apps.md.view.gui.MDAction
@@ -84,7 +85,10 @@ class JumpToDate:ContextMenuAction {
       txnRegister.setSelectedTransactions(exactMatches.toTypedArray())
       txnRegister.ensureTxnIsVisible(exactMatches.first())
     } else {
-      val nearest = allTxns.minByOrNull { abs(it.dateInt - targetDate) } ?: return
+      // NOTE: comparing dateInt (YYYYMMDD encoded) via plain integer subtraction is WRONG across
+      // month/year boundaries (e.g. 20260131 vs 20260201 differ by 70, not 1 day) - use
+      // DateUtil.calculateDaysBetween for a true calendar-day distance instead.
+      val nearest = allTxns.minByOrNull { abs(calculateDaysBetween(it.dateInt, targetDate)) } ?: return
       txnRegister.setSelectedTransactions(arrayOf(nearest))
       txnRegister.ensureTxnIsVisible(nearest)
     }

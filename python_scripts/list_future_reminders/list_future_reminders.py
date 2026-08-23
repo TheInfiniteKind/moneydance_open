@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# list_future_reminders.py (build: 1033) - September 2024
+# list_future_reminders.py (build: 1034) - August 2026
 # Displays Moneydance future dated / scheduled reminders (along with options to auto-record, delete etc)
 
 ###############################################################################
@@ -81,8 +81,8 @@
 # build: 1030 - Fix print button to refresh the JTable reference
 # build: 1031 - MyJFrame(v5); _eventNotify rename fix for 5140; switch to MyBasePropertyChangeReporter
 # build: 1032 - MD2024.2(5142) - moneydance_extension_loader was nuked and moneydance_this_fm with getResourceAsStream() was provided.
-# build: 1033 - ???
 # build: 1033 - More safety on 'skip next occurrence of all reminders' option; add undo manager on the en-mass change 'skip next occurrence of all reminders' option...
+# build: 1034 - fix comparator if/elif bug
 # build: 1033 - ???
 
 # todo - @he "Include subtotals / totals. Would be nice if user could select what to subtotal (by date / by account for sure)"
@@ -94,7 +94,7 @@
 
 # SET THESE LINES
 myModuleID = u"list_future_reminders"
-version_build = "1033"
+version_build = "1034"
 MIN_BUILD_REQD = 1904                                               # Check for builds less than 1904 / version < 2019.4
 _I_CAN_RUN_AS_DEVELOPER_CONSOLE_SCRIPT = True
 
@@ -5626,7 +5626,7 @@ Visit: %s (Author's site)
                 for _i in range(0, self.getColumnCount()):
                     if _i == GlobalVars.tableHeaderRowList.index("THE_REMINDER_OBJECT"):
                         sorter.setComparator(_i, self.MyTextNumberComparator("%"))
-                    if _i == GlobalVars.tableHeaderRowList.index("Net Amount"):
+                    elif _i == GlobalVars.tableHeaderRowList.index("Net Amount"):
                         sorter.setComparator(_i, self.MyTextNumberComparator("N"))
                     else:
                         sorter.setComparator(_i, self.MyTextNumberComparator("T"))

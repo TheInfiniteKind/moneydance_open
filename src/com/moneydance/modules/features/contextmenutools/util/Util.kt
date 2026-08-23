@@ -1,6 +1,5 @@
 package com.moneydance.modules.features.contextmenutools.util
 
-import com.infinitekind.moneydance.model.AbstractTxn
 import com.infinitekind.moneydance.model.UndoableChange
 import com.infinitekind.util.AppDebug
 import com.infinitekind.util.DateUtil.today
@@ -11,6 +10,17 @@ import java.awt.Component
 import java.awt.Dialog
 
 fun String.prefixExtnID(): String { return "${Main.EXTN_ID}: $this"}
+
+/**
+ * Logs why a menu action was withheld entirely, or offered with fewer options than usual, gated
+ * on either the extension's own "Enable debug messages" checkbox OR Moneydance's launch debug
+ * flag. Shared by any action class that wants this exact shape (caller builds the full message,
+ * source is the calling class's own display name for the log prefix).
+ */
+fun logBlockedIfDebug(source:String, message:String) {
+  if (extensionContext?.debugMenuEnabled != true && !Main.DEBUG) return
+  Util.logConsole(false, "$source: $message")
+}
 
 /**
  * UndoableChange.name became a public var in MD2026. For compatibility with pre-2026 builds,
@@ -29,30 +39,6 @@ fun UndoableChange.setNameCompat(name:String) {
       f.isAccessible = true
       f.set(this, name)
     }
-  }
-}
-
-/**
- * AbstractTxn.downloadMatchType / DownloadMatchType exist at runtime on MD2024.4, but not in
- * the earlier compile-time API jar this module builds against. Reflect both the getter and the
- * NO_MATCH constants, without a compile-time reference to the missing type.
- */
-fun AbstractTxn.downloadMatchTypeCompat():Any {
-  return try {
-    this.javaClass.getMethod("getDownloadMatchType").invoke(this)
-    ?: throw IllegalStateException("downloadMatchType reflection returned null for $this")
-  } catch (e:Exception) {
-    throw IllegalStateException("Failed to reflect AbstractTxn.downloadMatchType via reflection", e)
-  }
-}
-
-val noMatchConstantCompat:Any by lazy {
-  try {
-    val enumClass = Class.forName("com.infinitekind.moneydance.model.AbstractTxn\$DownloadMatchType")
-    enumClass.getField("NO_MATCH").get(null)
-    ?: throw IllegalStateException("NO_MATCH field reflection returned null")
-  } catch (e:Exception) {
-    throw IllegalStateException("Failed to reflect AbstractTxn.DownloadMatchType.NO_MATCH via reflection", e)
   }
 }
 
@@ -104,19 +90,19 @@ object Util {
   data class TIKDate(val year: Int, val month: Int, val day: Int)
   val Int.extractDate: TIKDate get() = TIKDate(year=this/10000, month = (this/100)%100, day = this%100)
 
-  // the signature changed after MD2024.4(5253) to add @JvmStatic - prevent runtime compatibility issues....
+  // the signature changed for MD2026(5500) to add @JvmStatic - prevent runtime compatibility issues....
   @JvmStatic val Int?.validYYYYMMDD:Int?
     get() = this?.takeIf { it > 10000000 && it < 40000000 }
   
-  // the signature changed after MD2024.4(5253) to add @JvmStatic - prevent runtime compatibility issues....
+  // the signature changed for MD2026(5500) to add @JvmStatic - prevent runtime compatibility issues....
   @JvmStatic val Int?.nullIfToday:Int?
     get() = this?.takeIf { it != today }
   
-  // the signature changed after MD2024.4(5253) to add @JvmStatic - prevent runtime compatibility issues....
+  // the signature changed for MD2026(5500) to add @JvmStatic - prevent runtime compatibility issues....
   @JvmStatic val String?.nullIfBlank: String?
     get() = if (isNullOrBlank()) null else this
   
-  // the signature changed after MD2024.4(5253) to add @JvmStatic - prevent runtime compatibility issues....
+  // the signature changed for MD2026(5500) to add @JvmStatic - prevent runtime compatibility issues....
   @JvmStatic val String?.blankIfNull: String
     get() = if (isNullOrBlank()) "" else this
   
