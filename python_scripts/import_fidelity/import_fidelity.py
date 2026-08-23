@@ -55,6 +55,7 @@ from java.io import File, FilenameFilter
 
 from com.infinitekind.moneydance.model import ParentTxn, AbstractTxn, InvestTxnType, InvestFields, AccountUtil, TxnSearch, Account, AcctFilter
 from com.moneydance.apps.md.controller import UserPreferences
+from com.moneydance.apps.md.view.gui import DefaultOnlineUIProxy
 
 if MD_REF.getBuild() >= 5100: from com.infinitekind.util import AppDebug                                                # noqa
 if MD_REF.getBuild() >= 4097: from com.infinitekind.util import DateUtil
@@ -135,13 +136,34 @@ def parseAmount(s):
     return float(s)
 
 def getSecurityAcct(investAcct, securityName, tickerSymbol):
+    print("matchSecurity: name="+securityName+"  ticker:"+tickerSymbol)
+    lowerSymbol = tickerSymbol.strip().lower()
+    if lowerSymbol == "": return None
     for secAcct in investAcct.getSubAccounts():
         if secAcct.getAccountType() != Account.AccountType.SECURITY: continue
         if securityName and secAcct.getCurrencyType().getName() == securityName:
             return secAcct
-        if tickerSymbol and secAcct.getCurrencyType().getTickerSymbol().strip().lower() == tickerSymbol.strip().lower():
+        if tickerSymbol and secAcct.getCurrencyType().getTickerSymbol().strip().lower() == lowerSymbol:
             return secAcct
-    return None
+        
+    # The security did not already have a corresponding account under this investment account, so ask the user to select 
+    # the security, and we'll associate it with a security subaccount
+    book = investAcct.getBook()
+    sec = DefaultOnlineUIProxy(MD_REF.getUI(), book, None).matchSecurity(None, lowerSymbol, "ticker", securityName)
+    if sec is None: return None # no security was returned, because the dialog was canceled
+    
+    for secAcct in investAcct.getSubAccounts():
+        if sec == secAcct.currencyType:
+            return secAcct
+    
+    # no security account was found, so let's create one
+    newSecAcct = Account.makeAccount(book, Account.AccountType.SECURITY, investAcct)
+    newSecAcct.setEditingMode()
+    newSecAcct.getUUID()
+    newSecAcct.setAccountName(sec.getName())
+    newSecAcct.setCurrencyType(sec)
+    newSecAcct.syncItem()
+    return newSecAcct
 
 def dump():
     tb = traceback.format_exc()
@@ -401,7 +423,7 @@ def doMain():
                         account,
                         desc,
                         memo,
-                        -1L,
+                        -1,
                         AbstractTxn.ClearedStatus.UNRECONCILED.legacyValue())                                           # noqa
 
                     fields = InvestFields()
