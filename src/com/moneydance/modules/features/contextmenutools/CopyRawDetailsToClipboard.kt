@@ -1,14 +1,7 @@
 package com.moneydance.modules.features.contextmenutools
 
-import com.infinitekind.moneydance.model.AbstractTxn
-import com.infinitekind.moneydance.model.Account
-import com.infinitekind.moneydance.model.Budget
-import com.infinitekind.moneydance.model.CurrencyType
-import com.infinitekind.moneydance.model.MoneydanceSyncableItem
-import com.infinitekind.moneydance.model.ParentTxn
-import com.infinitekind.moneydance.model.Reminder
-import com.infinitekind.moneydance.model.ReportSpec
-import com.infinitekind.moneydance.model.SplitTxn
+import com.infinitekind.moneydance.model.*
+import com.infinitekind.tiksync.SyncRecord
 import com.moneydance.apps.md.controller.MDActionContext
 import com.moneydance.apps.md.view.gui.MDAction
 import com.moneydance.modules.features.contextmenutools.Main.Companion.mdGUI
@@ -117,45 +110,60 @@ class CopyRawDetailsToClipboard(
    * include its parent's details inline anymore - that's handled by recursion in buildItemBlock,
    * appended as its own indented block instead.
    */
-  private fun buildHeader(item:MoneydanceSyncableItem, dec:Char):String {
-    val typeName = item.javaClass.simpleName
-    val dateFmt = mdGUI.preferences.shortDateFormatter
+  private fun buildHeader(item:MoneydanceSyncableItem? = null, syncInfo:SyncRecord? = null, syncInfoKey:String? = null, dec:Char):String {
 
-    return when (item) {
-      is ParentTxn -> {
-        val acctName = item.account.fullAccountName
-        val currId = item.account.currencyType.getIDString()
-        val valueStr = item.account.currencyType.formatFancy(item.value, dec)
-        "$typeName: ${dateFmt.format(item.dateInt)}, ${item.description}, '$acctName', $currId, $valueStr, ${item.splitCount} splits"
+    if (item != null) {
+      val dateFmt = mdGUI.preferences.shortDateFormatter
+      val typeName = item.javaClass.simpleName
+      return when (item) {
+        is ParentTxn -> {
+          val acctName = item.account.fullAccountName
+          val currId = item.account.currencyType.getIDString()
+          val valueStr = item.account.currencyType.formatFancy(item.value, dec)
+          "$typeName: ${dateFmt.format(item.dateInt)}, ${item.description}, '$acctName', $currId, $valueStr, ${item.splitCount} splits"
+        }
+        
+        is SplitTxn -> {
+          val acctName = item.account.fullAccountName
+          val currId = item.account.currencyType.getIDString()
+          val valueStr = item.account.currencyType.formatFancy(item.value, dec)
+          "$typeName: ${dateFmt.format(item.dateInt)}, ${item.description}, '$acctName', $currId, $valueStr"
+        }
+        
+        is Account -> {
+          // currencyType is a Java platform type - nullability isn't guaranteed for every account
+          // type, so guard against a null here instead of risking an NPE.
+          val currIdStr = item.currencyType?.getIDString() ?: "null"
+          "$typeName: '${item.fullAccountName}', ${item.getAccountType()}, $currIdStr"
+        }
+        
+        is Reminder -> {
+          val txn = item.transaction
+          "$typeName: ${item.description}, '${txn.account.fullAccountName}', ${txn.account.currencyType.formatFancy(txn.value, dec)}, ${txn.splitCount} splits"
+        }
+        
+        is Budget -> {
+          "$typeName: ${item.name}"
+        }
+        
+        is CurrencyType -> {
+          val tickerSuffix = if (item.currencyType == CurrencyType.Type.SECURITY) ", ticker=${item.getTickerSymbol()}" else ""
+          "$typeName: ${item.getName()}, ${item.getIDString()}, ${item.currencyType}$tickerSuffix"
+        }
+        
+        is ReportSpec -> {
+          "$typeName: ${item.name}, ${item.reportGenerator}, ${item.reportGenerator?.reportType}"
+        }
+        
+        else -> "$typeName: $item"
       }
-      is SplitTxn -> {
-        val acctName = item.account.fullAccountName
-        val currId = item.account.currencyType.getIDString()
-        val valueStr = item.account.currencyType.formatFancy(item.value, dec)
-        "$typeName: ${dateFmt.format(item.dateInt)}, ${item.description}, '$acctName', $currId, $valueStr"
-      }
-      is Account -> {
-        // currencyType is a Java platform type - nullability isn't guaranteed for every account
-        // type, so guard against a null here instead of risking an NPE.
-        val currIdStr = item.currencyType?.getIDString() ?: "null"
-        "$typeName: '${item.fullAccountName}', ${item.getAccountType()}, $currIdStr"
-      }
-      is Reminder -> {
-        val txn = item.transaction
-        "$typeName: ${item.description}, '${txn.account.fullAccountName}', ${txn.account.currencyType.formatFancy(txn.value, dec)}, ${txn.splitCount} splits"
-      }
-      is Budget -> {
-        "$typeName: ${item.name}"
-      }
-      is CurrencyType -> {
-        val tickerSuffix = if (item.currencyType == CurrencyType.Type.SECURITY) ", ticker=${item.getTickerSymbol()}" else ""
-        "$typeName: ${item.getName()}, ${item.getIDString()}, ${item.currencyType}$tickerSuffix"
-      }
-      is ReportSpec -> {
-        "$typeName: ${item.name}, ${item.reportGenerator}, ${item.reportGenerator?.reportType}"
-      }
-      else -> "$typeName: $item"
     }
+    
+    if (syncInfo != null) {
+      return "${syncInfo.javaClass.simpleName}${if (syncInfoKey != null) ": <DEFAULT REPORT SETTINGS - key: '${syncInfoKey}'>" else ""}"
+    }
+
+    return "<< HEADER >>"
   }
 
   /** Wraps a raw multiline dump in { }, each original line indented 2 spaces inside. */
@@ -180,10 +188,10 @@ class CopyRawDetailsToClipboard(
    * not recurse further, since a ParentTxn passed back into this function never re-enters the
    * SplitTxn branch.
    */
-  private fun buildItemBlock(item:MoneydanceSyncableItem, dec:Char):String {
-    val header = "--- ${buildHeader(item, dec)} ---\n"
+  private fun buildItemBlock(item:MoneydanceSyncableItem? = null, syncInfo:SyncRecord? = null, syncInfoKey:String? = null, dec:Char):String {
+    val header = "--- ${buildHeader(item = item, syncInfo = syncInfo, syncInfoKey = syncInfoKey, dec = dec)} ---\n"
     val dump = try {
-      wrapDump(item.syncInfo.toMultilineHumanReadableString())
+      wrapDump((item?.syncInfo ?: syncInfo!!).toMultilineHumanReadableString())
     } catch (e:Exception) {
       Util.logConsole("CopyRawDetailsToClipboard: failed to read syncInfo for $item: $e")
       "{\n  <failed to read details: $e>\n}\n"
@@ -192,8 +200,14 @@ class CopyRawDetailsToClipboard(
     var block = header + dump
 
     if (item is SplitTxn) {
-      val parentBlock = buildItemBlock(item.parentTxn, dec)
+      val parentBlock = buildItemBlock(item = item.parentTxn, syncInfo = syncInfo, syncInfoKey = syncInfoKey, dec = dec)
       block += indentBlock(parentBlock, 5)
+    } else if (item is ReportSpec && !item.isMemorized) {
+      val paramKey = "report_params." + item.reportGeneratorID
+      item.book.localStorage?.getSubset(prefix = paramKey)?.let { builtInRptParams ->
+        val defaultParamsBlock = buildItemBlock(item = null, syncInfo = builtInRptParams, syncInfoKey = paramKey, dec = dec)
+        block += indentBlock(defaultParamsBlock, 5)
+      }
     }
 
     return block
@@ -203,7 +217,7 @@ class CopyRawDetailsToClipboard(
     val dec = mdGUI.preferences.decimalChar
     return buildString {
       for (item in items) {
-        append(buildItemBlock(item, dec))
+        append(buildItemBlock(item = item, syncInfo = null, syncInfoKey = null, dec = dec))
         append("\n")
       }
     }
