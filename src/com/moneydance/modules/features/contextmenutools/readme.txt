@@ -110,7 +110,10 @@ Paste is allowed when (in addition to a copy already existing):
 
 If the target's total doesn't match what you copied, you'll be asked how to handle the
 difference (keep amounts exact and add the extra to a new split, or scale everything
-proportionally). There's also a config option to always ask this, even when totals match.
+proportionally). There's also a config option to always ask this, even when totals match, and a
+separate config option to make "Allocate by %" the default-selected choice on that prompt
+instead of "Overwrite target total" (this also applies to Apply Splits Template below, since
+both share the same prompt).
 
 
 APPLY SPLITS TEMPLATE (FROM REMINDERS)

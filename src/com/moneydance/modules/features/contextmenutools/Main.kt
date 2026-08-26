@@ -114,6 +114,7 @@ class Main : FeatureModule(), PreferencesListener {
     val copyRawMenuEnabled = getMenuBoolSetting(menuSettings, SETTING_MENU_COPY_RAW_ENABLED, false)
     val showRawMenuEnabled = getMenuBoolSetting(menuSettings, SETTING_MENU_SHOW_RAW_ENABLED, false)
     val alwaysConfirmTotal = getMenuBoolSetting(menuSettings, SETTING_ALWAYS_CONFIRM_TOTAL, false)
+    val defaultToPercentAllocation = getMenuBoolSetting(menuSettings, SETTING_DEFAULT_PERCENT_ALLOCATION, false)
     
     if (debugMenuEnabled || DEBUG) {
       val summary = "ContextMenuTools: type=${context.type.name} dateRange=${context.dateRange} " +
@@ -164,7 +165,8 @@ class Main : FeatureModule(), PreferencesListener {
         excludeExpiredReminders = excludeExpiredReminders,
         rebalanceEnabled = rebalanceMenuEnabled,
         alwaysConfirmTotal = alwaysConfirmTotal,
-        allReminders = allRemindersCache
+        allReminders = allRemindersCache,
+        defaultToPercentAllocation = defaultToPercentAllocation
       ).getActions(menuContext = context, listAccts = listAccts, listTxns = listTxns)
       if (updateReminderMenuEnabled) actions += UpdateReminderValue(allReminders = allRemindersCache).getActions(menuContext = context, listAccts = listAccts, listTxns = listTxns)
       if (editOriginatingReminderMenuEnabled) actions += EditOriginatingReminder(allReminders = allRemindersCache).getActions(menuContext = context, listAccts = listAccts, listTxns = listTxns)
@@ -349,6 +351,11 @@ class Main : FeatureModule(), PreferencesListener {
       isEnabled = enableMenuCopyPasteCheckbox.isSelected || enableMenuTemplateCheckbox.isSelected
     }
     
+    private val defaultPercentAllocationCheckbox = JCheckBox(STRING_DEFAULT_PERCENT_ALLOCATION).apply {
+      isSelected = getMenuBoolSetting(menuSettingsOnOpen, SETTING_DEFAULT_PERCENT_ALLOCATION, false)
+      isEnabled = enableMenuCopyPasteCheckbox.isSelected || enableMenuTemplateCheckbox.isSelected
+    }
+    
     private val hamiltonLinkLabel = JLabel(STRING_HAMILTON_LINK_TEXT).apply {
       foreground = Util.blue
       cursor = java.awt.Cursor(java.awt.Cursor.HAND_CURSOR)
@@ -407,10 +414,12 @@ class Main : FeatureModule(), PreferencesListener {
         excludeExpiredRemindersCheckbox.isEnabled = enableMenuTemplateCheckbox.isSelected
         templateNameFilterField.isEnabled = enableMenuTemplateCheckbox.isSelected
         alwaysConfirmTotalCheckbox.isEnabled = enableMenuCopyPasteCheckbox.isSelected || enableMenuTemplateCheckbox.isSelected
+        defaultPercentAllocationCheckbox.isEnabled = enableMenuCopyPasteCheckbox.isSelected || enableMenuTemplateCheckbox.isSelected
       }
       
       enableMenuCopyPasteCheckbox.addActionListener {
         alwaysConfirmTotalCheckbox.isEnabled = enableMenuCopyPasteCheckbox.isSelected || enableMenuTemplateCheckbox.isSelected
+        defaultPercentAllocationCheckbox.isEnabled = enableMenuCopyPasteCheckbox.isSelected || enableMenuTemplateCheckbox.isSelected
       }
       
       enableMenuShowOtherSideCheckbox.addActionListener {
@@ -451,8 +460,11 @@ class Main : FeatureModule(), PreferencesListener {
       templateFilterPanel.add(templateNameFilterField, GridC.getc(1, 0).west().insets(0, 0, 0, 0))
       form.add(templateFilterPanel, GridC.getc(0, y++).west().insets(0, 24, 4, 4))
 
-      form.add(enableMenuRebalanceCheckbox, GridC.getc(0, y++).west().insets(4, 4, 4, 4))
       form.add(alwaysConfirmTotalCheckbox, GridC.getc(0, y++).west().insets(0, 24, 4, 4))
+      form.add(defaultPercentAllocationCheckbox, GridC.getc(0, y++).west().insets(0, 24, 4, 4))
+      form.add(JSeparator(), GridC.getc(0, y++).west().wx(1f).fillboth().insets(6, 0, 6, 0))
+
+      form.add(enableMenuRebalanceCheckbox, GridC.getc(0, y++).west().insets(4, 4, 4, 4))
       form.add(JSeparator(), GridC.getc(0, y++).west().wx(1f).fillboth().insets(6, 0, 6, 0))
       form.add(enableMenuUpdateReminderCheckbox, GridC.getc(0, y++).west().insets(4, 4, 4, 4))
       
@@ -533,6 +545,7 @@ class Main : FeatureModule(), PreferencesListener {
           menuSettings[SETTING_TEMPLATE_EXCLUDE_EXPIRED] = excludeExpiredRemindersCheckbox.isSelected
           menuSettings[SETTING_TEMPLATE_NAME_FILTER] = templateNameFilterField.text.trim()
           menuSettings[SETTING_ALWAYS_CONFIRM_TOTAL] = alwaysConfirmTotalCheckbox.isSelected
+          menuSettings[SETTING_DEFAULT_PERCENT_ALLOCATION] = defaultPercentAllocationCheckbox.isSelected
           menuSettings[SETTING_MENU_COPY_RAW_ENABLED] = enableMenuCopyRawCheckbox.isSelected
           menuSettings[SETTING_MENU_SHOW_RAW_ENABLED] = enableMenuShowRawCheckbox.isSelected
 
@@ -632,6 +645,7 @@ class Main : FeatureModule(), PreferencesListener {
     const val STRING_MENU_COPY_RAW_ENABLED = "Enable context menu: 'Copy Raw Details to Clipboard'"
     const val STRING_MENU_SHOW_RAW_ENABLED = "Enable context menu: 'Show Raw Details'"
     const val STRING_ALWAYS_CONFIRM_TOTAL = "Always confirm total when pasting splits"
+    const val STRING_DEFAULT_PERCENT_ALLOCATION = "Default Allocation Method to 'Allocate by %'"
     const val STRING_DEBUG_ENABLED = "Enable debug messages"
     const val STRING_HAMILTON_LINK_TEXT = "About the largest-remainder (Hamilton's) allocation method"
     const val STRING_HAMILTON_LINK_TOOLTIP = "Opens the Wikipedia article in your browser"
@@ -661,6 +675,7 @@ class Main : FeatureModule(), PreferencesListener {
     const val SETTING_MENU_COPY_RAW_ENABLED = "menu.enabled.copyraw"
     const val SETTING_MENU_SHOW_RAW_ENABLED = "menu.enabled.showraw"
     const val SETTING_ALWAYS_CONFIRM_TOTAL = "paste.always_confirm_total"
+    const val SETTING_DEFAULT_PERCENT_ALLOCATION = "paste.default_percent_allocation"
     
     private fun getMenuBoolSetting(table:StreamTable, key:String, default:Boolean):Boolean = table.getBoolean(key, default)
     private fun getMenuStringSetting(table:StreamTable, key:String, default:String):String { return (table[key] as? String) ?: default }

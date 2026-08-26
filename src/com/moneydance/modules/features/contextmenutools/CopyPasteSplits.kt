@@ -124,7 +124,8 @@ class CopyPasteSplits(
   private val excludeExpiredReminders:Boolean = false,
   private val rebalanceEnabled:Boolean = true,
   private val alwaysConfirmTotal:Boolean = false,
-  private val allReminders:List<Reminder>? = null
+  private val allReminders:List<Reminder>? = null,
+  private val defaultToPercentAllocation:Boolean = false
 ):ContextMenuAction {
   
   private val dialog_apply_tmplt_size = ".gui.apply_template.size"
@@ -1021,7 +1022,8 @@ class CopyPasteSplits(
       }
       option to rb
     }
-    radios.first().second.isSelected = true   // default: overwrite target total
+    val defaultRadio = if (defaultToPercentAllocation) radios.first { it.first is PasteMismatchOption.PercentHamilton }.second else radios.first().second
+    defaultRadio.isSelected = true
     
     panel.add(
       buildBottomInfoBlock(
@@ -1074,7 +1076,7 @@ class CopyPasteSplits(
     val group = ButtonGroup()
     group.add(exactRadio)
     group.add(hamiltonRadio)
-    exactRadio.isSelected = true
+    if (defaultToPercentAllocation) hamiltonRadio.isSelected = true else exactRadio.isSelected = true
     
     val fieldRow = JPanel(GridBagLayout())
     fieldRow.add(newTotalField, GridC.getc().xy(0, 0))
