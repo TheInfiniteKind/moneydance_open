@@ -9,6 +9,7 @@ import com.moneydance.apps.md.view.gui.EditRemindersWindow
 import com.moneydance.apps.md.view.gui.MDAction
 import com.moneydance.awt.AwtUtil
 import com.moneydance.modules.features.contextmenutools.Main.Companion.mdGUI
+import com.moneydance.modules.features.contextmenutools.util.isRemIdMarkerMatch
 import com.moneydance.modules.features.contextmenutools.util.isUUIDDateMatch
 import java.awt.event.ActionListener
 import javax.swing.Action
@@ -26,7 +27,8 @@ import javax.swing.Action
  * an identity lookup for a transaction that already happened, so an expired or since-modified
  * reminder should still be found if it's the one that actually created this transaction).
  *
- * TODO: placeholder for additional narrowing rules if the plain UUID.date search ever proves too broad in practice.
+ * TODO: placeholder for additional narrowing rules if the plain UUID.date search ever proves too
+ * broad in practice.
  */
 class EditOriginatingReminder(
   private val allReminders:List<Reminder>? = null
@@ -49,16 +51,23 @@ class EditOriginatingReminder(
     return MDAction.make(label).command(cmd).callback(listener)
   }
 
-  /** Same-account, transaction-type reminders only, no expiry filter - see class kdoc.
-   *  @param cachedReminders When provided (menu-build time only), used instead of a fresh
-   *  book.reminders.allReminders fetch. Click-time re-validation omits this. */
+  /**
+   * Same-account, transaction-type reminders only, no expiry filter - see class kdoc.
+   * Two lookup tiers: Moneydance's own uuid.date auto-commit convention first (proof, not a
+   * heuristic), then our own rem_id marker (written whenever Apply Splits Template applies a
+   * template to a transaction - the fallback for manually-applied templates, which never get a
+   * uuid.date link since that's only ever set by Moneydance's own auto-commit).
+   * @param cachedReminders When provided (menu-build time only), used instead of a fresh
+   * book.reminders.allReminders fetch. Click-time re-validation omits this.
+   */
   private fun findOriginatingReminder(txn:ParentTxn, cachedReminders:List<Reminder>? = null):Reminder? {
     val reminders = cachedReminders ?: txn.account.book.reminders.allReminders
-    return reminders.firstOrNull { reminder ->
+    val sameAccountTxnReminders = reminders.filter { reminder ->
       reminder.getReminderType() == Reminder.Type.TRANSACTION &&
-      reminder.transaction.account == txn.account &&
-      isUUIDDateMatch(txn, reminder)
+      reminder.transaction.account == txn.account
     }
+    sameAccountTxnReminders.firstOrNull { isUUIDDateMatch(txn, it) }?.let { return it }
+    return sameAccountTxnReminders.firstOrNull { isRemIdMarkerMatch(txn, it) }
   }
 
   private fun editReminder(menuContext:MDActionContext, txn:ParentTxn) {

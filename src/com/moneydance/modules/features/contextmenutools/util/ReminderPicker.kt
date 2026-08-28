@@ -110,6 +110,13 @@ private fun valueBand(candidateValue:Long, referenceValue:Long):Int {
 private fun uuidDatePenalty(referenceTxn:ParentTxn, candidate:Reminder):Int =
   if (isUUIDDateMatch(referenceTxn, candidate)) 0 else 1
 
+/** Same idea as uuidDatePenalty, second tier - our own rem_id marker match (see
+ *  TxnEligibility.kt), the fallback identity signal for manually-applied templates that never
+ *  get Moneydance's own uuid.date link. Ranked below uuidDatePenalty (that one is Moneydance's
+ *  own proof) but above every other relevance signal. */
+private fun remIdMarkerPenalty(referenceTxn:ParentTxn, candidate:Reminder):Int =
+  if (isRemIdMarkerMatch(referenceTxn, candidate)) 0 else 1
+
 /** Count of distinct split-target accounts the two transactions have in common. */
 private fun categoryOverlap(a:ParentTxn, b:ParentTxn):Int {
   val aAccounts = a.allSplits.map { it.account }.toSet()
@@ -131,11 +138,11 @@ fun upcomingDatesStr(mdGUI:MoneydanceGUI, reminder:Reminder):String {
  * See ReminderPickerRenderer's kdoc above for the showSplitPercentages rationale.
  *
  * @param referenceTxn When provided, candidates are sorted by relevance to this transaction:
- * UUID.date identity match first (see uuidDatePenalty), then value band (same-sign candidates
- * always before opposite-sign ones, then nearest 10%-wide value band), then nearest split count,
- * then most shared split-target accounts, then alphabetically by description as the final
- * tiebreak. When null (the default), candidates are sorted alphabetically only, with no
- * relevance ranking.
+ * UUID.date identity match first (see uuidDatePenalty), then our own rem_id marker match (see
+ * remIdMarkerPenalty), then value band (same-sign candidates always before opposite-sign ones,
+ * then nearest 10%-wide value band), then nearest split count, then most shared split-target
+ * accounts, then alphabetically by description as the final tiebreak. When null (the default),
+ * candidates are sorted alphabetically only, with no relevance ranking.
  */
 fun pickReminder(
   mdGUI:MoneydanceGUI,
@@ -152,6 +159,7 @@ fun pickReminder(
     if (referenceTxn != null) {
       candidates.sortedWith(
         compareBy<Reminder> { uuidDatePenalty(referenceTxn, it) }
+          .thenBy { remIdMarkerPenalty(referenceTxn, it) }
           .thenBy { signPenalty(it.transaction.value, referenceTxn.value) }
           .thenBy { valueBand(it.transaction.value, referenceTxn.value) }
           .thenBy { abs(it.transaction.allSplits.size - referenceTxn.allSplits.size) }

@@ -31,6 +31,7 @@ MENU OPTIONS (in the order they appear)
   - Copy Splits
   - Paste Splits
   - Apply Splits Template (from Reminders)
+  - Apply Splits Template to Selected Transactions
   - Rebalance Splits
   - Update Reminder...
       - and transaction's value
@@ -115,6 +116,17 @@ separate config option to make "Allocate by %" the default-selected choice on th
 instead of "Overwrite target total" (this also applies to Apply Splits Template below, since
 both share the same prompt).
 
+Four further config options let you optionally carry the source's Description and/or Memo across
+onto the target too - Description and Memo are controlled entirely separately, and each has two
+independent settings:
+  - Fill blank target Description/Memo from source - only fills the target field when it's
+    currently empty, never overwrites something already there
+  - Always overwrite target Description/Memo from source - overwrites the target field
+    regardless of what it currently holds
+A blank source field (including one containing only whitespace) is never copied across either
+way. If both settings for a field are somehow on at once, "Always overwrite" takes priority. All
+four default off, and all apply to Paste Splits and both Apply Splits Template options alike.
+
 
 APPLY SPLITS TEMPLATE (FROM REMINDERS)
 ------------------------------------------
@@ -138,6 +150,31 @@ show up in the picker can be narrowed further in the config screen:
   - exclude Reminders that are expired/inactive
   - filter the displayed list by using a text string that will be filtered against the
     Reminder's name
+
+APPLY SPLITS TEMPLATE TO SELECTED TRANSACTIONS
+---------------------------------------------------
+Select 2 to 9 transactions at once (instead of just one) and choose this option to apply the
+same template to all of them in a single step - useful if you have several individual
+transactions that all need the same split pattern, rather than doing them one at a time.
+
+This is strict, all-or-nothing: the option only appears if every single selected transaction
+passes every rule - each one must be a Parent transaction (not a split row), have only one
+split, be in the same account as every other selected transaction, and otherwise meet the same
+target rules as Paste above (protected data, account type, unreconciled, currency-consistent).
+If even one selected transaction fails any rule, the option doesn't appear at all - turn on
+"Enable debug messages" to see which transaction and rule caused it to be withheld (checking
+stops at the first problem found, so there could be others further down the selection too).
+
+After picking a template, you'll be asked once - not once per transaction - whether to use
+Exact amounts (remainder on a new split) or Allocate by % for any selected transaction whose
+total doesn't match the template's total; whichever you choose applies to every transaction that
+needs it. This dialog always appears and always asks, regardless of the "Default Allocation
+Method" config option below - that option only affects which choice is pre-selected here. This
+also warns that each selected transaction's existing split will be replaced.
+
+Every transaction gets applied in one single undo step. A summary afterward tells you how many
+of the selected transactions were actually updated; if any were skipped (most likely because
+something changed between right-clicking and confirming), check the debug log for details.
 
 
 REBALANCE SPLITS
@@ -197,13 +234,18 @@ which option you use.
 EDIT ORIGINATING REMINDER
 -----------------------------
 Right-click a transaction and choose this option to open, ready for editing, the Reminder that
-automatically created it - useful when a scheduled bill's amount or other details have changed
-and you want to bring the Reminder in line, starting from the transaction it already produced.
+created it - useful when a scheduled bill's amount or other details have changed and you want to
+bring the Reminder in line, starting from the transaction it already produced.
 
-This only appears when Moneydance's own record of the transaction links it back to a specific
-Reminder - the same internal identifier Moneydance itself creates when a Reminder auto-commits a
-transaction, not a guess based on matching description or value. If the transaction wasn't
-auto-committed from a Reminder, or that link can't be found, this option simply doesn't appear.
+This only appears when a link back to a specific Reminder can be found, checked two ways:
+  - Moneydance's own internal identifier, which it creates itself whenever a Reminder
+    auto-commits a transaction
+  - failing that, this extension's own record of having applied a Splits Template (single or to
+    multiple selected transactions) from that Reminder to this transaction
+
+Neither is a guess based on matching description or value - both are exact identity links. If
+the transaction wasn't auto-committed from a Reminder, and never had a Splits Template applied
+to it by this extension either, this option simply doesn't appear.
 
 
 SHOW OTHER SIDE: SELECT SPLIT

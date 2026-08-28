@@ -125,11 +125,19 @@ class CopyPasteSplits(
   private val rebalanceEnabled:Boolean = true,
   private val alwaysConfirmTotal:Boolean = false,
   private val allReminders:List<Reminder>? = null,
-  private val defaultToPercentAllocation:Boolean = false
+  private val defaultToPercentAllocation:Boolean = false,
+  private val fillBlankParentDescription:Boolean = false,
+  private val fillBlankParentMemo:Boolean = false,
+  private val forceOverwriteParentDescription:Boolean = false,
+  private val forceOverwriteParentMemo:Boolean = false
 ):ContextMenuAction {
   
   private val dialog_apply_tmplt_size = ".gui.apply_template.size"
   private val dialog_apply_tmplt_locn = ".gui.apply_template.loc"
+  private val dialog_apply_tmplt_selected_size = ".gui.apply_template_selected.size"
+  private val dialog_apply_tmplt_selected_locn = ".gui.apply_template_selected.loc"
+  private val dialog_batch_allocation_size = ".gui.apply_template_selected_allocation.size"
+  private val dialog_batch_allocation_locn = ".gui.apply_template_selected_allocation.loc"
   private val dialog_paste_mismatch_size = ".gui.paste_mismatch.size"
   private val dialog_paste_mismatch_locn =  ".gui.paste_mismatch.loc"
   private val dialog_paste_always_confirm_size = ".gui.paste_always_confirm.size"
@@ -172,6 +180,14 @@ class CopyPasteSplits(
   private val string_apply_template_title = "Choose a Splits Template (from Reminders)"
   private val string_apply_template_no_candidates = "No suitable reminder templates were found for this transaction's account/currency."
   
+  private val string_apply_template_selected = "Apply Splits Template to Selected Transactions"
+  private val string_apply_template_selected_title = "Choose a Splits Template (from Reminders) to apply to all selected transactions"
+  private val string_undo_redo_apply_template_selected = "Apply Splits Template to Selected"
+  private val string_batch_apply_summary = "Applied to {applied} of {total} selected transactions.{skipped}"
+  private val string_batch_apply_skipped_suffix = " ({skipped} skipped - see debug log for details.)"
+  private val string_batch_applying_to_label = "Applying to {count} selected transactions"
+  private val string_batch_overwrite_warning = "This will replace the existing split on each selected transaction."
+  
   private val string_reason_not_parent = "Not a parent transaction (target cannot be a split)"
   private val string_reason_account_type = "Account type not eligible (Bank/Credit Card)"
   private val string_reason_no_splits = "No splits"
@@ -182,6 +198,8 @@ class CopyPasteSplits(
   private val string_reason_currency_mismatch_source = "Currency does not match copied source"
   private val string_reason_no_templates = "No matching reminder templates found"
   private val string_reason_needs_multiple_splits = "Requires more than one split"
+  private val string_reason_not_single_split = "Transaction has more than one split"
+  private val string_reason_different_account = "Selected transactions are not all in the same account"
   
   private val string_rebalance_splits = "Rebalance Splits - update total and/or ratio"
   private val string_rebalance_title = "Rebalance Splits"
@@ -214,6 +232,9 @@ class CopyPasteSplits(
     val parentTotal:Long,
     val splits:List<CopiedSplitLine>,
     val sourceDescription:String,
+    val sourceParentDescription:String,
+    val sourceParentMemo:String,
+    val sourceReminderUUID:String? = null,
     val copiedAtMillis:Long = System.currentTimeMillis()
   )
   
@@ -250,67 +271,83 @@ class CopyPasteSplits(
   override fun getActions(menuContext:MDActionContext, listAccts:List<Account>, listTxns:List<AbstractTxn>):List<Action> {
     val actions = mutableListOf<Action>()
     
-    // selected item must always be exactly one Parent txn - no resolving from a split row
-    if (listTxns.size != 1) return actions
-    val txn = listTxns.first() as? ParentTxn
-    if (txn == null) {
-      logBlockedIfDebug(string_copy_splits, null, string_reason_not_parent)
-      return actions
-    }
-    
-    if (copyPasteEnabled) {
-      val copyReason = copyEligibilityReason(txn)
-      if (copyReason == null) {
-        actions += addAction(label = string_copy_splits, cmd = "copy_splits") { copySplits(txn) }
-      } else {
-        logBlockedIfDebug(string_copy_splits, txn, copyReason)
+    if (listTxns.size == 1) {
+      // selected item must always be exactly one Parent txn - no resolving from a split row
+      val txn = listTxns.first() as? ParentTxn
+      if (txn == null) {
+        logBlockedIfDebug(string_copy_splits, null, string_reason_not_parent)
+        return actions
       }
       
-      val copy = Main.copiedSplits
-      if (copy != null) {
-        val pasteReason = pasteEligibilityReason(txn, copy)
-        if (pasteReason == null) {
-          actions += addAction(label = string_paste_splits, cmd = "paste_splits") { pasteSplits(menuContext, txn) }
+      if (copyPasteEnabled) {
+        val copyReason = copyEligibilityReason(txn)
+        if (copyReason == null) {
+          actions += addAction(label = string_copy_splits, cmd = "copy_splits") { copySplits(txn) }
         } else {
-          logBlockedIfDebug(string_paste_splits, txn, pasteReason)
+          logBlockedIfDebug(string_copy_splits, txn, copyReason)
+        }
+        
+        val copy = Main.copiedSplits
+        if (copy != null) {
+          val pasteReason = pasteEligibilityReason(txn, copy)
+          if (pasteReason == null) {
+            actions += addAction(label = string_paste_splits, cmd = "paste_splits") { pasteSplits(menuContext, txn) }
+          } else {
+            logBlockedIfDebug(string_paste_splits, txn, pasteReason)
+          }
         }
       }
-    }
-    
-    // Apply Splits Template: full target-side eligibility (isTargetEligible), same as Paste,
-    // independent of whether an ad-hoc copy is currently held. The menu item only appears if at
-    // least one candidate reminder currency-matches this target. Candidates are re-searched at
-    // click time regardless.
-    if (templateEnabled) {
-      val targetReason = targetEligibilityReason(txn)
-      if (targetReason == null) {
-        if (findTemplateCandidates(txn.account, allReminders).isNotEmpty()) {
-          actions += addAction(label = string_apply_splits_template, cmd = "apply_splits_template") {
-            applySplitsTemplate(menuContext, txn)
+      
+      // Apply Splits Template: full target-side eligibility (isTargetEligible), same as Paste,
+      // independent of whether an ad-hoc copy is currently held. The menu item only appears if at
+      // least one candidate reminder currency-matches this target. Candidates are re-searched at
+      // click time regardless.
+      if (templateEnabled) {
+        val targetReason = targetEligibilityReason(txn)
+        if (targetReason == null) {
+          if (findTemplateCandidates(txn.account, allReminders).isNotEmpty()) {
+            actions += addAction(label = string_apply_splits_template, cmd = "apply_splits_template") {
+              applySplitsTemplate(menuContext, txn)
+            }
+          } else {
+            logBlockedIfDebug(string_apply_splits_template, txn, string_reason_no_templates)
           }
         } else {
-          logBlockedIfDebug(string_apply_splits_template, txn, string_reason_no_templates)
+          logBlockedIfDebug(string_apply_splits_template, txn, targetReason)
         }
-      } else {
-        logBlockedIfDebug(string_apply_splits_template, txn, targetReason)
       }
-    }
-    
-    // Rebalance Splits: same target-side eligibility as Paste/Template (isTargetEligible), self-
-    // applied - the txn is both source and target. Additionally requires more than one split;
-    // single-split txns never show this option.
-    if (rebalanceEnabled) {
-      val targetReason = targetEligibilityReason(txn)
-      if (targetReason == null) {
-        if (txn.allSplits.size > 1) {
-          actions += addAction(label = string_rebalance_splits, cmd = "rebalance_splits") {
-            rebalanceSplits(menuContext, txn)
+      
+      // Rebalance Splits: same target-side eligibility as Paste/Template (isTargetEligible), self-
+      // applied - the txn is both source and target. Additionally requires more than one split;
+      // single-split txns never show this option.
+      if (rebalanceEnabled) {
+        val targetReason = targetEligibilityReason(txn)
+        if (targetReason == null) {
+          if (txn.allSplits.size > 1) {
+            actions += addAction(label = string_rebalance_splits, cmd = "rebalance_splits") {
+              rebalanceSplits(menuContext, txn)
+            }
+          } else {
+            logBlockedIfDebug(string_rebalance_splits, txn, string_reason_needs_multiple_splits)
           }
         } else {
-          logBlockedIfDebug(string_rebalance_splits, txn, string_reason_needs_multiple_splits)
+          logBlockedIfDebug(string_rebalance_splits, txn, targetReason)
+        }
+      }
+    } else if (templateEnabled && listTxns.size in 2..9) {
+      // Apply Splits Template to Selected Transactions: strict, all-or-nothing - only offered if
+      // EVERY selected item passes EVERY rule (see batchTemplateBlockReason). Reuses the same
+      // templateEnabled toggle as the single-target version, rather than a separate on/off
+      // setting - these are the same feature, just applied to more than one target at once.
+      val blockInfo = batchTemplateBlockReason(listTxns)
+      if (blockInfo == null) {
+        val parentTxns = listTxns.map { it as ParentTxn }   // safe - batchTemplateBlockReason already confirmed every item is a ParentTxn
+        actions += addAction(label = string_apply_template_selected, cmd = "apply_template_selected") {
+          applyTemplateToSelected(menuContext, parentTxns)
         }
       } else {
-        logBlockedIfDebug(string_rebalance_splits, txn, targetReason)
+        val (idx, reason) = blockInfo
+        logBatchBlockedIfDebug(string_apply_template_selected, idx, listTxns.size, reason)
       }
     }
     
@@ -362,6 +399,34 @@ class CopyPasteSplits(
   }
   
   private fun isTargetEligible(txn:ParentTxn):Boolean = targetEligibilityReason(txn) == null
+  
+  /**
+   * Strict, all-or-nothing eligibility for Apply Splits Template to Selected Transactions.
+   * Returns (0-based index of the first failing item, reason) on the FIRST failure found, or
+   * null if every item passes. Checks, per item, in order: is a ParentTxn (not a split row) ->
+   * targetEligibilityReason (account type, unreconciled, protected data, currency-consistent) ->
+   * single-split only -> same account as every prior item. Stops checking further items the
+   * moment one fails - see logBatchBlockedIfDebug for how that's reported.
+   */
+  private fun batchTemplateBlockReason(listTxns:List<AbstractTxn>):Pair<Int,String>? {
+    var sharedAccount:Account? = null
+    for ((index, item) in listTxns.withIndex()) {
+      val txn = item as? ParentTxn ?: return index to string_reason_not_parent
+      val reason = targetEligibilityReason(txn)
+      if (reason != null) return index to reason
+      if (txn.allSplits.size != 1) return index to string_reason_not_single_split
+      if (sharedAccount == null) sharedAccount = txn.account
+      else if (txn.account != sharedAccount) return index to string_reason_different_account
+    }
+    return null
+  }
+  
+  /** Same gate as logBlockedIfDebug, different message shape - reports which item (1-based, for
+   *  readability) of how many total triggered the block, and that checking stopped there. */
+  private fun logBatchBlockedIfDebug(actionLabel:String, failedIndex:Int, totalCount:Int, reason:String) {
+    if (extensionContext?.debugMenuEnabled != true) return
+    Util.logConsole(false, "$actionLabel blocked at transaction ${failedIndex + 1} of $totalCount: $reason (stopped checking further)")
+  }
   
   private fun pasteEligibilityReason(txn:ParentTxn, copy:CopiedSplitsSnapshot):String? {
     if (txn.UUID == copy.sourceParentUUID) return string_reason_same_as_source     // block paste into copy source
@@ -420,7 +485,9 @@ class CopyPasteSplits(
       sourceCurrency = parentCurr,
       parentTotal = total,
       splits = copiedLines,
-      sourceDescription = txn.description
+      sourceDescription = txn.description,
+      sourceParentDescription = txn.description,
+      sourceParentMemo = txn.memo
     )
     if (extensionContext?.debugMenuEnabled == true || DEBUG) {
       val dec = mdGUI.preferences.decimalChar
@@ -467,7 +534,7 @@ class CopyPasteSplits(
    * Same derivation as copySplits(), but fails soft (returns null) instead of crashing, so one
    * malformed reminder can't take down the template picker for every other candidate.
    */
-  private fun buildSnapshotFromTemplate(txn:ParentTxn, reminderDescription:String):CopiedSplitsSnapshot? {
+  private fun buildSnapshotFromTemplate(txn:ParentTxn, reminderDescription:String, sourceReminderUUID:String):CopiedSplitsSnapshot? {
     if (!canCopySplits(txn)) return null
     val parentCurr = txn.account.currencyType
     val splits = txn.allSplits
@@ -492,7 +559,10 @@ class CopyPasteSplits(
       sourceCurrency = parentCurr,
       parentTotal = total,
       splits = copiedLines,
-      sourceDescription = reminderDescription
+      sourceDescription = reminderDescription,
+      sourceParentDescription = txn.description,
+      sourceParentMemo = txn.memo,
+      sourceReminderUUID = sourceReminderUUID
     )
   }
   
@@ -509,10 +579,87 @@ class CopyPasteSplits(
       locationKey = Main.EXTN_ID + dialog_apply_tmplt_locn,
       showSplitPercentages = true
     ) ?: return
-    val copy = buildSnapshotFromTemplate(chosen.transaction, chosen.description) ?: return
+    val copy = buildSnapshotFromTemplate(chosen.transaction, chosen.description, chosen.UUID) ?: return
     if (!canPasteSplits(txn, copy)) return   // re-validate at click time
     
     runPasteFlow(menuContext, txn, copy, string_undo_redo_apply_template)
+  }
+  
+  /**
+   * Applies one chosen template to every one of the given transactions, all in one undo step.
+   * Caller (getActions) has already validated batchTemplateBlockReason(txns) == null at
+   * menu-build time - re-validated here per-item too (defensive: something may have changed
+   * between menu-build and click). Unlike the strict all-or-nothing menu-offering rule, a
+   * per-item failure discovered HERE does not abort the whole batch - that item is skipped and
+   * counted, the rest proceed. The allocation method (Exact vs Hamilton %) for any mismatched
+   * target is asked ONCE, upfront, via askBatchAllocationMethod - never per-target - and applies
+   * uniformly to every target that needs it.
+   */
+  private fun applyTemplateToSelected(menuContext:MDActionContext, txns:List<ParentTxn>) {
+    // re-validate at click time
+    if (batchTemplateBlockReason(txns) != null) return
+    
+    val sharedAccount = txns.first().account
+    val candidates = findTemplateCandidates(sharedAccount, allReminders)
+    if (candidates.isEmpty()) {
+      mdGUI.showInfoMessage(string_apply_template_no_candidates)
+      return
+    }
+    
+    val chosen = pickReminder(
+      mdGUI, menuContext.component, string_apply_template_selected_title, candidates,
+      sizeKey = Main.EXTN_ID + dialog_apply_tmplt_selected_size,
+      locationKey = Main.EXTN_ID + dialog_apply_tmplt_selected_locn,
+      showSplitPercentages = true
+    ) ?: return
+    val copy = buildSnapshotFromTemplate(chosen.transaction, chosen.description, chosen.UUID) ?: return
+    
+    val allocationMode = askBatchAllocationMethod(menuContext, copy, txns.size) ?: return
+    
+    val change = UndoableChange()
+    var appliedCount = 0
+    var skippedCount = 0
+    
+    for (txn in txns) {
+      if (!canPasteSplits(txn, copy)) { skippedCount++; continue }
+      
+      val targetTotal = txn.value
+      val newLines:List<CopiedSplitLine> =
+        if (targetTotal == copy.parentTotal) {
+          copy.splits
+        } else if (allocationMode == AllocationMode.PercentHamilton) {
+          allocatePercentHamilton(copy.splits, targetTotal)
+        } else {
+          if (txn.account.defaultCategory == null) { skippedCount++; continue }
+          allocateExactRemainderOnNewLine(copy.splits, targetTotal, txn)
+        }
+      
+      change.beginModification(txn)
+      applyPastedSplits(txn, newLines)
+      applyBlankFieldFillIns(txn, copy)
+      copy.sourceReminderUUID?.let { writeRemIdMarker(txn, it) }
+      change.finishModification(txn)
+      appliedCount++
+    }
+    
+    if (appliedCount > 0) {
+      change.setNameCompat(string_undo_redo_apply_template_selected)
+      mdGUI.undoManager?.recordChange(change)
+    }
+    
+    if (extensionContext?.debugMenuEnabled == true || DEBUG) {
+      Util.logConsole(
+        "CopyPasteSplits: Apply Splits Template to Selected from '${copy.sourceDescription}': " +
+        "applied $appliedCount, skipped $skippedCount, total ${txns.size}"
+      )
+    }
+    
+    val skippedSuffix = if (skippedCount > 0) string_batch_apply_skipped_suffix.replace("{skipped}", skippedCount.toString()) else ""
+    val summary = string_batch_apply_summary
+      .replace("{applied}", appliedCount.toString())
+      .replace("{total}", txns.size.toString())
+      .replace("{skipped}", skippedSuffix)
+    mdGUI.showInfoMessage(summary)
   }
   
   // ------------------------------------------------------------------------------------------
@@ -596,6 +743,8 @@ class CopyPasteSplits(
     change.beginModification(txn)   // snapshot "before" state - target already exists/synced
     
     applyPastedSplits(txn, newLines)
+    applyBlankFieldFillIns(txn, copy)
+    copy.sourceReminderUUID?.let { writeRemIdMarker(txn, it) }
     
     pasteSplitsRecordChange(change, txn, undoName)
 
@@ -797,6 +946,36 @@ class CopyPasteSplits(
   // applying the pasted splits
   // ------------------------------------------------------------------------------------------
   
+  /**
+   * Fills or overwrites the target's Description and/or Memo from the copy source - each field
+   * independently controlled by its own pair of settings:
+   *   - forceOverwriteParent{Description,Memo}: whenever the source field is non-blank, always
+   *     overwrite the target, regardless of what the target currently holds. Takes priority over
+   *     the fill-if-blank setting below for that field.
+   *   - fillBlankParent{Description,Memo}: only used when the force-overwrite setting for that
+   *     field is off - fills the target ONLY when the source is non-blank AND the target is
+   *     currently blank, never touching an already-populated target field.
+   * "Blank" means isBlank() throughout - whitespace-only counts as blank, not as real content,
+   * for both the source and target checks (confirmed decision - a source field containing only
+   * whitespace is never treated as something worth copying).
+   */
+  private fun applyBlankFieldFillIns(target:ParentTxn, copy:CopiedSplitsSnapshot) {
+    if (copy.sourceParentDescription.isNotBlank()) {
+      if (forceOverwriteParentDescription) {
+        target.description = copy.sourceParentDescription
+      } else if (fillBlankParentDescription && target.description.isBlank()) {
+        target.description = copy.sourceParentDescription
+      }
+    }
+    if (copy.sourceParentMemo.isNotBlank()) {
+      if (forceOverwriteParentMemo) {
+        target.memo = copy.sourceParentMemo
+      } else if (fillBlankParentMemo && target.memo.isBlank()) {
+        target.memo = copy.sourceParentMemo
+      }
+    }
+  }
+
   private fun applyPastedSplits(target:ParentTxn, lines:List<CopiedSplitLine>) {
     // remove existing splits first
     val existing = target.allSplits.toList()
@@ -1125,6 +1304,72 @@ class CopyPasteSplits(
     val newTotal = newTotalField.value
     val mode:AllocationMode = if (hamiltonRadio.isSelected) AllocationMode.PercentHamilton else AllocationMode.ExactNewLine
     return PasteConfirmChoice(newTotal = newTotal, mode = mode)
+  }
+  
+  /**
+   * One-time, per-invocation choice for Apply Splits Template to Selected - asked ONCE before
+   * touching any target, never per-target. No new-total field here (unlike
+   * askPasteAlwaysConfirmChoice) since each target has its own existing total; this dialog only
+   * decides HOW any mismatched target's total gets reconciled with the template, uniformly.
+   * Shows the source template's description and split count, how many transactions this will be
+   * applied to, and an explicit warning that each target's existing split will be replaced.
+   * Radio default follows the current defaultToPercentAllocation config value, but this dialog
+   * is always shown and always asks - the config value is only ever a starting suggestion here.
+   */
+  private fun askBatchAllocationMethod(menuContext:MDActionContext, copy:CopiedSplitsSnapshot, targetCount:Int):AllocationMode? {
+    val dec = mdGUI.preferences.decimalChar
+    
+    val exactRadio = JRadioButton(string_opt_exact_new)
+    val hamiltonRadio = JRadioButton(string_opt_pct_hamilton)
+    val group = ButtonGroup()
+    group.add(exactRadio)
+    group.add(hamiltonRadio)
+    if (defaultToPercentAllocation) hamiltonRadio.isSelected = true else exactRadio.isSelected = true
+    
+    val hamiltonRow = JPanel(GridBagLayout())
+    hamiltonRow.add(hamiltonRadio, GridC.getc().xy(0, 0))
+    hamiltonRow.add(buildHamiltonHelpLink(), GridC.getc().xy(1, 0).insets(0, 4, 0, 0))
+    
+    val panel = JPanel(GridBagLayout())
+    panel.border = EmptyBorder(16, 16, 16, 16)
+    
+    var y = 0
+    panel.add(
+      JLabel(string_batch_applying_to_label.replace("{count}", targetCount.toString())),
+      GridC.getc().xy(0, y++).colspan(2).wx(1f).west().insets(0, 0, 4, 0)
+    )
+    panel.add(
+      JLabel(string_batch_overwrite_warning),
+      GridC.getc().xy(0, y++).colspan(2).wx(1f).west().insets(0, 0, 12, 0)
+    )
+    panel.add(exactRadio, GridC.getc().xy(0, y++).colspan(2).wx(1f).west())
+    panel.add(hamiltonRow, GridC.getc().xy(0, y++).colspan(2).wx(1f).west())
+    
+    panel.add(
+      buildBottomInfoBlock(
+        heading = string_source_splits_heading,
+        descriptionLabel = string_source_label,
+        description = copy.sourceDescription,
+        splitCount = copy.splits.size,
+        totalLabel = string_source_total_label,
+        total = copy.parentTotal,
+        currency = copy.sourceCurrency,
+        summaryLines = splitSummaryLinesFromCopied(copy.splits, copy.sourceCurrency, dec)
+      ),
+      GridC.getc().xy(0, y++).colspan(2).wx(1f).fillboth()
+    )
+    
+    val win = SizedOKButtonWindow(
+      mdGUI, menuContext.component, string_apply_template_selected_title, OKButtonPanel.QUESTION_OK_CANCEL,
+      sizeKey = Main.EXTN_ID + dialog_batch_allocation_size,
+      locationKey = Main.EXTN_ID + dialog_batch_allocation_locn
+    )
+    win.setEscapeKeyCancels(true)
+    
+    val result = win.showDialog(panel)
+    if (result != OKButtonPanel.ANSWER_OK) return null
+    
+    return if (hamiltonRadio.isSelected) AllocationMode.PercentHamilton else AllocationMode.ExactNewLine
   }
 
 }

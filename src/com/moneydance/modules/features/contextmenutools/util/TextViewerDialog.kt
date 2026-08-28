@@ -2,7 +2,6 @@ package com.moneydance.modules.features.contextmenutools.util
 
 import com.moneydance.apps.md.view.gui.MoneydanceGUI
 import com.moneydance.apps.md.view.gui.SecondaryDialog
-import com.moneydance.awt.AwtUtil
 import java.awt.BorderLayout
 import java.awt.Component
 import java.awt.Dimension
@@ -49,7 +48,16 @@ class TextViewerDialog(
   copyButtonLabel:String,
   sizeKey:String? = null,
   locationKey:String? = null
-):SecondaryDialog(mdGUI, AwtUtil.getFrame(parent), title, false) {
+):SecondaryDialog(
+  mdGUI,
+  null,   // no owner (deliberate) - a Dialog with an owner always stays above that owner window,
+          // even though this is non-modal; passing null makes it an independent top-level window
+          // instead, so it participates in normal click-to-front/back stacking with everything
+          // else, including Moneydance's own main window. setLocationRelativeTo(parent) below
+          // still positions it sensibly on open - only the persistent above-owner behavior changes.
+  title,
+  false
+) {
 
   companion object {
     private val MIN_DIALOG_SIZE = Dimension(420, 320)
