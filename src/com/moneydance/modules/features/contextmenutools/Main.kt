@@ -607,7 +607,7 @@ class Main : FeatureModule(), PreferencesListener {
       // many options would mean an excessively (near full-screen) tall window.
       val scrollPane = JScrollPane(form, JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED, JScrollPane.HORIZONTAL_SCROLLBAR_NEVER)
       scrollPane.border = BorderFactory.createEmptyBorder()
-      val cappedHeight = minOf(form.preferredSize.height, 550)
+      val cappedHeight = minOf(form.preferredSize.height, 650)
       scrollPane.preferredSize = Dimension(form.preferredSize.width, cappedHeight)
       add(scrollPane, BorderLayout.CENTER)
 
@@ -623,7 +623,7 @@ class Main : FeatureModule(), PreferencesListener {
       // first-run default only - a remembered size from a previous session (via
       // setRememberSizeLocationKeys above) is applied afterward, when setVisible(true) is
       // called, and takes over from here.
-      size = Dimension(maxOf(preferredSize.width, 575), maxOf(preferredSize.height, 750))
+      size = Dimension(maxOf(preferredSize.width, 575), maxOf(preferredSize.height, 850))
       setLocationRelativeTo(null)
       minimumSize = Dimension(preferredSize.width, 300)
     }
