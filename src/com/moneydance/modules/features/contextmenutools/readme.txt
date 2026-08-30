@@ -32,6 +32,7 @@ MENU OPTIONS (in the order they appear)
       - and transaction's value
       - from selected transaction
   - Edit Originating Reminder
+  - Zap/Clean Memo
   - Show Other Side: Select Split
   - Jump to date in register
   - Show Raw Details
@@ -241,6 +242,82 @@ This only appears when a link back to a specific Reminder can be found, checked 
 Neither is a guess based on matching description or value - both are exact identity links. If
 the transaction wasn't auto-committed from a Reminder, and never had a Splits Template applied
 to it by this extension either, this option simply doesn't appear.
+
+
+ZAP/CLEAN MEMO
+------------------
+Select one or more downloaded/imported transactions and choose this option to clean up junk or
+redundant Memo fields - either blanking them out, or moving the memo into the Description first
+if the Description is currently blank. This is a scaled-down, selection-based version of the
+separate "Toolbox: Zap md+/ofx/qif (default) memo fields" extension, which sweeps a whole account
+by date range instead - use that one for a big one-off cleanup, use this one for a quick tidy-up
+of whatever you're already looking at.
+
+This changes data, but every run goes through a single named Undo step - Menu > Edit > Undo
+reverses it immediately if you change your mind, same as any other change in Moneydance.
+
+All selected transactions must be in the same account, and that account must be Bank, Credit
+Card, or Investment. Non-downloaded, non-imported transactions and split rows in the selection
+are simply ignored, not blocked. Whether the menu item appears at all is a purely structural
+check - selection size, same account, account type and Active status - it never looks at any
+transaction's content or any of the settings below, so the option won't mysteriously vanish just
+because you haven't configured anything yet, and it won't promise candidates that turn out not to
+match once you're in the settings dialog either.
+
+If you've selected more than 30 transactions, you'll be asked to confirm before continuing, since
+a large batch can't easily be reviewed item-by-item first.
+
+Clicking the option opens a small settings dialog (remembered per account, so different accounts
+can be configured differently), starting with a line telling you how many of the selected
+transactions currently look like candidates under your saved settings. Below that:
+  - Which download types to include: MD+ downloads (Moneydance, via Plaid), OFX Direct Connect
+    downloads (OFX+), manually imported .ofx/.qfx files (OFX-), downloaded .qif files (QIF+), and
+    manually imported non-downloaded .qif files (QIF-). Each shows how many of that type are in
+    your current selection, and greys out (though stays visible) for any type with none present -
+    ticking a greyed-out option would have no effect anyway.
+  - Only reconciled transactions (on by default)
+  - Only confirmed transactions (on by default; bypassed for QIF-, which has no such concept)
+  - Zap unchanged memo when it's already contained in a longer description
+  - Swap memo into description when description is the same text, just shorter than the memo -
+    not just any shorter description, it has to match exactly within the memo
+  - Two more aggressive options, both off by default:
+    - Don't check the original downloaded memo first (a memo that's been edited since it was
+      downloaded is normally left alone - this bypasses that protection). Note that QIF-
+      transactions are never protected this way regardless of this setting, since there's no
+      original download to compare against
+    - Don't compare memo to description at all - just zap (reconciled-only, confirmed-only, and
+      the edit-protection check above still apply on top of this)
+
+The "original downloaded memo first" check compares against Moneydance's own hidden record of
+what was actually downloaded, separate from whatever the Memo field shows now - you can view it
+yourself on any transaction via right-click > Show Transaction Details.
+
+QIF- (manually imported, non-downloaded .qif files) behaves differently from the other four types
+throughout this whole tool, for one consistent reason: it never went through Moneydance's online
+banking pipeline at all - no download, no Confirm/Merge step, none of the usual metadata the
+other four types have. That's why:
+  - "Only confirmed transactions" has no effect on QIF- - there's no online-match status to check
+  - The edit-protection check ("don't check the original memo first") never applies to QIF-
+    either way, ticked or not - there's no originally-downloaded memo to compare against
+  - Even identifying a transaction as QIF- in the first place relies on a weaker signal than the
+    other four types (a single stored marker, rather than a genuine download-source record)
+None of this is leniency - QIF- simply doesn't carry the data these checks need.
+
+A memo exactly matching the description is always zapped, and a blank description always gets
+the memo swapped into it, regardless of the settings above - those two cases have nothing worth
+protecting either way. MD+ transactions are always zapped once found eligible (matching the
+original tool's own behaviour, since their memos are typically unhelpful boilerplate) -
+unconditionally, ignoring every other setting on this list once it's ticked.
+
+Memos shown in [square brackets] belong to the other side of a transfer and can't be changed from
+this account - right-click the transaction and choose "Show other side" to zap it from there
+instead.
+
+This only ever touches the Memo and Description fields - nothing else about the transaction is
+changed. Afterward you'll see a plain message saying how many of the selected transactions were
+actually changed - there's no separate report to review, unlike the full Toolbox extension. Turn
+on "Enable debug messages" in the config screen beforehand if you want to see exactly why any
+particular transaction was skipped.
 
 
 SHOW OTHER SIDE: SELECT SPLIT
