@@ -253,6 +253,13 @@ separate "Toolbox: Zap md+/ofx/qif (default) memo fields" extension, which sweep
 by date range instead - use that one for a big one-off cleanup, use this one for a quick tidy-up
 of whatever you're already looking at.
 
+This is not a blunt "erase the memo on whatever I've selected" tool. Its purpose is turning
+unhelpful, boilerplate downloaded memos into something more useful - a real description, or
+nothing at all - while protecting memos you actually wrote or edited yourself, which are left
+alone by default for MD+, OFX+, OFX-, and QIF+ (QIF- is the one exception - see below). If you
+genuinely want to clear your own memos, that's a manual edit for you to make directly - this tool
+won't do it for you by design, unless you specifically tell it not to check for edits.
+
 This changes data, but every run goes through a single named Undo step - Menu > Edit > Undo
 reverses it immediately if you change your mind, same as any other change in Moneydance.
 
