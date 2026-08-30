@@ -15,11 +15,6 @@ reminders, currencies, securities, reports, budgets, and more.
 If an expected menu item isn't appearing, there may be a rule preventing it - see the relevant
 section below, or "Why isn't an option showing?" near the end of this guide.
 
-NOTE: On the first call to the context menu within a Moneydance session, there might be a slight lag before the menu
-      appears. There will be no lag on subsequent calls. This is due to Moneydance performing an operation to read
-      reminders, calculate, and cache the results... This happens on any feature that first accesses a Reminder and
-      looks at the next occurence date.
-
 MENU OPTIONS (in the order they appear)
 ------------------------------------------
   - Show Value of Selected Transactions

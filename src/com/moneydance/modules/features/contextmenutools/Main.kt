@@ -13,6 +13,7 @@ import com.moneydance.awt.GridC
 import com.moneydance.modules.features.contextmenutools.util.TextViewerDialog
 import com.moneydance.modules.features.contextmenutools.util.Util
 import com.moneydance.modules.features.contextmenutools.util.Util.logConsole
+import com.moneydance.modules.features.contextmenutools.util.isInactiveOrExpired
 import java.awt.BorderLayout
 import java.awt.Dimension
 import java.awt.GridBagLayout
@@ -32,7 +33,11 @@ interface ContextMenuAction {
  *       on subsequent calls. This can be caused by Moneydance's internal code pre-populating [Reminder]'s next occurences cache when first
  *       called. Once the cache is present, then access is speedy. This would be triggered by calls to [isInactiveOrExpired] which
  *       is ascertaining whether a Reminder is expired via it's next occurence date. Of course, if the user has already accessed
- *       reminders, then this cache will already be populated. A design decision was made to leave this as-is for now...
+ *       reminders, then this cache will already be populated. To reduce the chance of the user ever seeing this lag, the cache is
+ *       proactively warmed on a background thread (see precacheReminderDates) - once when a data file and UI are already available
+ *       at extension init() (e.g. a reinstall/enable while Moneydance is already running with a file open), and again on every
+ *       FILE_OPENED app event (covering the far more common case of a normal startup, and also re-warming for each subsequently
+ *       opened file).
  *
  * @author Stuart Beesley - March-August 2026
  * @since MD2024.4(5253) - requires MD2024.4 API moneydance.jar to compile
@@ -62,6 +67,61 @@ class Main : FeatureModule(), PreferencesListener {
     logConsole("Initialized (Kotlin) build: $versionString ${if (PREVIEW_BUILD) "(PREVIEW) " else ""}")
 
     nukeLegacyPrefKeys()
+    
+    // fire the reminder-date precache immediately if a data file and UI are already available at
+    // init() time - this is the LESS common path (e.g. reinstall/enable while Moneydance is
+    // already running with a file open). The far more common path (normal startup) is the
+    // FILE_OPENED event in handleEvent() below, since init() typically runs before any file is
+    // open.
+    if (mdMain.currentAccountBook != null && mdMain.ui != null) {
+      precacheReminderDates("init()", 10)
+    }
+  }
+  
+  /**
+   * Proactively warms Reminder's own internal next-occurrence-dates cache, so the first real
+   * context-menu build that needs it (isInactiveOrExpired, in UpdateReminderValue/
+   * CopyPasteSplits) doesn't pay that cost on the user's first click - see the class kdoc above
+   * for the full explanation of the underlying lag.
+   *
+   * Deliberately waits before doing any work (delaySeconds, caller-specified), so this runs
+   * well after the native reminders auto-commit (which fires ~5s after FILE_OPENED - see class
+   * kdoc), never competing with it. That wait runs on its OWN dedicated thread, NOT on
+   * Moneydance's shared background thread (BackgroundOpsThread) - that thread processes queued
+   * work synchronously, one task at a time, so sleeping inside a task queued there would block
+   * every other real background task (auto-commit, auto-save, net-sync) for the full wait. Only
+   * the actual precache work, once the wait is over, gets handed to the shared background thread.
+   */
+  private fun precacheReminderDates(triggerSource:String, delaySeconds:Long) {
+    val mdMain = mdMain ?: return
+    val book = mdMain.currentAccountBook ?: return
+    
+    val debug = extensionContext?.debugMenuEnabled == true || DEBUG
+    if (debug) logConsole("Will precache reminders (waiting $delaySeconds seconds) (triggered by: $triggerSource)")
+    
+    Thread {
+      val slept = try {
+        Thread.sleep(delaySeconds * 1000)
+        true
+      } catch (e:InterruptedException) {
+        false
+      }
+      if (!slept) return@Thread
+      
+      mdMain.backgroundThread?.runOnBackgroundThread {
+        if (debug) logConsole("Started reminder next-occurrence precache (triggered by: $triggerSource)")
+        
+        try {
+          for (reminder in book.reminders.allReminders) {
+            try { reminder.isInactiveOrExpired() } catch (e:Exception) { }
+          }
+        } catch (e:Exception) {
+          if (debug) logConsole("Reminder next-occurrence precache failed (triggered by: $triggerSource): $e")
+        }
+        
+        if (debug) logConsole("Finished reminder next-occurrence precache (triggered by: $triggerSource)")
+      }
+    }.start()
   }
   
   /**
@@ -233,7 +293,10 @@ class Main : FeatureModule(), PreferencesListener {
   override fun handleEvent(appEvent:String) {
     logConsole(true, "::handleEvent($appEvent)")
     when {
-      appEvent.equals(AppEventManager.FILE_OPENED, ignoreCase = true) -> copiedSplits = null
+      appEvent.equals(AppEventManager.FILE_OPENED, ignoreCase = true) -> {
+        copiedSplits = null
+        precacheReminderDates("handleEvent(FILE_OPENED)", 30)
+      }
        appEvent.equals(AppEventManager.FILE_OPENING, ignoreCase = true) -> copiedSplits = null
        appEvent.equals(AppEventManager.FILE_CLOSING, ignoreCase = true) -> copiedSplits = null
        appEvent.equals(AppEventManager.FILE_CLOSED, ignoreCase = true) -> copiedSplits = null
