@@ -5713,7 +5713,7 @@ Visit: %s (Author's site)
         textArray.append(u"Moneydance updater version to track: %s" %MD_REF.getPreferences().getSetting(u"updater.version_to_track",u""))
         textArray.append(u"")
 
-        currLicense = MD_REF.getPreferences().getSetting(u"gen.lic_key2026",
+        currLicense = MD_REF.getPreferences().getSetting(u"gen.lic_key2027",
                                                                 MD_REF.getPreferences().getSetting(u"gen.lic_key2024",
                                                                 MD_REF.getPreferences().getSetting(u"gen.lic_key2023",
                                                                 MD_REF.getPreferences().getSetting(u"gen.lic_key2022",
@@ -5730,7 +5730,7 @@ Visit: %s (Author's site)
                                                                 MD_REF.getPreferences().getSetting(u"gen.lic_key2004",
                                                                 MD_REF.getPreferences().getSetting(u"gen.lic_key", u"????"))))))))))))))))
 
-        # license2026 = MD_REF.getPreferences().getSetting(u"gen.lic_key2026", None)
+        # license2026 = MD_REF.getPreferences().getSetting(u"gen.lic_key2027", None)
         license2024 = MD_REF.getPreferences().getSetting(u"gen.lic_key2024", None)
         license2023 = MD_REF.getPreferences().getSetting(u"gen.lic_key2023", None)
         license2022 = MD_REF.getPreferences().getSetting(u"gen.lic_key2022", None)
