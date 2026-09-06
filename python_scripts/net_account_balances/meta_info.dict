@@ -9,5 +9,5 @@
   "module_name.en-GB" = "Custom Balances"
   "module_desc" = "Summary Page widget that displays user-created balances with custom calculations and formulas (MD2024 onwards)"
   "mac_sandbox_friendly" = "true"
-  "news" = "Minimum build now 2024(5100)..."
+  "news" = "Minimum build now 2024(5100)... Compatible with MD2027 onwards"
 }

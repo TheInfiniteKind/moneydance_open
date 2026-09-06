@@ -9,5 +9,5 @@
   "module_name.en-GB" = "List Future Reminders"
   "module_desc" = "Lists future reminders on screen - Allows you to specify how far forward you look...."
   "mac_sandbox_friendly" = "true"
-  "news" = "MD2026 compatible build"
+  "news" = "MD2027 compatible build"
 }

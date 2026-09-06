@@ -4,7 +4,7 @@
 from __future__ import division    # Has to occur at the beginning of file... Changes division to always produce a float
 assert isinstance(0/1, float), "LOGIC ERROR: Custom Balances extension assumes that division of integers yields a float! Do you have this statement: 'from __future__ import division'?"
 
-# net_account_balances.py build: 2000 - July 2026 - Stuart Beesley - StuWareSoftSystems
+# net_account_balances.py build: 2000 - September 2026 - Stuart Beesley - StuWareSoftSystems
 # Display Name in MD changed to 'Custom Balances' (was 'Net Account Balances') >> 'id' remains: 'net_account_balances'
 
 # Thanks and credit to Dan T Davis and Derek Kent(23) for their suggestions and extensive testing...
@@ -91,7 +91,7 @@ assert isinstance(0/1, float), "LOGIC ERROR: Custom Balances extension assumes t
 # build: 1056 - Fix for 2024.3(5220) onwards... Account::getAncestors() changed to a Kotlin Sequence
 # build: 1057 - Added row value formatting tag: <#cvde> = Value colour: default foreground
 # build: 1057 - Enabled <#cmd:xxx> and <#cvmd:xxx> row tags for internal MDColors names.... ;->
-# build: 1057 - NETWORTH ASOF BUILD FOR MD2026 onwards >>>
+# build: 1057 - NETWORTH ASOF BUILD FOR MD2026/MD2027 onwards >>>
 # build: 1057 - Enabled magic tags @today, @asof, @@rowcurrency, @@basecurrency - along with the nw() nwif() functions now accepting an optional yyyymmdd asof parameter
 # build: 1057 - Improved networth formula detection (using regex) and cache results (including the expensive versions) for efficient repeated usage
 # build: 1057 - Thicken separator lines for Windows...
@@ -104,6 +104,9 @@ assert isinstance(0/1, float), "LOGIC ERROR: Custom Balances extension assumes t
 # build: 2000 - Upgraded CostCalculation to v10 to match MD2026(5500)
 # build: 2000 - BUGFIX for gatherRemainingRealBalances() - now when getting capital gains, we detect and pass the row currency and set setSpecialCurrencyType()
 # build: 2000 - misc AI recommended fixes...; added menu option 'Click Opens Register'; added ability to specify pos/neg value colours via row formmating commands
+# build: 2000 - fix for when swing worker aborts process causing error - now logs and returns...
+# build: 2000 - MD2026(5509) alpha jumped to MD2027(5510) alpha
+# build: 2000 - updated CostCalculation with latest bugfixes from MD2027(5511) - 5th September 2026
 # build: 2000 - ???
 
 # todo - tweak getConvertXBalanceRecursive() and getXBalance() to also exclude inactives from recursive balances (like apply networth rules)
@@ -6709,13 +6712,10 @@ Visit: %s (Author's site)
                 # No need to set start balance - calculated asof balance includes the opening balance
                 balanceObj.setStartBalance(0)       # Do this last!
 
-                # for debug...
                 if (balanceObj.getStartBalance() is None or balanceObj.balance is None):
-                    # trap a strange NPE....
-                    myPrint("B", "*** LOGIC ERROR >> row: %s acct: '%s' getStartBalance(): %s balance: %s - dumping balanceObj..:"
-                            %(iRowIdx+1, acct, balanceObj.getStartBalance(), balanceObj.balance))
-                    myPrint("B", "    " + balanceObj.toString())
-                    myPrint("B", "----------------------------------------")
+                    myPrint("B", "*** row: %s acct: '%s' - startBalance/balance is None, aborting (assume SwingWorker cancelled)" %(iRowIdx+1, acct))
+                    return  # assume that swing worker was cancelled. We need to quit and let it regenerate cleanly
+
                 balanceObj.balAsOf_balance = balanceObj.getBalance()
                 balanceObj.balAsOf_currentBalance = balanceObj.getCurrentBalance()
                 balanceObj.balAsOf_clearedBalance = balanceObj.getClearedBalance()

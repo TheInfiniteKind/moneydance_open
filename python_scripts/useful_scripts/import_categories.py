@@ -12,7 +12,7 @@
 #           It will validate the data first and abort with any errors.
 #           Once validation is complete, it will ask you to confirm to proceed with category additions
 #
-#           If MD2026+ CategoryDetailsReport (using data export mode extract) format file is detected then this will be
+#           If MD2026+ (now MD2027) CategoryDetailsReport (using data export mode extract) format file is detected then this will be
 #           auto imported - format: Type,Category,Currency,Tax Related,Status,Full Account Path,Base Account,Parent Category,depth,key,Comments
 #           NOTE: if your category names contains the default delimiter of ":" then the import will stop - you must edit the file and change these
 #                 this is because MD uses ":" to create the full account path with the structure delimited by ":"
@@ -1631,7 +1631,7 @@ Visit: %s (Author's site)
                 self.status = _status; self.color = _color
 
             def run(self):
-                GlobalVars.STATUS_LABEL.setText((_theStatus))
+                GlobalVars.STATUS_LABEL.setText(self.status)
                 if self.color is None or self.color == "": self.color = "X"
                 self.color = self.color.upper()
                 if self.color == "R":    GlobalVars.STATUS_LABEL.setForeground(getColorRed())
@@ -3082,7 +3082,7 @@ Visit: %s (Author's site)
         csv_header_present = None
         data = []
 
-        # This mirrors what would be expected from using MD2026's CategoryDetailsReport in data export mode (with comments)....
+        # This mirrors what would be expected from using MD2027's CategoryDetailsReport in data export mode (with comments)....
         FIELD_NAMES = ["ORIGINAL ROW",
                        "Type",
                        "Category",

@@ -1,4 +1,4 @@
-Author: Stuart Beesley - StuWareSoftSystems (created March 2021 - last updated: May 2026)
+Author: Stuart Beesley - StuWareSoftSystems (created March 2021 - last updated: September 2026)
 Credit: (slack: @dtd) aka Dan T Davis for his input, testing, patience and suggestions to make a (much) better product..
 
 Custom Balances (version 2000 onwards) works with Moneydance 2024(5100) onwards.
@@ -206,7 +206,7 @@ CHOICES/CONFIGURATION FOR A ROW:
           Gains are converted using the gain's txn's date before being totalled. The calculated value is stored for that
           row/security account in the row's currency (i.e. NOT the parent / investment account's currency). Thus,
           the asof date will not further revalue the value to a more future date - as the value is already 'locked' into
-          the row's currency. Values should match the result from the Capital Gains Report (from MD2026 onwards).
+          the row's currency. Values should match the result from the Capital Gains Report (from MD2027 onwards).
         - asof-date Cleared Balance is ILLOGICAL, so uses the calculated asof-date Balance                 ** WARNING **
 
         - WARNING: REFER 'PARALLEL BALANCES' BELOW CONCERNING CALCULATION SPEED
@@ -336,7 +336,7 @@ MATH ON CALCULATED BALANCES:
                    xnwf()   Net Worth, future balance,  all eligible accounts, only total the excluded accounts (debug)
                           **this is the formula that most people should use for a 'normal' / 'standard' net worth
 
-                   From build MD2026(5500) onwards:
+                   From build MD2026(5500) / MD2027(5510) onwards:
                     >> you can optionally pass an asOfDate parameter to these NW functions (except xnw and xnwf).
                        - the parameter must be integer format yyyymmdd - E.g. nw(20241231)
                        - do not use this parameter if you just want today, current balance, or future balance.

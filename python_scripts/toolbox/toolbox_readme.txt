@@ -126,7 +126,7 @@ Read-Only Mode (Default at launch) - Use ALT-M to toggle between Read-Only and U
         - View MD Custom Theme file  (only appears if it exists)
         - View Extension(s) details
         - View memorised reports (parameters and default settings)
-        - View Reports' Data Export Record Keys (MD2026 onwards)
+        - View Reports' Data Export Record Keys (MD2027 onwards)
         - Find my Sync Encryption password(s) in iOS Backup(s) - DECOMMISSIONED >> NO LONGER AVAILABLE
         - Execute the 'older' Import QIF file and set parameters for import (useful if you want to import Account Structure Only)
         - Convert a TimeStamp number into a readable date/time (display only)
@@ -220,8 +220,8 @@ ALT-M - Update Mode (** NOTE: Some menu items will disable if currency / securit
 
     - MENU: Online (OFX) Banking Tools:
         - Forget OFX Banking Import Link (so it asks which account when importing ofx files) (remove_ofx_account_bindings.py) (MD versions < 2022)
-        - Merge/Sync Security hidden Identifier data stores (e.g. CUSIP, ISIN, SEDOL, TICKER) (pre-MD2026 and MD2026+): ensures both stores are consistent.
-          NOTE: pre-MD2026 store holds only one ID per scheme; MD2026+ store can hold many IDs per scheme. THIS CHANGES DATA!
+        - Merge/Sync Security hidden Identifier data stores (e.g. CUSIP, ISIN, SEDOL, TICKER) (pre-MD2027 and MD2027+): ensures both stores are consistent.
+          NOTE: pre-MD2027 store holds only one ID per scheme; MD2027+ store can hold many IDs per scheme. THIS CHANGES DATA!
         - Manage your Security's hidden 'Identifiers' / schemes (e.g. CUSIP, ISIN, SEDOL, TICKER). Add/Edit/Reset/Nuke options. Internal links between security records. (remove_ofx_security_bindings.py and change-security-cusip.py)
         - Update OFX Last Txn Update Date (Downloaded) field for an account (MD versions >= 2022 can now use Online menu, Setup Online Banking, Reset Sync Date)
         - Reset ALL OFX Last Txn Update Dates (default, OFX and MD+) (MD 2022.3(4074) onwards)

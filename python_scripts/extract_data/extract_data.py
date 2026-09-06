@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# extract_data.py - build: 1050 - August 2026 - Stuart Beesley
+# extract_data.py - build: 1050 - September 2026 - Stuart Beesley
 #                   You can auto invoke by launching MD with one of the following:
 #                           '-d [datasetpath] -invoke=moneydance:fmodule:extract_data:autoextract:noquit'
 #                           '-d [datasetpath] -invoke=moneydance:fmodule:extract_data:autoextract:quit'
@@ -111,6 +111,7 @@
 # build: 1050 - Misc AI suggested fixes...
 # build: 1050 - fix for EIT with security splits now allowing multi-same-day as of MD2026(5501)
 # build: 1050 - fix for default reminder sort, and also comparator if/elif bug
+# build: 1050 - Update MyCostCalculation with v11 from MD2027(5511)
 # build: 1050 - ???
 
 # todo - EAR: Switch to 'proper' usage of DateRangeChooser() (rather than my own 'copy')
@@ -3366,7 +3367,7 @@ Visit: %s (Author's site)
     # Copied from: com.infinitekind.moneydance.model.CostCalculation (quite inaccessible before build 5008, also buggy)
     ####################################################################################################################
     class MyCostCalculation:
-        """CostBasis calculation engine (v10). Copies/enhances/fixes MD CostCalculation() (asof build 5064).
+        """CostBasis calculation engine (v11). Copies/enhances/fixes MD CostCalculation() (asof build 5064).
         Params asof:None or zero = asof the most recent (future)txn date that affected the shareholding/costbasis balance.
         preparedTxns is typically used by itself to recall the class to get the current cost basis
         obtainCurrentBalanceToo is used to request that the class calls itself to also get the current/today balance too
@@ -3374,7 +3375,7 @@ Visit: %s (Author's site)
         # ...fixes for  capital gains to work, v5: added in short/long term support, v6: added unRealizedSaleTxn parameter
         support, v7: added SharesOwnedAsOf class to match MD's upgraded CostCalculation class), v8: fixed code to match
         MD2024(5119) - fixed endless loop, buy 60, split 7:1, sell 20, split 4:1, sell all for zero cost basis scenarios;
-        v10: MD2026(5500) applied latest fixes"""
+        v10: MD2026(5500) applied latest fixes, v11: MD2027(5511) applied latest fixes"""
 
         ################################################################################################################
         # This is used to calculate the cost of a security using either the average cost or lot-based method.
@@ -3467,7 +3468,7 @@ Visit: %s (Author's site)
 
         def isAsOfToday(self): return self._isAsOfToday
 
-        def getCostBasisAsOfAsOf(self): return 0L if (self.isCostBasisInvalid()) else self.getMostRecentPosition().getRunningCost() # noqa
+        def getCostBasisAsOfAsOf(self): return 0L if (self.isCostBasisInvalid()) else self.getMostRecentPosition().getRunningCost()  # noqa
 
         def getLongTermCutoffDate(self): return self.longTermCutoffDate
         def getInvestCurr(self): return self.investCurr
@@ -3554,21 +3555,25 @@ Visit: %s (Author's site)
             """Returns the most recent Position. NOTE: This could in theory be future!"""
             return self.getPositions().get(self.getPositions().size() - 1)      # NOTE: There is always a dummy first position
 
-        def getPositionForAsOf(self):
-            # type: () -> MyCostCalculation.Position
-            """Returns the most recent Position upto/asof requested"""
+        def getPositionForAsOf(self, excludeSyntheticTxn=False):
+            # type: (bool) -> MyCostCalculation.Position
+            """Returns the most recent Position upto/asof requested.
+            :param excludeSyntheticTxn: when False then any (optional) unRealizedSaleTxn synthetic unrealized sell-all sale transaction will be included in the result.
+                                        specify True to obtain the pure result for the asof required without the synthetic transaction included."""
             rtnPos = self.getPositions().get(0)
             for pos in reversed(self.getPositions()):                           # Reversed puts most recent first
+                if excludeSyntheticTxn and self.unRealizedSaleTxn is not None and pos.getTxn() == self.unRealizedSaleTxn: continue    # skip the synthetic unrealised sell all txn if needed
                 if pos.getDate() > self.asOfDate: continue                      # Skip future posns
                 rtnPos = pos
                 if pos.getDate() <= self.asOfDate: break                        # Capture the most recent posn we find before/on asof
             return rtnPos
 
-        def getSharesAndCostBasisForAsOf(self):
-            # type: () -> (int, int)
-            """Returns a tuple containing the (long) shares owned, (long) cost basis upto/asof the date requested"""
+        def getSharesAndCostBasisForAsOf(self, excludeSyntheticTxn=False):
+            # type: (bool) -> (int, int)
+            """Returns a tuple containing the (long) shares owned, (long) cost basis upto/asof the date requested.
+            :param excludeSyntheticTxn: when False then any (optional) unRealizedSaleTxn synthetic unrealized sell-all sale transaction will be included in the result."""
             if self.getAsOfDate() is None: return None
-            asofPos = self.getPositionForAsOf()
+            asofPos = self.getPositionForAsOf(excludeSyntheticTxn=excludeSyntheticTxn)
             costBasisAsOf = 0L if self.isCostBasisInvalid() else asofPos.getRunningCost()
             return MyCostCalculation.SharesOwnedAsOf(self.getSecAccount(), self.getAsOfDate(), asofPos.getSharesOwnedAsOfAsOf(), costBasisAsOf, not self.isCostBasisInvalid())
 
@@ -3754,7 +3759,12 @@ Visit: %s (Author's site)
                         buyMatchedCostBasis = self.investCurr.getLongValue(buyCostBasisPrice * self.secCurr.getDoubleValue(buyAllocation.getSharesAllocated()))
                         if self.COST_DEBUG: myPrint("B", "......... matched buy CB: %s" %(self.investCurr.getDoubleValue(buyMatchedCostBasis)))
                         totMatchedBuyCostBasis += buyMatchedCostBasis
-                    pos.setCostBasis(-totMatchedBuyCostBasis)
+
+                    # SCB: MD2027(5511) same bug as the other two, own guard here since this runs in a separate function (lot-matching) that never reaches the fix built into the other two.
+                    priorSharesNegativeForLot = (0 if pos.getPreviousPos() is None else pos.getPreviousPos().getSharesOwnedAsOfThisTxn()) < 0
+                    pos.setCostBasis(totMatchedBuyCostBasis if priorSharesNegativeForLot else -totMatchedBuyCostBasis)
+                    if priorSharesNegativeForLot:
+                        if self.COST_DEBUG: myPrint("B", "CC-LOTBASIS-TRAP secAcct=%s txnDate=%s pos.costBasis=%s (not negated)" %(self.getSecAccount(), pos.getDate(), pos.getCostBasis()))
                     if self.COST_DEBUG: myPrint("B", "...... setting sellPos CostBasis to: %s" %(self.investCurr.getDoubleValue(pos.getCostBasis())))
 
                 if not pos.isMiscIncExpTxn():   # Assume that for LOT controlled, we do not add misc inc/exp fee into costbasis (as the cb cannot be assigned to any lot!)
@@ -4047,10 +4057,18 @@ Visit: %s (Author's site)
             if self.COST_DEBUG: myPrint("B", "...>>>> pos.getSharesAdded(): %s, longTermSharesSold: %s, shortTermSalesSold: %s = longProportion: %s,  pos.getFee(): %s, saleFeeLongTermProportion: %s"
                                               %(gsdv(pos.getSharesAdded()), gsdv(longTermSharesSold), gsdv(shortTermSalesSold), longProportion, gidv(pos.getFee()), gidv(saleFeeLongTermProportion)))
 
-            costBasis = -(pos.getCostBasis()) + pos.getFee()                                                            # todo MDFIX
+            # SCB: MD2027(5511) unconditional negation assumes cost is always sell-derived - wrong when the prior balance was already negative, since then the cost was built by a buy (a cover).
+            priorSharesNegative = (0 if pos.getPreviousPos() is None else pos.getPreviousPos().getSharesOwnedAsOfThisTxn()) < 0
+            if priorSharesNegative:
+                if self.COST_DEBUG: myPrint("B", "CC-SIGNFLIP-TRAP secAcct=%s txnDate=%s priorShares=%s pos.costBasis=%s (not negated)"
+                                                 %(self.getSecAccount(), pos.getDate(), None if pos.getPreviousPos() is None else pos.getPreviousPos().getSharesOwnedAsOfThisTxn(), pos.getCostBasis()))
+            costBasis = (pos.getCostBasis() if priorSharesNegative else -(pos.getCostBasis())) + pos.getFee()
 
             if self.getUsesAverageCost():
-                longTermCostBasis = Math.round(-(pos.getCostBasis()) * longProportion)      # Exclude sales fee at this point....
+                # SCB: MD2027(5511) same guard as the main costBasis fix above, reused here since this Avg-Cost-specific split does the identical unconditional negation in its own line.
+                longTermCostBasis = Math.round((pos.getCostBasis() if priorSharesNegative else -(pos.getCostBasis())) * longProportion)      # Exclude sales fee at this point....
+                if priorSharesNegative:
+                    if self.COST_DEBUG: myPrint("B", "CC-LTBASIS-TRAP secAcct=%s txnDate=%s longTermCostBasis=%s (not negated)" %(self.getSecAccount(), pos.getDate(), longTermCostBasis))
                 if self.COST_DEBUG: myPrint("B", "....... longTermCostBasis (excl. sale fee) recalculated to: %s" %(gidv(longTermCostBasis)))
 
             # NOTE: MD puts the whole sale fee into short-term if there are any short term sales. Do the same for avg cost too.
@@ -4147,8 +4165,12 @@ Visit: %s (Author's site)
 
                 elif fields.txnType in [InvestTxnType.SELL, InvestTxnType.SELL_XFER, InvestTxnType.SHORT]:
                     txnShares = -fields.shares
-                    runningAvgPrice = 0.0 if (fields.amount == 0) else float(fields.price)  # SCB: MD2024(5118) fix. When amount is zero, set price to zero too
-                    if (previousPosition is not None and previousPosition.getSharesOwnedAsOfAsOf() != 0):
+                    # This next line has gone through two fixes:
+                    # 1. SCB: MD2024(5118) fix - when amount is zero, set price to zero too - superceded by the next fix...
+                    # 2. SCB: MD2027(5511) fix - always default `runningAvgPrice` to zero. Includes fix 1 above, and
+                    # now ensures that if we encounter a sell txn when there is zero shareholding (unexpected or short), then we set the running average price to zero...
+                    runningAvgPrice = 0.0
+                    if (previousPosition is not None and previousPosition.getTxn() is not None and previousPosition.getSharesOwnedAsOfAsOf() != 0):
                         priorSharesOwnedAdjusted = self.callingClass.secCurr.unadjustValueForSplitsInt(previousPosition.getDate(), previousPosition.getSharesOwnedAsOfAsOf(), self.callingClass.getAsOfDate())
                         runningAvgPrice = float(txnRunningCost) / float(priorSharesOwnedAdjusted)
                         if self.callingClass.COST_DEBUG:
@@ -4157,12 +4179,21 @@ Visit: %s (Author's site)
                                          "prior shrs owned adjusted: %s "
                                          "new avg running price: %s"
                                          %(previousPosition.getDate(), previousPosition.getSharesOwnedAsOfAsOf(), self.callingClass.getAsOfDate(), txnRunningCost, priorSharesOwnedAdjusted, runningAvgPrice))
+                    else:
+                        if self.callingClass.COST_DEBUG:
+                            myPrint("B", ">> SELL: prev date: %s prev shrs asofasof: %s asof date: %s "
+                                         "prev running cost: %s "
+                                         "prior shrs owned adjusted: N/A "
+                                         "new avg running price: %s"
+                                         %(None if previousPosition is None else previousPosition.getDate(), None if previousPosition is None else previousPosition.getSharesOwnedAsOfAsOf(), self.callingClass.getAsOfDate(), txnRunningCost, runningAvgPrice))  # noqa
 
                     # Next two lines.... SCB: MD2024(5118) fix (for avg cost, buy 60, split 7:1, sell 20, split 4:1 issue)
                     sellCost = Math.round(float(txnShares) * runningAvgPrice)
 
                     # note: previousPosition is always non-None for a SELL (dummy start Position guarantees this)
-                    sellCost = self.callingClass.secCurr.unadjustValueForSplitsInt(previousPosition.getDate(), sellCost, self.getDate())
+                    # however previousPosition could be the initial dummy with a None txn if the first txn is a sell (unexpected)
+                    if (previousPosition is not None and previousPosition.getTxn() is not None and previousPosition.getSharesOwnedAsOfAsOf() != 0):
+                        sellCost = self.callingClass.secCurr.unadjustValueForSplitsInt(previousPosition.getDate(), sellCost, self.getDate())
 
                     # SCB: MD2024(5118) fix - previously checked 'if (sellCost == 0L)'
                     # manual adjustment of costbasis when sell/buy zero shares (feature ;->)

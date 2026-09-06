@@ -7,7 +7,7 @@
 # Moneydance Support Tool
 # ######################################################################################################################
 
-# toolbox.py build: 2001 - 2020 thru 2026 onwards - Stuart Beesley StuWareSoftSystems (>1000 coding hours)
+# toolbox.py build: 2001 - 2020 thru 2027 onwards - Stuart Beesley StuWareSoftSystems (>1000 coding hours)
 # Thanks and credit to Derek Kent(23) for his extensive testing and suggestions....
 # Further thanks to Kevin(N), Dan T Davis, and dwg for their testing, input and OFX Bank help/input.....
 # Credit of course to Moneydance(Sean) and IK retain all copyright over Moneydance internal code
@@ -122,6 +122,7 @@
 # build: 2000 - fixes for multi-security-splits (now allowed) on same day - as of MD2026(5501)...
 # build: 2000 - added toolbox_show_data_mode_in_viewer.py - new menu to toggle the data export show in viewer option/flag
 # build: 2001 - Kotlin'isation of Moneydance's Main class (12th August 2026) - MD2026.0(5505)
+# build: 2001 - MD2026.0(5509) alpha became / jumped to MD2027.0(5510) alpha (5th Sept 2026) - 2025/2026 were never released
 # build: 2001 - ???
 
 # NOTE: 'The domain/default pair of (kCFPreferencesAnyApplication, AppleInterfaceStyle) does not exist' means that Dark mode is NOT in force
@@ -559,8 +560,8 @@ else:
     GlobalVars.__TOOLBOX = None
 
     GlobalVars.TOOLBOX_MINIMUM_TESTED_MD_VERSION = 2020.0
-    GlobalVars.TOOLBOX_MAXIMUM_TESTED_MD_VERSION = 2026.0
-    GlobalVars.TOOLBOX_MAXIMUM_TESTED_MD_BUILD =   5505
+    GlobalVars.TOOLBOX_MAXIMUM_TESTED_MD_VERSION = 2027.0
+    GlobalVars.TOOLBOX_MAXIMUM_TESTED_MD_BUILD =   5510
     GlobalVars.MD_OFX_BANK_SETTINGS_DIR = "https://infinitekind.com/app/md/fis/"
     GlobalVars.MD_OFX_DEFAULT_SETTINGS_FILE = "https://infinitekind.com/app/md/fi2004.dict"
     GlobalVars.MD_OFX_DEBUG_SETTINGS_FILE = "https://infinitekind.com/app/md.debug/fi2004.dict"
@@ -596,9 +597,9 @@ else:
 
     GlobalVars.globalShowDisabledMenuItems = True       # set to False to hide menu items when Update Mode disabled
 
-    GlobalVars.Strings.PARAM_SEC_SCHEMEID_CURRID  = "curr_id."    # pre-MD2026 (now deprecated)
-    GlobalVars.Strings.PARAM_SEC_SCHEMEIDS_CURRIDS = "curr_ids."  # MD2026+
-    GlobalVars.Strings.CURR_ID_FOR_SCHEME_SEPARATOR = "|"         # MD2026+
+    GlobalVars.Strings.PARAM_SEC_SCHEMEID_CURRID  = "curr_id."    # pre-MD2027 (now deprecated)
+    GlobalVars.Strings.PARAM_SEC_SCHEMEIDS_CURRIDS = "curr_ids."  # MD2027+
+    GlobalVars.Strings.CURR_ID_FOR_SCHEME_SEPARATOR = "|"         # MD2027+
 
     GlobalVars.Strings.OFX_LAST_TXN_UPDATE = "ofx_last_txn_update"
     GlobalVars.Strings.MD_KEY_ASOF_PREF = "gen.rec_asof_enabled"
@@ -24160,8 +24161,8 @@ after saving the file, restart Moneydance
                     user_forgetOFXBankingLink = MenuJRadioButton("Forget OFX Banking File Import Link (remove_ofx_account_bindings.py) (MD versions < MD2022)", False, updateMenu=True, secondaryEnabled=(not isMDPlusEnabledBuild() or isToolboxUnlocked()))
                     user_forgetOFXBankingLink.setToolTipText("Force MD to forget OFX Banking Import link attributed to an Account. Moneydance will ask you to recreate the link on next import.. THIS CHANGES DATA! (remove_ofx_account_bindings.py)")
                     
-                    user_merge_security_identifier_data = MenuJRadioButton("Merge/Sync Security hidden Identifier data stores (pre-MD2026 and MD2026+) - ensures both stores are consistent (e.g. CUSIP, ISIN, SEDOL, TICKER)", False, updateMenu=True)
-                    user_merge_security_identifier_data.setToolTipText("Merges Security hidden Identifier data (e.g. CUSIP, ISIN, SEDOL, TICKER) between pre-MD2026 and MD2026+ stores. Nothing is lost. NOTE: pre-MD2026 store holds only one ID per scheme. THIS CHANGES DATA!")
+                    user_merge_security_identifier_data = MenuJRadioButton("Merge/Sync Security hidden Identifier data stores (pre-MD2027 and MD2027+) - ensures both stores are consistent (e.g. CUSIP, ISIN, SEDOL, TICKER)", False, updateMenu=True)
+                    user_merge_security_identifier_data.setToolTipText("Merges Security hidden Identifier data (e.g. CUSIP, ISIN, SEDOL, TICKER) between pre-MD2027 and MD2027+ stores. Nothing is lost. NOTE: pre-MD2027 store holds only one ID per scheme. THIS CHANGES DATA!")
 
                     user_manage_security_identifier_settings = MenuJRadioButton("Manage your Security's hidden Identifiers (e.g. CUSIP, ISIN, SEDOL, TICKER) - add, edit, reset, move; and even nuke options. (remove_ofx_security_bindings.py and change-security-cusip.py)", False, updateMenu=True)
                     user_manage_security_identifier_settings.setToolTipText("Add, edit, reset, move or nuke your Security's hidden Identifiers (e.g. CUSIP, ISIN, SEDOL, TICKER). These link downloaded Investment Securities to your MD Securities. THIS CHANGES DATA!")
@@ -25332,7 +25333,7 @@ after saving the file, restart Moneydance
                     user_view_memorised_reports = MenuJRadioButton("View Memorised Reports", False)
                     user_view_memorised_reports.setToolTipText("View a list of your Memorised reports")
 
-                    user_view_reports_record_keys = MenuJRadioButton("View Reports' Data Export Record Keys (MD2026 onwards)", False, secondaryEnabled=(float(MD_REF.getBuild()) >= 5500))
+                    user_view_reports_record_keys = MenuJRadioButton("View Reports' Data Export Record Keys (MD2027 onwards)", False, secondaryEnabled=(float(MD_REF.getBuild()) >= 5500))
                     user_view_reports_record_keys.setToolTipText("View the data export record keys that can be generated by some reports")
 
                     # user_find_sync_password_in_ios_backups = MenuJRadioButton("Find Sync Password in iOS Backups (only on Windows and Mac)", False)

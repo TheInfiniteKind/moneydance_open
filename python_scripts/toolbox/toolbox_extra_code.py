@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# toolbox_extra_code.py build: 1005 - March 2026 - Stuart Beesley StuWareSoftSystems
+# toolbox_extra_code.py build: 1006 - September 2026 - Stuart Beesley StuWareSoftSystems
 
 # To avoid the dreaded issue below, moving some code here....:
 # java.lang.RuntimeException: java.lang.RuntimeException: For unknown reason, too large method code couldn't be resolved
@@ -12,8 +12,9 @@
 # build: 1002 - Relocated advanced_clone_dataset() into here.
 # build: 1003 - Added delete all reports/graphs, and reset all inbuilt report/graph parameters to defaults...
 # build: 1004 - relocated more code here
-# build: 1005 - Upgraded merge duplicate securities with MD2026 hidden security Identifier data schemes / api calls
+# build: 1005 - Upgraded merge duplicate securities with MD2026 (now MD2027) hidden security Identifier data schemes / api calls
 # build: 1005 - Added merge_security_identifier_stores(), and relocated / upgraded all the fiscal Identifier management code
+# build: 1006 - Renamed MD2026 references to MD2027...
 ###############################################################################
 # MIT License
 #
@@ -2638,7 +2639,7 @@ Moneydance(MD) is built on Java. Hence the application runs on a Java Virtual Ma
 - NOTE: You can also execute the moneydance.jar using Java as long as you set up your environment properly.
         .. this is out of scope of this document, but refer to: https://yogi1967.github.io/MoneydancePythonScripts/
         .. and the example launch scripts contained on my site.
-        .. MD2022.1(4058) Java 17, MD2022.3(4077) Java 18, MD2023.2(5008) Java 20, MD2023.2(5047) Java 21, MD2026 (5500) Java 25 LTS
+        .. MD2022.1(4058) Java 17, MD2022.3(4077) Java 18, MD2023.2(5008) Java 20, MD2023.2(5047) Java 21, MD2027 (5510) Java 25 LTS
 
 - Windows and Linux: The launch package is built using install4j. The JVM can be modified by editing the vmoptions file.
                      See separate Toolbox > Advanced Options menu > 'View Java VM Options File' for details
@@ -3391,10 +3392,10 @@ MD2021.2(3088): Adds capability to set the encryption passphrase into an environ
                 output += "INFO - Only the Master Security has hidden Security Identifier data - No action required....\n"
             else:
                 lSecuritySchemeActionRequired = True
-                if lHasLegacySchemes:  # strategy (user dialog) only needed when legacy / pre-MD2026 store data exists
-                    output += "Hidden Security Identifier (PRE-MD2026) data - STRATEGY REQUIRED...\n"
+                if lHasLegacySchemes:  # strategy (user dialog) only needed when legacy / pre-MD2027 store data exists
+                    output += "Hidden Security Identifier (PRE-MD2027) data - STRATEGY REQUIRED...\n"
                 else:
-                    output += "Hidden Security Identifier data - MD2026+ store will be auto-merged, no user action required....\n"
+                    output += "Hidden Security Identifier data - MD2027+ store will be auto-merged, no user action required....\n"
 
             selectedSecurityScheme = None
             if lSecuritySchemeActionRequired:
@@ -3423,14 +3424,14 @@ MD2021.2(3088): Adds capability to set the encryption passphrase into an environ
                             allUniqueSecuritySchemesPicklist.append(StoreSecurityScheme(theScheme, theSchemeID))
 
                     if isUpgraded and lHasNewSchemes:
-                        dialogMsg = "Select the pre-MD2026 hidden Security Identifier to keep in the pre-MD2026 store.\n" \
-                                    "NOTE: ALL IDs from both pre-MD2026 and MD2026+ stores across all securities will be automatically merged into the MD2026+ store."
+                        dialogMsg = "Select the pre-MD2027 hidden Security Identifier to keep in the pre-MD2027 store.\n" \
+                                    "NOTE: ALL IDs from both pre-MD2027 and MD2027+ stores across all securities will be automatically merged into the MD2027+ store."
                     elif isUpgraded:
-                        dialogMsg = "Select the pre-MD2026 hidden Security Identifier to keep.\n" \
-                                    "NOTE: This ID will also be added into the MD2026+ store."
+                        dialogMsg = "Select the pre-MD2027 hidden Security Identifier to keep.\n" \
+                                    "NOTE: This ID will also be added into the MD2027+ store."
                     elif lHasNewSchemes:
-                        dialogMsg = "Select the pre-MD2026 hidden Security Identifier to keep.\n" \
-                                    "NOTE: ALL IDs from both pre-MD2026 and MD2026+ stores will also be merged into the MD2026+ store."
+                        dialogMsg = "Select the pre-MD2027 hidden Security Identifier to keep.\n" \
+                                    "NOTE: ALL IDs from both pre-MD2027 and MD2027+ stores will also be merged into the MD2027+ store."
                     else:
                         dialogMsg = "Select the hidden Security Identifier to keep/use in the new Master Security?"
 
@@ -3451,11 +3452,11 @@ MD2021.2(3088): Adds capability to set the encryption passphrase into an environ
                         return
 
                     jif.dispose()
-                    output += "** Hidden Security Identifier Strategy: pre-MD2026 store selection: %s\n\n" %(selectedSecurityScheme)
+                    output += "** Hidden Security Identifier Strategy: pre-MD2027 store selection: %s\n\n" %(selectedSecurityScheme)
 
                 else:
                     jif.dispose()
-                    output += "** Hidden Security Identifier Strategy: MD2026+ store only - all IDs will be auto-merged into master\n\n"
+                    output += "** Hidden Security Identifier Strategy: MD2027+ store only - all IDs will be auto-merged into master\n\n"
 
             del allUniqueSecuritySchemes
 
@@ -3593,22 +3594,22 @@ MD2021.2(3088): Adds capability to set the encryption passphrase into an environ
                 primary.setEditingMode()
 
                 if lHasLegacySchemes:
-                    txt = "Removing all pre-MD2026 hidden Security Identifier data from master %s" %(getSecurityNameAndID(primary))
+                    txt = "Removing all pre-MD2027 hidden Security Identifier data from master %s" %(getSecurityNameAndID(primary))
                     myPrint("B", txt); output += "%s\n" %(txt)
                     _deleteLegacySecuritySchemes(primary)
 
                     if selectedSecurityScheme.getScheme():
-                        txt = "Writing pre-MD2026 Security Identifier - Scheme: %s ID: %s to master %s" %(selectedSecurityScheme.getScheme(), selectedSecurityScheme.getSchemeID(), getSecurityNameAndID(primary))
+                        txt = "Writing pre-MD2027 Security Identifier - Scheme: %s ID: %s to master %s" %(selectedSecurityScheme.getScheme(), selectedSecurityScheme.getSchemeID(), getSecurityNameAndID(primary))
                         myPrint("B", txt); output += "%s\n" %(txt)
                         _setLegacyIDForScheme(primary, selectedSecurityScheme.getScheme(), selectedSecurityScheme.getSchemeID())
                     else:
-                        txt = "User selected NONE - no pre-MD2026 Security Identifier data written to master %s" %(getSecurityNameAndID(primary))
+                        txt = "User selected NONE - no pre-MD2027 Security Identifier data written to master %s" %(getSecurityNameAndID(primary))
                         myPrint("B", txt); output += "%s\n" %(txt)
 
-                    output += ".. Master %s pre-MD2026 store now contains: Scheme: %s, ID: %s\n" %(getSecurityNameAndID(primary), selectedSecurityScheme.getScheme(), selectedSecurityScheme.getSchemeID())
+                    output += ".. Master %s pre-MD2027 store now contains: Scheme: %s, ID: %s\n" %(getSecurityNameAndID(primary), selectedSecurityScheme.getScheme(), selectedSecurityScheme.getSchemeID())
 
                 if isUpgraded or lHasNewSchemes:
-                    txt = "Merging all Identifier data into MD2026+ store on master %s..." %(getSecurityNameAndID(primary))
+                    txt = "Merging all Identifier data into MD2027+ store on master %s..." %(getSecurityNameAndID(primary))
                     myPrint("B", txt); output += "%s\n" %(txt)
                     for _theSec in tickerToMerge.getSecurityList():
                         for _theScheme in _getLegacySchemesForSecurity(_theSec):
@@ -3617,17 +3618,17 @@ MD2021.2(3088): Adds capability to set the encryption passphrase into an environ
                                 _alreadyHas = _theID in _getIDsForScheme(primary, _theScheme, lLegacyStore=False)
                                 if not _alreadyHas:
                                     _addIDForScheme(primary, _theScheme, _theID, lLegacyStore=False)
-                                txt = ".. %s from pre-MD2026 store of %s - Scheme: %s ID: %s into master MD2026+ store" %("SKIPPED (already present)" if _alreadyHas else "Merged", getSecurityNameAndID(_theSec), _theScheme, _theID)
+                                txt = ".. %s from pre-MD2027 store of %s - Scheme: %s ID: %s into master MD2027+ store" %("SKIPPED (already present)" if _alreadyHas else "Merged", getSecurityNameAndID(_theSec), _theScheme, _theID)
                                 myPrint("B", txt); output += "%s\n" %(txt)
                         for _theScheme in _getSchemesForSecurity(_theSec):
                             for _theID in _getIDsForScheme(_theSec, _theScheme, lLegacyStore=False):
                                 _alreadyHas = _theID in _getIDsForScheme(primary, _theScheme, lLegacyStore=False)
                                 if not _alreadyHas:
                                     _addIDForScheme(primary, _theScheme, _theID, lLegacyStore=False)
-                                txt = ".. %s from MD2026+ store of %s - Scheme: %s ID: %s into master MD2026+ store" %("SKIPPED (already present)" if _alreadyHas else "Merged", getSecurityNameAndID(_theSec), _theScheme, _theID)
+                                txt = ".. %s from MD2027+ store of %s - Scheme: %s ID: %s into master MD2027+ store" %("SKIPPED (already present)" if _alreadyHas else "Merged", getSecurityNameAndID(_theSec), _theScheme, _theID)
                                 myPrint("B", txt); output += "%s\n" %(txt)
 
-                    output += ".. Master %s MD2026+ store now contains:\n" %(getSecurityNameAndID(primary))
+                    output += ".. Master %s MD2027+ store now contains:\n" %(getSecurityNameAndID(primary))
                     for _theScheme in sorted(_getSchemesForSecurity(primary)):
                         for _theID in _getIDsForScheme(primary, _theScheme, lLegacyStore=False):
                             output += "   Scheme: %s ID: %s\n" %(_theScheme, _theID)
@@ -5488,15 +5489,15 @@ MD2021.2(3088): Adds capability to set the encryption passphrase into an environ
     ############# DEFINE the FISCAL SCHEME ID ROUTINES #########################
     def _getLegacyIDForScheme(sec, scheme):
         # type: (CurrencyType, str) -> str
-        """replicates PRE-MD2026 com.infinitekind.moneydance.model.CurrencyType#getIDForScheme"""
+        """replicates PRE-MD2027 com.infinitekind.moneydance.model.CurrencyType#getIDForScheme"""
         ids = _getIDsForScheme(sec, scheme, lNewStore=False)
         return ids[0] if ids else None
 
     def _getIDsForScheme(sec, scheme, lLegacyStore=True, lNewStore=True):
         # type: (CurrencyType, str, bool, bool) -> list
-        """replicates MD2026+ com.infinitekind.moneydance.model.CurrencyType#getIDsForScheme
+        """replicates MD2027+ com.infinitekind.moneydance.model.CurrencyType#getIDsForScheme
         lLegacyStore: include legacy curr_id.* store (single) in lookup
-        lNewStore: include MD2026+ curr_ids.* store (list, pipe separated) in lookup"""
+        lNewStore: include MD2027+ curr_ids.* store (list, pipe separated) in lookup"""
         raw = None
         if lNewStore:
             raw = sec.getParameter(GlobalVars.Strings.PARAM_SEC_SCHEMEIDS_CURRIDS + scheme.strip())
@@ -5507,7 +5508,7 @@ MD2021.2(3088): Adds capability to set the encryption passphrase into an environ
 
     def _getLegacySchemesForSecurity(sec):
         # type: (CurrencyType) -> set
-        """returns all schemes stored in the PRE-MD2026 store for the given security"""
+        """returns all schemes stored in the PRE-MD2027 store for the given security"""
         schemes = set()
         for key in sec.getParameterKeys():
             if key.startswith(GlobalVars.Strings.PARAM_SEC_SCHEMEID_CURRID): schemes.add(key[len(GlobalVars.Strings.PARAM_SEC_SCHEMEID_CURRID):])
@@ -5515,7 +5516,7 @@ MD2021.2(3088): Adds capability to set the encryption passphrase into an environ
 
     def _getSchemesForSecurity(sec):
         # type: (CurrencyType) -> set
-        """returns all schemes stored in the MD2026+ store for the given security"""
+        """returns all schemes stored in the MD2027+ store for the given security"""
         schemes = set()
         for key in sec.getParameterKeys():
             if key.startswith(GlobalVars.Strings.PARAM_SEC_SCHEMEIDS_CURRIDS): schemes.add(key[len(GlobalVars.Strings.PARAM_SEC_SCHEMEIDS_CURRIDS):])
@@ -5523,7 +5524,7 @@ MD2021.2(3088): Adds capability to set the encryption passphrase into an environ
 
     def _setLegacyIDForScheme(sec, scheme, newID):
         # type: (CurrencyType, str, str) -> None
-        """replicates PRE-MD2026 com.infinitekind.moneydance.model.CurrencyType#setIDForScheme - writes curr_id.* only"""
+        """replicates PRE-MD2027 com.infinitekind.moneydance.model.CurrencyType#setIDForScheme - writes curr_id.* only"""
         if scheme is None: return
         paramKey = GlobalVars.Strings.PARAM_SEC_SCHEMEID_CURRID + scheme.strip()
         if newID is None:
@@ -5533,7 +5534,7 @@ MD2021.2(3088): Adds capability to set the encryption passphrase into an environ
 
     def _setIDsForScheme(sec, scheme, schemeIDs):
         # type: (CurrencyType, str, list) -> None
-        """replicates MD2026+ com.infinitekind.moneydance.model.CurrencyType#setIDsForScheme"""
+        """replicates MD2027+ com.infinitekind.moneydance.model.CurrencyType#setIDsForScheme"""
         trimmedScheme = scheme.strip()
         paramKey = GlobalVars.Strings.PARAM_SEC_SCHEMEIDS_CURRIDS + trimmedScheme
         singleParamKey = GlobalVars.Strings.PARAM_SEC_SCHEMEID_CURRID + trimmedScheme
@@ -5546,7 +5547,7 @@ MD2021.2(3088): Adds capability to set the encryption passphrase into an environ
 
     def _addIDForScheme(sec, scheme, newID, lLegacyStore=True, lNewStore=True):
         # type: (CurrencyType, str, str, bool, bool) -> None
-        """replicates MD2026+ com.infinitekind.moneydance.model.CurrencyType#addIDForScheme
+        """replicates MD2027+ com.infinitekind.moneydance.model.CurrencyType#addIDForScheme
         lLegacyStore/lNewStore control which store(s) are checked for duplicate detection only.
         The write always updates both stores atomically via _setIDsForScheme (consistent with MD Kotlin behaviour).
         Use lLegacyStore=False when deliberately targeting the new store to avoid skipping adds
@@ -5557,36 +5558,36 @@ MD2021.2(3088): Adds capability to set the encryption passphrase into an environ
             _setIDsForScheme(sec, scheme, idsForScheme)
 
     def _deleteLegacySecuritySchemes(_theSec):
-        """Removes all pre-MD2026 curr_id.* scheme data only - replicates pre-MD2026 setIDForScheme(scheme, None)"""
+        """Removes all pre-MD2027 curr_id.* scheme data only - replicates pre-MD2027 setIDForScheme(scheme, None)"""
         for _scheme in _getLegacySchemesForSecurity(_theSec):
             _theSec.removeParameter(GlobalVars.Strings.PARAM_SEC_SCHEMEID_CURRID + _scheme.strip())
 
     def output_old_new_scheme_id_info(securities, lOutputGuide=True):
         # count hidden identifier records across all involved securities and create a text/note
-        _iPreMD2026Count = 0
-        _iMD2026Count = 0
+        _iPreMD2027Count = 0
+        _iMD2027Count = 0
         _output = ""
         for _noteSec in securities:
             for _scheme in _getLegacySchemesForSecurity(_noteSec):
-                if _getLegacyIDForScheme(_noteSec, _scheme): _iPreMD2026Count += 1
+                if _getLegacyIDForScheme(_noteSec, _scheme): _iPreMD2027Count += 1
             for _scheme in _getSchemesForSecurity(_noteSec):
-                _iMD2026Count += len(_getIDsForScheme(_noteSec, _scheme, lLegacyStore=False))
+                _iMD2027Count += len(_getIDsForScheme(_noteSec, _scheme, lLegacyStore=False))
 
-        if _iPreMD2026Count > 0 or _iMD2026Count > 0:
+        if _iPreMD2027Count > 0 or _iMD2027Count > 0:
             _output += "\n\nNOTE: Hidden Security Identifier data detected.\n"
-            if _iPreMD2026Count > 0: _output += "      Pre-MD2026 format: %s Identifier record(s) found\n" %(_iPreMD2026Count)
-            if _iMD2026Count > 0: _output += "      MD2026+ format:    %s Identifier record(s) found\n" %(_iMD2026Count)
+            if _iPreMD2027Count > 0: _output += "      Pre-MD2027 format: %s Identifier record(s) found\n" %(_iPreMD2027Count)
+            if _iMD2027Count > 0: _output += "      MD2027+ format:    %s Identifier record(s) found\n" %(_iMD2027Count)
             if lOutputGuide: _output += "      Use 'OFX: View Security's hidden Security Identifier settings' for more details.\n\n"
         return _output
 
     def _clearSchemeFromNewStore(sec, scheme):
         # type: (CurrencyType, str) -> None
-        """removes all IDs for the given scheme from the MD2026+ store only"""
+        """removes all IDs for the given scheme from the MD2027+ store only"""
         sec.removeParameter(GlobalVars.Strings.PARAM_SEC_SCHEMEIDS_CURRIDS + scheme.strip())
 
     def _removeIDForSchemeFromNewStore(sec, scheme, removeID):
         # type: (CurrencyType, str, str) -> None
-        """removes a single ID from the MD2026+ store only for the given scheme"""
+        """removes a single ID from the MD2027+ store only for the given scheme"""
         idsForScheme = _getIDsForScheme(sec, scheme, lLegacyStore=False)
         if removeID in idsForScheme:
             idsForScheme.remove(removeID)
@@ -5603,10 +5604,10 @@ MD2021.2(3088): Adds capability to set the encryption passphrase into an environ
         if not isSecuritySchemesUpgradedBuild():
             if not myPopupAskQuestion(toolbox_frame_,
                                       "Merge Security Identifier Stores",
-                                      "WARNING: This build does not support / use MD2026+ identifier schemes.\n"
+                                      "WARNING: This build does not support / use MD2027+ identifier schemes.\n"
                                       "The merge will synchronise both legacy and new stores where possible.\n"
-                                      "NOTE: If a scheme has multiple MD2026+ IDs, only the first ID will be written to the pre-MD2026 store - the remaining IDs are preserved in the MD2026+ store but will not be accessible on this build.\n"
-                                      "No MD2026+ data will be lost. Pre-MD2026 data may be overwritten if a newer (first) ID exists in the MD2026+ store.\n"
+                                      "NOTE: If a scheme has multiple MD2027+ IDs, only the first ID will be written to the pre-MD2027 store - the remaining IDs are preserved in the MD2027+ store but will not be accessible on this build.\n"
+                                      "No MD2027+ data will be lost. Pre-MD2027 data may be overwritten if a newer (first) ID exists in the MD2027+ store.\n"
                                       "Proceed?",
                                       theMessageType=JOptionPane.WARNING_MESSAGE):
                 txt = "Merge Security Identifier Stores - User cancelled - no changes made"
@@ -5614,15 +5615,15 @@ MD2021.2(3088): Adds capability to set the encryption passphrase into an environ
 
         if not myPopupAskQuestion(toolbox_frame_,
                                   "Merge Security Identifier Stores",
-                                  "This will merge ALL Security Identifier data from both pre-MD2026 and MD2026+ stores for all Securities.\n"
-                                  "After merging: MD2026+ store will contain all IDs, pre-MD2026 store will hold the first ID from the MD2026+ store.\n"
+                                  "This will merge ALL Security Identifier data from both pre-MD2027 and MD2027+ stores for all Securities.\n"
+                                  "After merging: MD2027+ store will contain all IDs, pre-MD2027 store will hold the first ID from the MD2027+ store.\n"
                                   "Proceed?",
                                   theMessageType=JOptionPane.WARNING_MESSAGE):
             txt = "Merge Security Identifier Stores - User cancelled - no changes made"
             setDisplayStatus(txt, "B"); return
 
         if not confirm_backup_confirm_disclaimer(toolbox_frame_, "Merge Security Identifier Stores",
-                                                 "MERGE ALL Security Identifier data from both pre-MD2026 and MD2026+ stores?"):
+                                                 "MERGE ALL Security Identifier data from both pre-MD2027 and MD2027+ stores?"):
             return
 
         allSecurities = [curr for curr in MD_REF.getCurrentAccountBook().getCurrencies().getAllCurrencies()
@@ -5661,7 +5662,7 @@ MD2021.2(3088): Adds capability to set the encryption passphrase into an environ
                 sec.setEditingMode()
                 for (_scheme, _combined) in schemeUpdates:
                     _setIDsForScheme(sec, _scheme, _combined)
-                    myPrint("B", "Merge Security Identifier Stores: merged Security: '%s' Scheme: %s IDs: %s (pre-MD2026 store now: %s)" %(sec, _scheme, _combined, _combined[0] if _combined else None))
+                    myPrint("B", "Merge Security Identifier Stores: merged Security: '%s' Scheme: %s IDs: %s (pre-MD2027 store now: %s)" %(sec, _scheme, _combined, _combined[0] if _combined else None))
                     iMerged += 1
                 sec.syncItem()
 
@@ -5679,7 +5680,7 @@ MD2021.2(3088): Adds capability to set the encryption passphrase into an environ
         isUpgraded = isSecuritySchemesUpgradedBuild()
 
         # Step 1 - Select store upfront
-        storeOptions = ["MD2026+ store", "Pre-MD2026 store"] if isUpgraded else ["Pre-MD2026 store"]
+        storeOptions = ["MD2027+ store", "Pre-MD2027 store"] if isUpgraded else ["Pre-MD2027 store"]
         selectedStore = JOptionPane.showInputDialog(toolbox_frame_,
                                                     "Select the Security Identifier data store to operate on:",
                                                     "%s - Select Store" %(_THIS_METHOD_NAME),
@@ -5691,7 +5692,7 @@ MD2021.2(3088): Adds capability to set the encryption passphrase into an environ
             txt = "%s - No store selected - no changes made" %(_THIS_METHOD_NAME)
             setDisplayStatus(txt, "B"); return
 
-        lLegacyStore = selectedStore == "Pre-MD2026 store"
+        lLegacyStore = selectedStore == "Pre-MD2027 store"
 
         # Step 2 - Build rich security list showing inline scheme data for selected store
         class StoreSecurityWithSchemes:
@@ -5774,11 +5775,11 @@ MD2021.2(3088): Adds capability to set the encryption passphrase into an environ
                 for _scheme in _getLegacySchemesForSecurity(selectedSecurity):
                     _oldID = _getLegacyIDForScheme(selectedSecurity, _scheme)
                     _setLegacyIDForScheme(selectedSecurity, _scheme, None)
-                    myPrint("B", "%s: RESET pre-MD2026 - deleted Scheme: %s ID: %s from '%s'" %(_THIS_METHOD_NAME, _scheme, _oldID, selectedSecurity))
+                    myPrint("B", "%s: RESET pre-MD2027 - deleted Scheme: %s ID: %s from '%s'" %(_THIS_METHOD_NAME, _scheme, _oldID, selectedSecurity))
             else:
                 for _scheme in _getSchemesForSecurity(selectedSecurity):
                     for _oldID in _getIDsForScheme(selectedSecurity, _scheme, lLegacyStore=False):
-                        myPrint("B", "%s: RESET MD2026+ - deleted Scheme: %s ID: %s from '%s'" %(_THIS_METHOD_NAME, _scheme, _oldID, selectedSecurity))
+                        myPrint("B", "%s: RESET MD2027+ - deleted Scheme: %s ID: %s from '%s'" %(_THIS_METHOD_NAME, _scheme, _oldID, selectedSecurity))
                     _clearSchemeFromNewStore(selectedSecurity, _scheme)
             selectedSecurity.syncItem()
             txt = "Security Identifier data in %s on Security: '%s' Reset/Deleted!" %(selectedStore, selectedSecurity)
@@ -5809,8 +5810,8 @@ MD2021.2(3088): Adds capability to set the encryption passphrase into an environ
 
             destSec = selectedMoveTo.sec
             if selectedMoveTo.hasData:
-                if lLegacyStore: _warn = "Security: '%s' already has pre-MD2026 data. OK will OVERWRITE matching scheme(s) on destination. Cancel to exit." %(destSec.getName())
-                else: _warn = "Security: '%s' already has MD2026+ data. OK will MERGE source IDs into destination - existing IDs kept, source IDs added. Cancel to exit." %(destSec.getName())
+                if lLegacyStore: _warn = "Security: '%s' already has pre-MD2027 data. OK will OVERWRITE matching scheme(s) on destination. Cancel to exit." %(destSec.getName())
+                else: _warn = "Security: '%s' already has MD2027+ data. OK will MERGE source IDs into destination - existing IDs kept, source IDs added. Cancel to exit." %(destSec.getName())
                 if not myPopupAskQuestion(toolbox_frame_, _THIS_METHOD_NAME, _warn, theMessageType=JOptionPane.WARNING_MESSAGE):
                     txt = "%s - User cancelled - no changes made" %(_THIS_METHOD_NAME)
                     setDisplayStatus(txt, "R"); return
@@ -5824,17 +5825,17 @@ MD2021.2(3088): Adds capability to set the encryption passphrase into an environ
                 for _scheme in _getLegacySchemesForSecurity(selectedSecurity):
                     _moveID = _getLegacyIDForScheme(selectedSecurity, _scheme)
                     _destOldID = _getLegacyIDForScheme(destSec, _scheme)
-                    if _destOldID: myPrint("B", "%s: MOVE pre-MD2026 - overwriting Scheme: %s old ID: %s on destination '%s' with new ID: %s" %(_THIS_METHOD_NAME, _scheme, _destOldID, destSec, _moveID))
-                    else: myPrint("B", "%s: MOVE pre-MD2026 - writing Scheme: %s ID: %s to destination '%s'" %(_THIS_METHOD_NAME, _scheme, _moveID, destSec))
+                    if _destOldID: myPrint("B", "%s: MOVE pre-MD2027 - overwriting Scheme: %s old ID: %s on destination '%s' with new ID: %s" %(_THIS_METHOD_NAME, _scheme, _destOldID, destSec, _moveID))
+                    else: myPrint("B", "%s: MOVE pre-MD2027 - writing Scheme: %s ID: %s to destination '%s'" %(_THIS_METHOD_NAME, _scheme, _moveID, destSec))
                     _setLegacyIDForScheme(destSec, _scheme, _moveID)
                     _setLegacyIDForScheme(selectedSecurity, _scheme, None)
-                    myPrint("B", "%s: MOVE pre-MD2026 - cleared Scheme: %s from source '%s'" %(_THIS_METHOD_NAME, _scheme, selectedSecurity))
+                    myPrint("B", "%s: MOVE pre-MD2027 - cleared Scheme: %s from source '%s'" %(_THIS_METHOD_NAME, _scheme, selectedSecurity))
             else:
                 for _scheme in _getSchemesForSecurity(selectedSecurity):
                     _destOldIDs = _getIDsForScheme(destSec, _scheme, lLegacyStore=False)
-                    if _destOldIDs: myPrint("B", "%s: MOVE MD2026+ - merging into existing Scheme: %s on destination '%s' (existing IDs: %s)" %(_THIS_METHOD_NAME, _scheme, destSec, _destOldIDs))
+                    if _destOldIDs: myPrint("B", "%s: MOVE MD2027+ - merging into existing Scheme: %s on destination '%s' (existing IDs: %s)" %(_THIS_METHOD_NAME, _scheme, destSec, _destOldIDs))
                     for _moveID in _getIDsForScheme(selectedSecurity, _scheme, lLegacyStore=False):
-                        myPrint("B", "%s: MOVE MD2026+ - adding Scheme: %s ID: %s to destination '%s'" %(_THIS_METHOD_NAME, _scheme, _moveID, destSec))
+                        myPrint("B", "%s: MOVE MD2027+ - adding Scheme: %s ID: %s to destination '%s'" %(_THIS_METHOD_NAME, _scheme, _moveID, destSec))
                         _addIDForScheme(destSec, _scheme, _moveID, lLegacyStore=False)
                     _clearSchemeFromNewStore(selectedSecurity, _scheme)
 
@@ -5930,12 +5931,12 @@ MD2021.2(3088): Adds capability to set the encryption passphrase into an environ
                     for _scheme in _getLegacySchemesForSecurity(_nukeSec):
                         _oldID = _getLegacyIDForScheme(_nukeSec, _scheme)
                         _setLegacyIDForScheme(_nukeSec, _scheme, None)
-                        myPrint("B", "%s: NUKE pre-MD2026 - deleted Scheme: %s ID: %s from '%s'" %(_THIS_METHOD_NAME, _scheme, _oldID, _nukeSec))
+                        myPrint("B", "%s: NUKE pre-MD2027 - deleted Scheme: %s ID: %s from '%s'" %(_THIS_METHOD_NAME, _scheme, _oldID, _nukeSec))
                         iNuked += 1
                 else:
                     for _scheme in _getSchemesForSecurity(_nukeSec):
                         for _oldID in _getIDsForScheme(_nukeSec, _scheme, lLegacyStore=False):
-                            myPrint("B", "%s: NUKE MD2026+ - deleted Scheme: %s ID: %s from '%s'" %(_THIS_METHOD_NAME, _scheme, _oldID, _nukeSec))
+                            myPrint("B", "%s: NUKE MD2027+ - deleted Scheme: %s ID: %s from '%s'" %(_THIS_METHOD_NAME, _scheme, _oldID, _nukeSec))
                             iNuked += 1
                         _clearSchemeFromNewStore(_nukeSec, _scheme)
                 _nukeSec.syncItem()
@@ -5957,7 +5958,7 @@ MD2021.2(3088): Adds capability to set the encryption passphrase into an environ
         play_the_money_sound()
 
     def OFX_view_security_identifier_settings():
-        # note: MD2026 onwards there are new API functions which manage multiple IDs per scheme per security
+        # note: MD2027 onwards there are new API functions which manage multiple IDs per scheme per security
         # whereas previous versions only allowed/stored a singular ID per scheme.
 
         if MD_REF.getCurrentAccountBook() is None: return
@@ -5971,12 +5972,12 @@ MD2021.2(3088): Adds capability to set the encryption passphrase into an environ
 
         output += "The hidden link between your Financial Institution's Investment Securities and your MD Securities when downloading\n" \
                   "is stored as hidden data against your security using an 'Identifier Scheme' (e.g. CUSIP, ISIN, SEDOL, TICKER).\n" \
-                  "Identifiers can be stored in pre-MD2026 format (single ID per scheme) or MD2026+ format (multiple IDs per scheme).\n" \
-                  "On MD2026+ the new store is queried first. If new store is empty, then the legacy store is queried.\n" \
-                  "When a new identifier is added for the first time on MD2026+, then both legacy ID and new ID are both added to the new store.\n" \
+                  "Identifiers can be stored in pre-MD2027 format (single ID per scheme) or MD2027+ format (multiple IDs per scheme).\n" \
+                  "On MD2027+ the new store is queried first. If new store is empty, then the legacy store is queried.\n" \
+                  "When a new identifier is added for the first time on MD2027+, then both legacy ID and new ID are both added to the new store.\n" \
                   "Refer: 'MENU: Currency & Security tools' > 'DIAG - Produce a quick report of potentially duplicate securities'.\n\n"
 
-        if not isUpgraded: output += "NOTE: This MD build does not support MD2026+ (1:many) identifier schemes (showing the MD2026+ data anyway).\n\n"
+        if not isUpgraded: output += "NOTE: This MD build does not support MD2027+ (1:many) identifier schemes (showing the MD2027+ data anyway).\n\n"
 
         output += " SECURITIES - IDENTIFIER SETTINGS\n" \
                   " ==================================\n\n"
@@ -5989,8 +5990,8 @@ MD2021.2(3088): Adds capability to set the encryption passphrase into an environ
             pad("ID",            W_ID),
             pad("Ticker",        W_TICKER),
             pad("Scheme",        W_SCHEME),
-            pad("PRE-MD2026",    W_OLD),
-            pad("MD2026+",       W_NEW),
+            pad("PRE-MD2027",    W_OLD),
+            pad("MD2027+",       W_NEW),
             pad("Status",        W_STATUS))
 
         col_divider = "%s %s %s %s %s %s %s\n" % ("-" * W_SEC, "-" * W_ID, "-" * W_TICKER, "-" * W_SCHEME, "-" * W_OLD, "-" * W_NEW, "-" * W_STATUS)
@@ -6021,7 +6022,7 @@ MD2021.2(3088): Adds capability to set the encryption passphrase into an environ
             firstRow  = True
 
             for scheme in sorted(schemes):
-                legacyID = _getLegacyIDForScheme(sec, scheme) if scheme in legacy_schemes else None  # call our own function which replicates versions prior to MD2026
+                legacyID = _getLegacyIDForScheme(sec, scheme) if scheme in legacy_schemes else None  # call our own function which replicates versions prior to MD2027
                 newIDs = _getIDsForScheme(sec, scheme, lLegacyStore=False) if scheme in new_schemes else []
                 rows = []
                 remainingNew = list(newIDs)
@@ -6031,12 +6032,12 @@ MD2021.2(3088): Adds capability to set the encryption passphrase into an environ
                         rows.append((legacyID, legacyID, "MATCH"))
                         remainingNew.remove(legacyID)
                     else:
-                        rows.append((legacyID, "", "PRE-MD2026 ONLY"))
-                    for nid in remainingNew: rows.append(("", nid, "MD2026+ ONLY"))
+                        rows.append((legacyID, "", "PRE-MD2027 ONLY"))
+                    for nid in remainingNew: rows.append(("", nid, "MD2027+ ONLY"))
                 elif legacyID:
-                    rows.append((legacyID, "", "PRE-MD2026 ONLY"))
+                    rows.append((legacyID, "", "PRE-MD2027 ONLY"))
                 else:
-                    for nid in newIDs: rows.append(("", nid, "MD2026+ ONLY"))
+                    for nid in newIDs: rows.append(("", nid, "MD2027+ ONLY"))
 
                 firstSchemeRow = True
 
