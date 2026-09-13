@@ -561,7 +561,7 @@ else:
 
     GlobalVars.TOOLBOX_MINIMUM_TESTED_MD_VERSION = 2020.0
     GlobalVars.TOOLBOX_MAXIMUM_TESTED_MD_VERSION = 2027.0
-    GlobalVars.TOOLBOX_MAXIMUM_TESTED_MD_BUILD =   5510
+    GlobalVars.TOOLBOX_MAXIMUM_TESTED_MD_BUILD =   5511
     GlobalVars.MD_OFX_BANK_SETTINGS_DIR = "https://infinitekind.com/app/md/fis/"
     GlobalVars.MD_OFX_DEFAULT_SETTINGS_FILE = "https://infinitekind.com/app/md/fi2004.dict"
     GlobalVars.MD_OFX_DEBUG_SETTINGS_FILE = "https://infinitekind.com/app/md.debug/fi2004.dict"
@@ -18003,14 +18003,16 @@ after saving the file, restart Moneydance
 
                     try:
                         tmpDir = File(MD_REF.getCurrentAccountBook().getRootFolder(), "tmp")
-                        tmpDir.mkdirs()
-                        attachFileName = (File(tmpDir, selectedOrphan[0])).getName()                                    # noqa
-                        tmpFile = File.createTempFile(str(System.currentTimeMillis()), attachFileName, tmpDir)
-                        tmpFile.deleteOnExit()
-                        fout = FileOutputStream(tmpFile)
-                        LS.readFile(selectedOrphan[0], fout)                                                            # noqa
-                        fout.close()
-                        Desktop.getDesktop().open(tmpFile)
+                        if not tmpDir.exists() and not tmpDir.mkdirs():
+                            myPrint("B", "ERROR. Could NOT create TMP folder: %s" %(tmpDir))
+                        else:
+                            attachFileName = (File(tmpDir, selectedOrphan[0])).getName()                                # noqa
+                            tmpFile = File.createTempFile(str(System.currentTimeMillis()), attachFileName, tmpDir)
+                            tmpFile.deleteOnExit()
+                            fout = FileOutputStream(tmpFile)
+                            LS.readFile(selectedOrphan[0], fout)                                                        # noqa
+                            fout.close()
+                            Desktop.getDesktop().open(tmpFile)
 
                     except:
                         myPrint("B","Sorry, could not open attachment file....: %s" %selectedOrphan[0])                 # noqa
