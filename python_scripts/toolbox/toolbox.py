@@ -18004,7 +18004,8 @@ after saving the file, restart Moneydance
                     try:
                         tmpDir = File(MD_REF.getCurrentAccountBook().getRootFolder(), "tmp")
                         if not tmpDir.exists() and not tmpDir.mkdirs():
-                            myPrint("B", "ERROR. Could NOT create TMP folder: %s" %(tmpDir))
+                            myPrint("B", "ERROR. Could NOT create TMP folder: %s (parent exists: %s, parent canWrite: %s, path exists: %s, isFile: %s)"
+                                    %(tmpDir, tmpDir.getParentFile().exists(), tmpDir.getParentFile().canWrite(), tmpDir.exists(), tmpDir.isFile()))
                         else:
                             attachFileName = (File(tmpDir, selectedOrphan[0])).getName()                                # noqa
                             tmpFile = File.createTempFile(str(System.currentTimeMillis()), attachFileName, tmpDir)
