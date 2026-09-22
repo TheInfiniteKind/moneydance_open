@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# net_account_balances_extra_code.py build: 1002 - September 2026 - Stuart Beesley StuWareSoftSystems
+# net_account_balances_extra_code.py build: 1004 - September 2026 - Stuart Beesley StuWareSoftSystems
 
 # To avoid the dreaded issue below, moving some code here....:
 # java.lang.RuntimeException: java.lang.RuntimeException: For unknown reason, too large method code couldn't be resolved
@@ -9,6 +9,8 @@
 # build: 1000 - NEW SCRIPT
 # build: 1001 - Updated MyCostCalculation(v10) - inline with MD2026(5500)
 # build: 1002 - Updated MyCostCalculation(v11) - inline with MD2027(5511) alpha 5th September 2027 (MD2026 was never released)
+# build: 1003 - Updated MyCostCalculation(v12) - inline with MD2027(5512) alpha 18th September 2027
+# build: 1004 - Updated MyCostCalculation(v14) - inline with MD2027(5512) alpha 21st September 2027 (preparedTxns)
 ###############################################################################
 # MIT License
 #
@@ -1105,38 +1107,66 @@ try:
         def __str__(self):
             return "AsOfDateChooser::%s - key: '%s' asofDate: %s, offset: %s" %(self.getName(), self.getSelectedOptionKey(self.getSelectedIndex()), self.getAsOfDateField().getDateInt(), self.getOffsetPeriodsField().getValueInt())
 
+
     ####################################################################################################################
     # Copied from: com.infinitekind.moneydance.model.CostCalculation (quite inaccessible before build 5008, also buggy)
     ####################################################################################################################
     class MyCostCalculation:
-        """CostBasis calculation engine (v11). Copies/enhances/fixes MD CostCalculation() (asof build 5064).
-        Params asof:None or zero = asof the most recent (future)txn date that affected the shareholding/costbasis balance.
-        preparedTxns is typically used by itself to recall the class to get the current cost basis
-        obtainCurrentBalanceToo is used to request that the class calls itself to also get the current/today balance too
-        # (v2: LOT control fixes, v3: added isCostBasisValid(), v4: don't incl. fees on misc inc/exp in cbasis with lots,
-        # ...fixes for  capital gains to work, v5: added in short/long term support, v6: added unRealizedSaleTxn parameter
-        support, v7: added SharesOwnedAsOf class to match MD's upgraded CostCalculation class), v8: fixed code to match
-        MD2024(5119) - fixed endless loop, buy 60, split 7:1, sell 20, split 4:1, sell all for zero cost basis scenarios;
-        v10: MD2026(5500) applied latest fixes, v11: MD2027(5511) applied latest fixes"""
-
-        ################################################################################################################
-        # This is used to calculate the cost of a security using either the average cost or lot-based method.
-        # This can be used to produce the cost and gains (both short and long-term) for the security or for individual
-        # transactions on the security.
+        """CostBasis calculation engine (v13). Backport of MD's CostCalculation().
+        # v2: LOT control fixes
+        # v3: added isCostBasisValid()
+        # v4: don't incl. fees on misc inc/exp in cbasis with lots, ...fixes for  capital gains to work
+        # v5: added in short/long term support
+        # v6: added unRealizedSaleTxn parameter support
+        # v7: added SharesOwnedAsOf class to match MD's upgraded CostCalculation class)
+        # v8: fixed code to match MD2024(5119) - fixed endless loop, buy 60, split 7:1, sell 20, split 4:1, sell all for zero cost basis scenarios
+        # v10: MD2026(5500) applied latest fixes, v11: MD2027(5511) applied latest fixes, v12: MD2027(5512) applied latest fixes
+        # v13: MD2027(5512) fixed for preparedTxns and obtainCurrentBalanceToo
+        """
+        # KDoc:
+        #Class rewritten/fixed by Stuart Beesley February 2024 - since MD2024(5100)
         #
-        # Follows U.S. IRS 'single-category' average cost method specification. Gains are split short/long-term using FIFO.
-        # From U.S. IRS Publication 564 for 2009, under Average Basis, for the 'single-category' method:
-        #           "Even though you include all unsold shares of a fund in a single category to compute average
-        #           basis, you may have both short-term and long-term gains or losses when you sell these shares.
-        #           To determine your holding period, the shares disposed of are considered to be those acquired first."
-        #           https://www.irs.gov/pub/irs-prior/p564--2009.pdf
+        #This class is used to calculate the cost of a security using either the average cost or lot-based method.
+        #This can be used to produce the cost and gains (both short and long-term) for the security or for individual transactions on the security.
         #
-        # There was a 'double-category' method which allowed you to separate short-term and long-term average cost pools,
-        # but the IRS eliminated that method on April 1, 2011. NOTE: Custom Balances does compute the available shares
-        # in both short-term and long-term pools. However this data is only shown in console when COST_DEBUG is enabled).
-        ################################################################################################################
+        #Follows U.S. IRS 'single-category' average cost method.
+        #- Basis is pooled (single average for all shares).
+        #- long/short-term split is determined by assigning sales to purchases in FIFO order to establish each share’s holding period.
+        #
+        #From U.S. IRS Publication 564 for 2009, under Average Basis, for the 'single-category' method:
+        #          <blockquote>
+        #          "Even though you include all unsold shares of a fund in a single category to compute average
+        #          basis, you may have both short-term and long-term gains or losses when you sell these shares.
+        #          To determine your holding period, the shares disposed of are considered to be those acquired first."
+        #          https://www.irs.gov/pub/irs-prior/p564--2009.pdf </blockquote>
+        #
+        #There was a 'double-category' method which allowed you to separate short-term and long-term average cost pools,
+        #but the IRS eliminated that method on April 1, 2011. NOTE: this class does compute the available shares
+        #in both short-term and long-term pools so the user can manually run the double-category method.
+        #
+        #Notes:
+        #      - LOT controlled security accounts can have an invalid cost basis. This is primarily when sell txns are not fully/properly matched to buy txns
+        #        - when this condition is detected then results from the cost calculation should be used with care.
+        #        - the cost basis for the account will be returned as zero
+        #        - capital gains will still be calculated, but will be invalid for any sells not fully/properly matched.
+        #      - A sale's fee is never split: it goes wholly to short-term if any short-term shares were sold, else wholly to long-term.
+        #
+        #@since Moneydance 2018.8 (build 1684); Significant upgrade to unified class MD2024(5100)
+        #
+        #@property secAccount             The security account
+        #@property asOfDate               Default: null. The as-of date for this calculation. Pass null to calculate and use the balance date (which can be today or future)
+        #@param preparedTxns              Default: null. Optional. A candidate set of txns for this security account, which saves this calculation scanning the whole book.
+        #                                 It is not the authoritative universe: the txns supplied are still filtered to [secAccount] and to the as-of date, and are copied
+        #                                 into this calculation's own set, so the supplied [TxnSet] is never mutated.
+        #@param obtainCurrentBalanceToo   Default: false. When true then a second calculation will be performed using today as the date - result stored in the [currentBalanceCostCalculation] property.
+        #                                 Cannot be combined with [unRealizedSaleTxn].
+        #@property unRealizedSaleTxn      Default: null. Optional. Specify a dummy sell txn that can be used to generate un-realised gains. Will be appended to the list of transactions.
+        #                                 Always supply it here, never inside [preparedTxns] - otherwise it cannot be identified later (so cannot be excluded via excludeSyntheticTxn),
+        #                                 it would be lot validated as though it were a real sell, and it would be cut by the as-of date filter.
+        #
 
         COST_DEBUG = False
+        VERSION = 13
 
         def __init__(self, secAccount, asOfDate=None, preparedTxns=None, obtainCurrentBalanceToo=False, unRealizedSaleTxn=None):
             # type: (Account, int, TxnSet, bool, SplitTxn) -> None
@@ -1144,10 +1174,8 @@ try:
             if self.COST_DEBUG: myPrint("B", "** MyCostCalculation() initialising..... running asof: %s, for account: '%s' (%s) **"%(asOfDate, secAccount, "AvgCost" if secAccount.getUsesAverageCost() else "LotControl"))
 
             # prevent callers attempting to request impossible / illogical combinations of parameters
-            # if the caller has prepared the txns, then they must also prepare any unRealizedSaleTxn too if they need it etc...
-            # when calling obtainCurrentBalanceToo then cannot use preparedTxns or unRealizedSaleTxn
-            if preparedTxns is not None and unRealizedSaleTxn is not None: raise Exception("Cannot supply both preparedTxns and unRealizedSaleTxn")
-            if obtainCurrentBalanceToo and (preparedTxns is not None or unRealizedSaleTxn is not None): raise Exception("Cannot obtainCurrentBalanceToo when using preparedTxns / unRealizedSaleTxn")
+            # an unRealizedSaleTxn is synthetic and is never cut by date, so it must not leak into the current balance calculation
+            if obtainCurrentBalanceToo and unRealizedSaleTxn is not None: raise Exception("Cannot obtainCurrentBalanceToo when using unRealizedSaleTxn")
 
             if unRealizedSaleTxn is not None:
                 assert (isinstance(unRealizedSaleTxn, SplitTxn))
@@ -1163,15 +1191,30 @@ try:
 
             self.positions = ArrayList()            # Use java Class to exactly mirror original code (rather than [list])
             self.positionsByBuyID = HashMap()       # Use java Class to exactly mirror original code (rather than {dict})
-            self.longTermCutoffDate = DateUtil.incrementDate(DateUtil.getStrippedDateInt(), -1, 0, 0)
+            # SCB: MD2027(5512) - fix so that long term cut off date (used for unrealised balance reporting) dynamically moves depending on the as of date requested.
+            # note - we assume that null (today/future = balance) still requires the cutoff date calculated backwards from today...
+            self.longTermCutoffDate = DateUtil.incrementDate(self.asOfDate if (self.asOfDate is not None) else todayInt, -1, 0, 0)
             self.secAccount = secAccount
             self.investCurr = secAccount.getParentAccount().getCurrencyType()                                           # type: CurrencyType
             self.secCurr = secAccount.getCurrencyType()                                                                 # type: CurrencyType
             self.usesAverageCost = secAccount.getUsesAverageCost()
 
-            # now detect invalid cost basis. Use preparedTxns if supplied, otherwise pass null which will analise all transactions...
-            # perform this check before sorting, and before we add any (optional) unRealizedSaleTxn
-            self._unmatchedSellTxns = MyCostCalculation.getInvalidLotMatchSellTxns(secAccount, preparedTxns, False, self.COST_DEBUG)
+            # SCB: MD2027(5512) - fix (part 1) so that the transaction universe for this calculation is limited to the requested as-of date - always, including a supplied preparedTxns list.
+            # a supplied preparedTxns is a candidate set that saves us a book scan; it is not the authoritative universe. We always apply our own account / as-of rules to it,
+            # and we always build our own TxnSet, so that the sort / insert below never reorders or modifies a set the caller may be sharing across accounts or reports.
+            # note: Jython - deliberately NOT using getTransactions(TxnSearch) as MD does. That calls back into Jython once per txn in the WHOLE book,
+            # per security account - which runs ~30x slower. getTransactionsForAccount() keeps that scan inside Java; we then cut by date over the small result.
+            cutoff = self.asOfDate
+            allAcctTxns = preparedTxns if (isinstance(preparedTxns, TxnSet))\
+                else secAccount.getBook().getTransactionSet().getTransactionsForAccount(secAccount)
+            self.txns = TxnSet()
+            for _i in range(0, allAcctTxns.getSize()):
+                _t = allAcctTxns.getTxn(_i)
+                if (_t.getAccount() == secAccount and (cutoff is None or _t.getDateInt() <= cutoff)): self.txns.addTxn(_t)
+
+            # detect invalid cost basis against THIS calculation's own universe, so a later mistake cannot
+            # invalidate an earlier report. Performed before sorting, and before any unRealizedSaleTxn is added.
+            self._unmatchedSellTxns = MyCostCalculation.getInvalidLotMatchSellTxns(secAccount, self.txns, False, self.COST_DEBUG)
             if self.isCostBasisInvalid():
                 myPrint("B", "@@ WARNING: INVALID Cost Basis for lot controlled security account: '%s' (%s sells not fully / properly lot matched to buys) >> - cost basis defaulting to ZERO"
                         %(self.getSecAccount().getFullAccountName(), len(self.getUnmatchedSellTxns())))
@@ -1179,9 +1222,6 @@ try:
                             it.getUUID(), it.getParentTxn().getInvestTxnType(),
                             it.getDateInt(), it.getSplitAmount()) for it in self.getUnmatchedSellTxns())
                 myPrint("B", "... invalid cost basis txns: %s" %(invalidStr))
-
-            self.txns = preparedTxns if (isinstance(preparedTxns, TxnSet))\
-                else secAccount.getBook().getTransactionSet().getTransactionsForAccount(secAccount)
 
             self.txns.sortWithComparator(TxnUtil.DATE_THEN_AMOUNT_COMPARATOR.reversed())        # Most recent date first by index
             if unRealizedSaleTxn is not None: self.txns.insertTxnAt(unRealizedSaleTxn, 0)       # Always insert as first/most recent txn
@@ -1202,6 +1242,9 @@ try:
 
             if obtainCurrentBalanceToo:
                 if self.getAsOfDate() > todayInt:
+                    # SCB: MD2027(5512) - fix (part 2) so that the transaction universe for this calculation is limited to the requested as-of date.
+                    # passing our own txns is safe: the constructor below is given a non-null as-of date of today, so it cuts them to today itself.
+                    # Both routes reach here: an explicit future as-of date, and the null/balance path whenever any transaction is dated ahead, which is the common one.
                     self.currentBalanceCostCalculation = MyCostCalculation(self.getSecAccount(), todayInt, self.getTxns(), False)
                 else:
                     self.currentBalanceCostCalculation = self                                                           # type: MyCostCalculation
@@ -1300,7 +1343,7 @@ try:
         def getPositionForAsOf(self, excludeSyntheticTxn=False):
             # type: (bool) -> MyCostCalculation.Position
             """Returns the most recent Position upto/asof requested.
-            :param excludeSyntheticTxn: when False then any (optional) unRealizedSaleTxn synthetic unrealized sell-all sale transaction will be included in the result.
+            :param excludeSyntheticTxn: when False (default) then any (optional) unRealizedSaleTxn synthetic unrealized sell-all sale transaction will be included in the result.
                                         specify True to obtain the pure result for the asof required without the synthetic transaction included."""
             rtnPos = self.getPositions().get(0)
             for pos in reversed(self.getPositions()):                           # Reversed puts most recent first
@@ -1313,7 +1356,7 @@ try:
         def getSharesAndCostBasisForAsOf(self, excludeSyntheticTxn=False):
             # type: (bool) -> (int, int)
             """Returns a tuple containing the (long) shares owned, (long) cost basis upto/asof the date requested.
-            :param excludeSyntheticTxn: when False then any (optional) unRealizedSaleTxn synthetic unrealized sell-all sale transaction will be included in the result."""
+            :param excludeSyntheticTxn: when False (default) then any (optional) unRealizedSaleTxn synthetic unrealized sell-all sale transaction will be included in the result."""
             if self.getAsOfDate() is None: return None
             asofPos = self.getPositionForAsOf(excludeSyntheticTxn=excludeSyntheticTxn)
             costBasisAsOf = 0L if self.isCostBasisInvalid() else asofPos.getRunningCost()
@@ -1446,7 +1489,16 @@ try:
                             if self.COST_DEBUG: myPrint("B", ".... (lot matched) lotMatchedBoughtShares: %s, (lot matched) lotMatchedBoughtSharesAdjusted: %s"
                                                         %(self.secCurr.getDoubleValue(lotMatchedBoughtShares), self.secCurr.getDoubleValue(lotMatchedBoughtSharesAdjusted)))
 
-                            matchedBuyCostBasis = Math.round(lotMatchedBoughtPos.getCostBasis() * (float(lotMatchedBoughtSharesAdjusted) / float(lotMatchedBoughtPos.getSharesAdded())))
+                            # SCB: MD2027(5512) fix - CUMULATIVE LOT BASIS ROUNDING (part 1 of 2; part 2 is in updateCostBasisForLots)
+                            # Take the lot's rounded cumulative basis less what has already been drawn, instead of rounding each allocation on its own - otherwise a lot whose cost does not divide cleanly by its shares
+                            # strands the difference and nothing collects it. The remainder lands wherever the running total needs it, not necessarily on the last sale.
+                            # ORDER MATTERS: both figures below must be read BEFORE this allocation is added to sellAllocations and BEFORE unallottedSharesAdded is decremented - both happen further down.
+                            # drawnBasis is summed from the allocations, so they remain the single source of truth. An over-matched lot is deliberately unguarded - the fraction passes 1 and the reports' own
+                            # adjustment rows reverse the excess; clamping it would hide the over-match.
+                            drawnShares = lotMatchedBoughtPos.getSharesAdded() - lotMatchedBoughtPos.getUnallottedSharesAdded()
+                            drawnBasis = sum([_a.getCostBasisAllocated() for _a in lotMatchedBoughtPos.getSellAllocations()])
+                            cumShares = drawnShares + lotMatchedBoughtSharesAdjusted
+                            matchedBuyCostBasis = 0 if (lotMatchedBoughtPos.getSharesAdded() == 0) else Math.round(lotMatchedBoughtPos.getCostBasis() * (float(cumShares) / float(lotMatchedBoughtPos.getSharesAdded()))) - drawnBasis
 
                             sellPosition.getBuyAllocations().add(MyCostCalculation.Allocation(self, lotMatchedBoughtSharesAdjusted, lotMatchedBoughtShares, matchedBuyCostBasis, lotMatchedBoughtPos))
                             if self.COST_DEBUG: myPrint("B", ".... 0. matchedBuyCostBasis: %s" %(self.investCurr.getDoubleValue(matchedBuyCostBasis)))
@@ -1494,13 +1546,10 @@ try:
                         if self.COST_DEBUG: myPrint("B", "...... buyAllocation:", buyAllocation)
                         buyMatchedPos = buyAllocation.getAllocatedPosition()                                            # type: MyCostCalculation.Position
                         if self.COST_DEBUG: myPrint("B", "...... buyMatchedPos:", buyMatchedPos)
-                        buyCostBasis = buyMatchedPos.getCostBasis()
-                        buyShares = buyMatchedPos.getSharesAdded()
-                        buyCostBasisPrice = 0.0 if (buyShares == 0) else self.investCurr.getDoubleValue(buyCostBasis) / self.secCurr.getDoubleValue(buyShares)
-                        if self.COST_DEBUG: myPrint("B", "...... %s * %s" %(buyCostBasisPrice,  self.secCurr.getDoubleValue(buyAllocation.getSharesAllocated())))
-                        buyMatchedCostBasis = self.investCurr.getLongValue(buyCostBasisPrice * self.secCurr.getDoubleValue(buyAllocation.getSharesAllocated()))
-                        if self.COST_DEBUG: myPrint("B", "......... matched buy CB: %s" %(self.investCurr.getDoubleValue(buyMatchedCostBasis)))
-                        totMatchedBuyCostBasis += buyMatchedCostBasis
+                        # SCB: MD2027(5512) fix - CUMULATIVE LOT BASIS ROUNDING (part 2 of 2; part 1 is in allocateLots)
+                        # Use the figure allocateLots already stored, not a fresh per-share recompute - recomputing rounds a second time and discards part 1's cumulative rounding. Neither part works without the other.
+                        if self.COST_DEBUG: myPrint("B", "...... costBasisAllocated: %s" %(self.investCurr.getDoubleValue(buyAllocation.getCostBasisAllocated())))
+                        totMatchedBuyCostBasis += buyAllocation.getCostBasisAllocated()
 
                     # SCB: MD2027(5511) same bug as the other two, own guard here since this runs in a separate function (lot-matching) that never reaches the fix built into the other two.
                     priorSharesNegativeForLot = (0 if pos.getPreviousPos() is None else pos.getPreviousPos().getSharesOwnedAsOfThisTxn()) < 0
@@ -1660,8 +1709,10 @@ try:
                 saleBasisShortTarget = CurrencyUtil.convertValue(saleBasisShort, self.investCurr, toCurrency, valuationDate if valuationDate is not None else pos.getDate())
                 saleValueShort = CurrencyUtil.convertValue(saleSharesShort, self.secCurr, self.investCurr, salePriceGross)
                 saleValueShortTarget = CurrencyUtil.convertValue(saleSharesShort, self.secCurr, toCurrency, salePriceGrossTarget)
-                saleGainsShort = saleValueShort - saleBasisShort
-                saleGainsShortTarget = saleGainsTarget - saleGainsLongTarget  # Ensures ST/LT total reconciles after conversion
+                # SCB: MD2027(5512) - fix so that ST is always the remainder to eliminate small differences
+                # note: we are treating LT gains as authoritative - ST is the remainder in both currencies, so the two parts always sum back to the total (matches shortCostBasis and shortTermAvailShares below)
+                saleGainsShort = saleGains - saleGainsLong
+                saleGainsShortTarget = saleGainsTarget - saleGainsLongTarget
 
                 if self.COST_DEBUG:
                     myPrint("B", "... GAIN INFO:", gainInfo)
@@ -1786,8 +1837,12 @@ try:
 
             for buy in pos.getBuyAllocations():                                                                         # type: MyCostCalculation.Allocation
                 if buy.getAllocatedPosition().getDate() >= ltDate:
-                    shortTermSalesSold += buy.getSharesAllocated()
-                    longTermSharesSold -= buy.getSharesAllocated()
+                    # SCB: MD2027(5512) - fix so that we track the st/lt shares on the same post-split basis.
+                    # The two (avg/lot) builders store these fields in OPPOSITE order: allocateLots() puts the sale-date count in sharesAllocatedAdjusted, allocateAverageCostSales() puts it in sharesAllocated
+                    # so the field to read depends on the cost method. This is the only reader that sees both; the others are guarded to lot-matched securities.
+                    saleUnits = buy.getSharesAllocated() if self.getUsesAverageCost() else buy.getSharesAllocatedAdjusted()
+                    shortTermSalesSold += saleUnits
+                    longTermSharesSold -= saleUnits
                 else:
                     longTermCostBasis += buy.getCostBasisAllocated()
 
@@ -1813,9 +1868,8 @@ try:
                     if self.COST_DEBUG: myPrint("B", "CC-LTBASIS-TRAP secAcct=%s txnDate=%s longTermCostBasis=%s (not negated)" %(self.getSecAccount(), pos.getDate(), longTermCostBasis))
                 if self.COST_DEBUG: myPrint("B", "....... longTermCostBasis (excl. sale fee) recalculated to: %s" %(gidv(longTermCostBasis)))
 
-            # NOTE: MD puts the whole sale fee into short-term if there are any short term sales. Do the same for avg cost too.
-            # (this improves the tax position) - otherwise the fee is split according to the short/long-term ratio. Previously,
-            # the old InvestUtil.getLotBasedCostCapGain() would only add the fee to the long-term basis.
+            # The whole sale fee goes to short-term if there are any short-term sales, otherwise it all goes to
+            # long-term. It is never split between the two. (MD does the same; this improves the tax position.)
             longCostBasis = longTermCostBasis + (saleFeeLongTermProportion if shortTermSalesSold == 0 else 0)
             shortCostBasis = costBasis - longCostBasis
 
@@ -2102,7 +2156,14 @@ try:
                 return 0.0 if (shares == 0) else self.callingClass.investCurr.getDoubleValue(self.getRunningCost()) / self.callingClass.secCurr.getDoubleValue(shares)
 
         class Allocation:
-            """Class that references a transaction and number of shares allocated from that transaction"""
+            """Class that references a transaction and number of shares allocated from that transaction.
+             QUANTITY BASIS DIFFERS BY ALLOCATION MODEL - consumers must pick the one they need.
+             The table below is AS SEEN ON A SELL'S buyAllocations; a buy's sellAllocations are the reverse:
+               average cost  : sharesAllocated = sale-date, sharesAllocatedAdjusted = buy-date
+               lot controlled: sharesAllocated = buy-date,  sharesAllocatedAdjusted = sale-date
+             and both are reversed again between a sell's buyAllocations and a buy's sellAllocations,
+             because allocateLots() and allocateAverageCostSales() each add the pair with the arguments swapped.
+             Refer calculateGainsForPos(), the only reader that sees both models."""
 
             def __init__(self, callingClass, sharesAllocated, sharesAllocatedAdjusted, costBasisAllocated, allocatedPosition):
                 # type: (MyCostCalculation, int, int, int, MyCostCalculation.Position) -> None

@@ -4,7 +4,7 @@
 from __future__ import division    # Has to occur at the beginning of file... Changes division to always produce a float
 assert isinstance(0/1, float), "LOGIC ERROR: Custom Balances extension assumes that division of integers yields a float! Do you have this statement: 'from __future__ import division'?"
 
-# net_account_balances.py build: 2000 - September 2026 - Stuart Beesley - StuWareSoftSystems
+# net_account_balances.py build: 2001 - September 2026 - Stuart Beesley - StuWareSoftSystems
 # Display Name in MD changed to 'Custom Balances' (was 'Net Account Balances') >> 'id' remains: 'net_account_balances'
 
 # Thanks and credit to Dan T Davis and Derek Kent(23) for their suggestions and extensive testing...
@@ -107,7 +107,10 @@ assert isinstance(0/1, float), "LOGIC ERROR: Custom Balances extension assumes t
 # build: 2000 - fix for when swing worker aborts process causing error - now logs and returns...
 # build: 2000 - MD2026(5509) alpha jumped to MD2027(5510) alpha
 # build: 2000 - updated CostCalculation with latest bugfixes from MD2027(5511) - 5th September 2026
-# build: 2000 - ???
+# build: 2000 - updated CostCalculation with latest bugfixes from MD2027(5512) - 18th September 2026
+# build: 2000 - fixes to leverage the two invalid cost basis states (current and future). Maintain parallel flags.
+# build: 2001 - tweaked cost calculation section to pre-sweep txns and cache calculations...
+# build: 2001 - ???
 
 # todo - tweak getConvertXBalanceRecursive() and getXBalance() to also exclude inactives from recursive balances (like apply networth rules)
 # todo - bug. Ref: https://github.com/yogi1967/MoneydancePythonScripts/issues/31 - magic @tags for securities don't handle tickers with dots - e.g. @shop.to
@@ -123,7 +126,7 @@ assert isinstance(0/1, float), "LOGIC ERROR: Custom Balances extension assumes t
 
 # SET THESE LINES
 myModuleID = u"net_account_balances"
-version_build = "2000"
+version_build = "2001"
 MIN_BUILD_REQD = 5100  # 2024(5100) - AppDebug didn't exist before this build, and too many other CC, NW, AcctFilter changes to deal with...
 _I_CAN_RUN_AS_DEVELOPER_CONSOLE_SCRIPT = False
 
@@ -498,7 +501,7 @@ else:
     from java.lang import Runtime                                                                                       # noqa
     from java.lang import Process, ArrayIndexOutOfBoundsException, Integer, InterruptedException, Character
     from java.lang.ref import WeakReference
-    from java.util import Comparator, Iterator, Collections, Iterator, UUID
+    from java.util import Iterator, Collections, Iterator, UUID
     from java.util.concurrent import CancellationException
     # from java.util import ConcurrentModificationException
 
@@ -1754,27 +1757,32 @@ Visit: %s (Author's site)
 
         myPrint("DB","Will try to save parameter file:", migratedFilename)
 
-        ostr = FileOutputStream(migratedFilename)
-
         myPrint("DB", "about to Pickle.dump and save parameters to unencrypted file:", migratedFilename)
 
+        ostr = None
+
         try:
+            ostr = FileOutputStream(migratedFilename)
             save_file = FileUtil.wrap(ostr)
             pickle.dump(GlobalVars.parametersLoadedFromFile, save_file, protocol=0)
             save_file.close()
+            ostr = None
 
             myPrint("DB","GlobalVars.parametersLoadedFromFile now contains...:")
             for key in sorted(GlobalVars.parametersLoadedFromFile.keys()):
                 myPrint("DB","...variable:", key, GlobalVars.parametersLoadedFromFile[key])
 
         except:
-            myPrint("B", "Error - failed to create/write parameter file.. Ignoring and continuing.....")
+            myPrint("B", "@@ ERROR - failed to create/write parameter file '%s' - IT MAY NOW BE DAMAGED/EMPTY - settings may be lost at next restart!" %(migratedFilename))
             dump_sys_error_to_md_console_and_errorlog()
+
+            try:
+                if ostr is not None: ostr.close()
+            except: pass
 
             return
 
         myPrint("DB","Parameter file written and parameters saved to disk.....")
-
         return
 
     def get_time_stamp_as_nice_text(timeStamp, _format=None, lUseHHMMSS=True):
@@ -2210,6 +2218,7 @@ Visit: %s (Author's site)
 
         if not check_file_writable(copyToFile):
             myPopupInformationBox(_theFrame, "Sorry, that file/location does not appear allowed by the operating system!?")
+            return
 
         toFile = copyToFile
         try:
@@ -3109,7 +3118,7 @@ Visit: %s (Author's site)
         return None
 
     # NOTE: Two bugs were later fixed in the MD CC class from MD2024(5119); and then again from MD2026(5500)
-    GlobalVars.MD_COSTCALCULATION_UPGRADED_BUILD = 5500                                                                 # MD2026(5500)
+    GlobalVars.MD_COSTCALCULATION_UPGRADED_BUILD = 5512                                                                 # MD2026(5500)
     def isCostCalculationUpgradedBuild(): return (MD_REF.getBuild() >= GlobalVars.MD_COSTCALCULATION_UPGRADED_BUILD)
     if not isCostCalculationUpgradedBuild():
         global CostCalculation
@@ -3864,10 +3873,6 @@ Visit: %s (Author's site)
 
             return True
 
-    class MyTxnSearch(TxnSearch):
-        def __init__(self):     pass
-        def matchesAll(self):   return True
-
     def html_strip_chars(_textToStrip):
         _textToStrip = StringEscapeUtils.escapeHtml4(_textToStrip)
         _textToStrip = _textToStrip.replace("  ","&nbsp;&nbsp;")
@@ -3982,6 +3987,7 @@ Visit: %s (Author's site)
             self.parallelReturnCostBasisType = GlobalVars.COSTBASIS_TYPE_NONE
             self.parallelReturnCostBasisCash = False
             self.costBasisInvalid = False
+            self.currentCostBasisInvalid = False
             self.isIncomeExpenseAcct = isIncomeExpenseAcct(acct)
             self.isSecurityAcct = isSecurityAcct(acct)
             self.isInvestmentAcct = isInvestmentAcct(acct)
@@ -4019,6 +4025,7 @@ Visit: %s (Author's site)
         def setParallelReturnCostBasisType(self, cbType):       self.parallelReturnCostBasisType = cbType
         def setParallelReturnCostBasisCash(self, useCash):      self.parallelReturnCostBasisCash = useCash
         def setCostBasisInvalid(self, isInvalid):               self.costBasisInvalid = isInvalid
+        def setCurrentCostBasisInvalid(self, isInvalid):        self.currentCostBasisInvalid = isInvalid
 
         def isParallelRealBalances(self):               return self.parallelRealBalances
         def isParallelIncExpBalances(self):             return self.parallelIncExpBalances
@@ -4028,6 +4035,7 @@ Visit: %s (Author's site)
         def getParallelReturnCostBasisType(self):       return self.parallelReturnCostBasisType
         def getParallelReturnCostBasisCash(self):       return self.parallelReturnCostBasisCash
         def isCostBasisInvalid(self):                   return self.costBasisInvalid
+        def isCurrentCostBasisInvalid(self):            return self.currentCostBasisInvalid
 
         def isAutoSum(self):                                        return self.autoSum
         def shouldApplyNWRules(self):                               return self.applyNWRules
@@ -5580,67 +5588,16 @@ Visit: %s (Author's site)
 
 
     # ------------------------------------------------------------------------------------------------------------------
-    # com.infinitekind.moneydance.model.AccountUtil.ACCOUNT_TYPE_NAME_COMPARATOR : Comparator
-
-    def compareAccountType(acctType1, acctType2):
-        code1 = acctType1.code()
-        code2 = acctType2.code()
-        if code1 < code2: return -1
-        if code1 > code2: return 1
-        return 0
-
-    def compareAccountsByHierarchy(a1, a2):
-        # com.infinitekind.moneydance.model.AccountUtil.compareAccountsByHierarchy(Account, Account) : int
-        if (a1 is None and a2 is None):
-            return 0
-        elif a1 is None:
-            return -1
-        elif a2 is None:
-            return 1
-
-        depth1 = a1.getDepth()
-        depth2 = a2.getDepth()
-        maxDepth = Math.max(depth1, depth2) + 1
-
-        for i in range(0,maxDepth):
-            parent1 = a1.getParentAtDepth(i)
-            parent2 = a2.getParentAtDepth(i)
-
-            if parent1 is None and parent2 is None: return 0
-            if parent1 is None: return -1
-            if parent2 is None: return 1
-
-            if parent1 != parent2:
-                typeComparison = compareAccountType(parent1.getAccountType(), parent2.getAccountType())
-                if typeComparison != 0:
-                    return typeComparison
-
-                nameComparison = String(parent1.getAccountName()).compareToIgnoreCase(String(parent2.getAccountName()))
-                if nameComparison != 0:
-                    return nameComparison
-
-                uuidComparison = String(parent1.getUUID()).compareToIgnoreCase(String(parent2.getUUID()))
-                if uuidComparison != 0:
-                    return uuidComparison
-        return 0
-
-
-    class AccountItemSorter(Comparator):
-        def compare(self, o1, o2): return compareAccountsByHierarchy(o1, o2)
-
     class MyAccountIterator(Iterator):
         # com.infinitekind.moneydance.model.AccountIterator
 
-        accountItemSorter = AccountItemSorter()
-
         def __init__(self, book):
-
             if book is None:
                 self.allAccounts = None
                 self.nextAccount = None
             else:
                 allItems = book.getItemsWithType("acct")
-                Collections.sort(allItems, MyAccountIterator.accountItemSorter)
+                Collections.sort(allItems, AccountUtil.ACCOUNT_TYPE_NAME_CASE_INSENSITIVE_COMPARATOR)
                 self.allAccounts = allItems.iterator()
                 self.findNextItem()
 
@@ -6068,10 +6025,8 @@ Visit: %s (Author's site)
         newAsOfDateInt = (minDateInt if (_balType == GlobalVars.BALTYPE_CURRENTBALANCE) else asof)
         return newAsOfDateInt
 
-    def updateParallelTableWithTxn(_txn, _table, _dateRangeArray, selectIncExp):
-        # type: (AbstractTxn, [{Account: [AbstractTxn]}], [DateRange], bool) -> None
-
-        NAB = NetAccountBalancesExtension.getNAB()
+    def updateParallelTableWithTxn(_txn, _table, _dateRangeArray, selectIncExp, NAB):
+        # type: (AbstractTxn, [{Account: [AbstractTxn]}], [DateRange], bool, NetAccountBalancesExtension) -> None
 
         for iRowIdx in range(0, len(_table)):
             if len(_table[iRowIdx]) < 1: continue            # There were no Accounts for this row - so skip...
@@ -6254,6 +6209,40 @@ Visit: %s (Author's site)
                         myPrint("DB", "....", holdBal, "Key:", acct)
             myPrint("DB", "---------------------------------------------------------------------------")
 
+    def buildSecurityTxnBuckets(_parallelBalanceTable, book):
+        # type: ([{Account: HoldBalance}], AccountBook) -> {Account: TxnSet}
+        """One sweep of the book's txns, bucketed by security account, covering only the security accounts
+        the cost basis rows will actually calculate. CostCalculation re-filters and copies whatever candidate
+        set it is given (to the account, and to the as-of date), so these buckets are a performance hint only
+        - never the calculation's authoritative universe.
+        Without this, every CostCalculation() sweeps the whole book again to find one account's txns."""
+
+        buckets = {}
+        for iRowIdx in range(0, len(_parallelBalanceTable)):
+            if not isAnyCostBasisOptionTypeSelected(iRowIdx): continue
+            for acct in _parallelBalanceTable[iRowIdx]:
+                if not shouldIncludeAccountForCostBasis(iRowIdx, acct): continue
+                if not isSecurityAcct(acct): continue  # cash (investment) accts are served from their stored balances and never reach CostCalculation
+                if acct not in buckets: buckets[acct] = TxnSet()
+
+        if len(buckets) < 1: return buckets
+
+        ################################################################################################################
+        # One sweep big of Txns: This method returns the 'old' ParentTxn/SplitTxn records AND the TxnSet is locked....
+        try:
+            txnSet = book.getTransactionSet().getAllTxns()
+            for txn in txnSet:
+                _bucket = buckets.get(txn.getAccount())
+                if _bucket is not None: _bucket.addTxn(txn)
+            del txnSet
+        except:
+            myPrint("B",
+                    "@@ ERROR: .buildSecurityTxnBuckets() failed whilst iterating TxnSet: book.getTransactionSet().getAllTxns()")
+            dump_sys_error_to_md_console_and_errorlog()
+            raise
+
+        return buckets
+
     def replaceSecurityCostBasisBalances(_parallelBalanceTable, swClass):
         # type: ([{Account: HoldBalance}], SwingWorker) -> None
 
@@ -6261,6 +6250,15 @@ Visit: %s (Author's site)
 
         NAB = NetAccountBalancesExtension.getNAB()
         todayInt = DateUtil.getStrippedDateInt()
+
+        # pre-sweep txns and build a cost calculation cache
+        book = NAB.moneydanceContext.getCurrentAccountBook()
+        txnBuckets = buildSecurityTxnBuckets(_parallelBalanceTable, book)
+        ccCache = {}  # (acct, asOfDate) -> CostCalculation
+
+        # turn on cost calculation debug if required...
+        # if (isCostCalculationUpgradedBuild()): CostCalculation.LOG.isEnabled = True
+        # else: CostCalculation.COST_DEBUG = True
 
         for iRowIdx in range(0, len(_parallelBalanceTable)):
 
@@ -6309,10 +6307,11 @@ Visit: %s (Author's site)
                 else:
                     assert isSecurityAcct(acct), ("ERROR: Acct: '%s' is not a security account (type: '%s')?!'" %(acct, acct.getAccountType()))
 
-                    # if (isCostCalculationUpgradedBuild()): CostCalculation.LOG.isEnabled = True
-                    # else: CostCalculation.COST_DEBUG = True
-
-                    costCalculationBal = CostCalculation(acct, asOfDate, None, True)
+                    _ccKey = (acct, asOfDate)
+                    costCalculationBal = ccCache.get(_ccKey)
+                    if costCalculationBal is None:
+                        costCalculationBal = CostCalculation(acct, asOfDate, txnBuckets.get(acct), True)
+                        ccCache[_ccKey] = costCalculationBal
                     costCalculationCurrBal = costCalculationBal.getCurrentBalanceCostCalculation()                      # noqa
 
                     sharesAndCostBasisForAsOf = costCalculationBal.getSharesAndCostBasisForAsOf()
@@ -6325,18 +6324,26 @@ Visit: %s (Author's site)
 
                     del sharesAndCostBasisForAsOf
 
-                    if costCalculationBal.isCostBasisInvalid():
-                        balObj.setCostBasisInvalid(True)        # In theory costCalculationCurrBal.isCostBasisInvalid() should be the same...
-                    else:
-                        ct = balObj.getCurrencyType()
+                    # the two calculations now use different txn universes (asof vs today), so their invalid flags
+                    # can legitimately differ (only when the asof date is in the future - otherwise they are the same object).
+                    # Each is stored separately, and each share balance check is gated by its own flag.
+                    balObj.setCostBasisInvalid(costCalculationBal.isCostBasisInvalid())
+                    balObj.setCurrentCostBasisInvalid(costCalculationCurrBal.isCostBasisInvalid())
+
+                    ct = balObj.getCurrencyType()
+                    if not balObj.isCostBasisInvalid():
                         if debug:
                             assert balObj.getBalance()        == asofSharesBal,               ("LOGIC ERROR: SecAcct: '%s' HoldBal stored        asof balObj.getBalance(): %s !=    cb sharesBal: %s" %(balObj.getFullAccountName(), ct.getDoubleValue(balObj.getBalance()),        ct.getDoubleValue(asofSharesBal)))
-                            assert balObj.getCurrentBalance() == asofSharesCurBal,            ("LOGIC ERROR: SecAcct: '%s' HoldBal stored asof balObj.getCurrentBalance(): %s != cb sharesCurBal: %s" %(balObj.getFullAccountName(), ct.getDoubleValue(balObj.getCurrentBalance()), ct.getDoubleValue(asofSharesCurBal)))
                         else:
                             if balObj.getBalance()            != asofSharesBal:    myPrint("B", "@@ WARNING: SecAcct: '%s' HoldBal stored        asof balObj.getBalance(): %s !=    cb sharesBal: %s" %(balObj.getFullAccountName(), ct.getDoubleValue(balObj.getBalance()),        ct.getDoubleValue(asofSharesBal)))
-                            if balObj.getCurrentBalance()     != asofSharesCurBal: myPrint("B", "@@ WARNING: SecAcct: '%s' HoldBal stored asof balObj.getCurrentBalance(): %s != cb sharesCurBal: %s" %(balObj.getFullAccountName(), ct.getDoubleValue(balObj.getCurrentBalance()), ct.getDoubleValue(asofSharesCurBal)))
-                        del ct
 
+                    if not balObj.isCurrentCostBasisInvalid():
+                        if debug:
+                            assert balObj.getCurrentBalance() == asofSharesCurBal,            ("LOGIC ERROR: SecAcct: '%s' HoldBal stored asof balObj.getCurrentBalance(): %s != cb sharesCurBal: %s" %(balObj.getFullAccountName(), ct.getDoubleValue(balObj.getCurrentBalance()), ct.getDoubleValue(asofSharesCurBal)))
+                        else:
+                            if balObj.getCurrentBalance()     != asofSharesCurBal: myPrint("B", "@@ WARNING: SecAcct: '%s' HoldBal stored asof balObj.getCurrentBalance(): %s != cb sharesCurBal: %s" %(balObj.getFullAccountName(), ct.getDoubleValue(balObj.getCurrentBalance()), ct.getDoubleValue(asofSharesCurBal)))
+                    del ct
+                    
                     # NOTE: (share qty) balances were already calculated earlier on, so just grab these, and convert into a monetary value...
                     valueBal = convertValue(balObj.getBalance(), acct.getCurrencyType(), acct.getParentAccount().getCurrencyType(), effectiveDateInt)
                     valueCurBal = convertValue(balObj.getCurrentBalance(), acct.getCurrencyType(), acct.getParentAccount().getCurrencyType(), effectiveDateInt)
@@ -6648,7 +6655,7 @@ Visit: %s (Author's site)
             for txn in txnSet:
                 if swClass and swClass.isCancelled(): return
                 iTxns += 1
-                updateParallelTableWithTxn(txn, asofBalanceTxnTable, _asofDateRangeArray, False)
+                updateParallelTableWithTxn(txn, asofBalanceTxnTable, _asofDateRangeArray, False, NAB)
             del txnSet
         except:
             myPrint("B", "@@ ERROR: .gatherBalanceAsOfDateBalances_FASTER() failed whilst iterating TxnSet: book.getTransactionSet().getAllTxns()")
@@ -6778,6 +6785,7 @@ Visit: %s (Author's site)
 
                 balanceObj.calculateAndSetAccountStartBalance(dateRange)
 
+                runningBal = runningCurBal = runningClrBal = 0
                 for txn in _parallelTxnTable[iRowIdx][acct]:
                     txnAcct = txn.getAccount()
                     if txnAcct != acct: raise Exception("ERROR: Acct:%s does not match txn acct: %s" %(acct, txnAcct))
@@ -6786,14 +6794,18 @@ Visit: %s (Author's site)
                     txnDate = txn.getDateInt() if not NAB.savedUseTaxDates else txn.getTaxDateInt()
                     txnStatus = txn.getClearedStatus()
 
-                    balanceObj.setBalance(balanceObj.getBalance() + txnVal)
+                    runningBal += txnVal
 
                     if txnDate <= today:
-                        balanceObj.setCurrentBalance(balanceObj.getCurrentBalance() + txnVal)
+                        runningCurBal += txnVal
 
                     # noinspection PyUnresolvedReferences
                     if txnStatus == AbstractTxn.ClearedStatus.CLEARED:
-                        balanceObj.setClearedBalance(balanceObj.getClearedBalance() + txnVal)
+                        runningClrBal += txnVal
+
+                balanceObj.setBalance(runningBal)
+                balanceObj.setCurrentBalance(runningCurBal)
+                balanceObj.setClearedBalance(runningClrBal)
 
                 # for debug...
                 balanceObj.incExp_balance = balanceObj.getBalance()                 # NOTE: This will also include any start Balance!
@@ -6844,7 +6856,7 @@ Visit: %s (Author's site)
         ################################################################################################################
         # One sweep big of Txns: This method returns the 'old' ParentTxn/SplitTxn records AND the TxnSet is locked....
         try:
-            txnSet = book.getTransactionSet().getTransactions(MyTxnSearch())        # using matchesAll() TRUE is faster
+            txnSet = book.getTransactionSet().getAllTxns()
 
             iTxns = 0
 
@@ -6853,12 +6865,12 @@ Visit: %s (Author's site)
                 if swClass.isCancelled(): break
 
                 iTxns += 1
-                updateParallelTableWithTxn(txn, _parallelTxnTable, _incExpDateRangeArray, True)
+                updateParallelTableWithTxn(txn, _parallelTxnTable, _incExpDateRangeArray, True, NAB)
 
             del txnSet
 
         except:
-            myPrint("B", "@@ ERROR: .returnIncExpTransactionsForAccounts() failed whilst iterating TxnSet: book.getTransactionSet().getTransactions(MyTxnSearch())")
+            myPrint("B", "@@ ERROR: .returnIncExpTransactionsForAccounts() failed whilst iterating TxnSet: book.getTransactionSet().getAllTxns()")
             dump_sys_error_to_md_console_and_errorlog()
             raise
 
@@ -9501,7 +9513,7 @@ Visit: %s (Author's site)
 
                     # Upgrade this parameter with new offsetPeriods field (0=default / no offsetPeriods)....
                     if isinstance(self.savedBalanceAsOfDateTable[i], list) and len(self.savedBalanceAsOfDateTable[i]) == 3:
-                        oldValue = copy.deepcopy(self.savedIncludeRemindersTable[i])
+                        oldValue = copy.deepcopy(self.savedBalanceAsOfDateTable[i])
                         self.savedBalanceAsOfDateTable[i].append(0)
                         myPrint("B", "... Upgrading row: %s saved parameter 'savedBalanceAsOfDateTable' - adding 0 offset periods (from: '%s' to: '%s')" %(i+1, oldValue, self.savedBalanceAsOfDateTable[i]))
 
@@ -9838,6 +9850,7 @@ Visit: %s (Author's site)
             NAB = self
             validTagsDict = {}
             validTagsFormulaDict = {}
+            seenTagNames = set()
 
             ct = NAB.moneydanceContext.getCurrentAccountBook().getCurrencies()
             base = ct.getBaseType()
@@ -9864,9 +9877,10 @@ Visit: %s (Author's site)
                 if tagName is None and formula is None: continue
                 validTagsFormulaDict[i] = _StoreTagFormula(i, tagName, formula, nothis)
                 if tagName is None: continue
-                if validTagsDict.get(tagName, None) is not None:
-                    del validTagsDict[tagName]                                   # Remove all instances of duplicates...
+                if tagName in seenTagNames:
+                    validTagsDict.pop(tagName, None)                             # Remove all instances of duplicates...
                     continue
+                seenTagNames.add(tagName)
                 validTagsDict[tagName] = defaultValue
 
             for i in range(0, NAB.getNumberOfRows()):
@@ -15308,7 +15322,7 @@ Visit: %s (Author's site)
                     acctJListScrollpane.putClientProperty("%s.id" %(NAB.myModuleID), "acctJListScrollpane")
                     acctJListScrollpane.setViewportBorder(EmptyBorder(5, colLeftInset, 5, colRightInset))
                     acctJListScrollpane.setOpaque(False)
-                    ctrlPnlScrollpane.setMinimumSize(Dimension(0, 200))                   # JSplitPane will respect this (just enough to show 1/2 rows)
+                    acctJListScrollpane.setMinimumSize(Dimension(0, 200))                 # JSplitPane will respect this (just enough to show 1/2 rows)
 
                     splitPane = JSplitPane(JSplitPane.VERTICAL_SPLIT)
                     splitPane.putClientProperty("%s.id" %(NAB.myModuleID), "splitPane")
@@ -16445,15 +16459,15 @@ Visit: %s (Author's site)
 
                     if debug: myPrint("DB", "HomePageView: calculating balances for widget row: %s '%s' (currency to display: %s)" %(onRow, NAB.savedWidgetName[iAccountLoop], thisRowCurr))
 
+                    todayInt = DateUtil.getStrippedDateInt()
+                    lBalanceAsOfDateSelected = isBalanceAsOfDateSelected(iAccountLoop)
+
                     if len(accountsToShow[iAccountLoop]) < 1:
                         totalBalance = None
 
                     else:
 
                         totalBalance = 0
-
-                        todayInt = DateUtil.getStrippedDateInt()
-                        lBalanceAsOfDateSelected = isBalanceAsOfDateSelected(iAccountLoop)
 
                         # Iterate each selected account within the row...
                         for acct in accountsToShow[iAccountLoop]:
@@ -16518,6 +16532,7 @@ Visit: %s (Author's site)
 
                             if not isSecurityAcct(acct):
                                 lFoundNonSecurity = True
+                                secLabelText = ""
                             elif not lFoundNonSecurity:
                                 secLabelText = " (Securities)"
 
@@ -16542,21 +16557,6 @@ Visit: %s (Author's site)
                                 try:
                                     sudoAcctRef = parallelBalanceTable[iAccountLoop][acct]                              # type: HoldBalance
                                     effectiveDateInt = sudoAcctRef.getEffectiveDateInt()
-
-                                    ### START WARNING CHECKS ####
-                                    if (debug or NAB.savedShowWarningsTable[iAccountLoop]) and (not lFromSimulate or iAccountLoop == justIndex):
-
-                                        # Check for invalid cost basis issues...
-                                        if sudoAcctRef.isCostBasisInvalid():    # todo - is this check actually correct (ie it's not checking that one of these types was requested)?
-                                            lWarningDetected = True
-                                            iWarningType = (14 if (iWarningType is None or iWarningType == 14) else 0)
-                                            iWarningDetectedInRow = (onRow if (iWarningDetectedInRow is None or iWarningDetectedInRow == onRow) else 0)
-                                            warnTxt = ("WARNING: Row: %s >> Returning Cost Basis / ur-gains / capital gains but at least one account (e.g. '%s') is reporting 'INVALID' Cost Basis"
-                                                       %(onRow, sudoAcctRef.getFullAccountName()))
-                                            myPrint("B", warnTxt)
-                                            NAB.warningMessagesTable.append(warnTxt)
-
-                                    ### END WARNING CHECKS
 
                                 except KeyError:
                                     myPrint("B", "@@ KeyError - Row: %s - Trying to access 'parallelBalanceTable[%s]' with Account: '%s'" %(onRow, iAccountLoop,acct))
@@ -16587,139 +16587,155 @@ Visit: %s (Author's site)
                             totalBalance += (bal * mult)
 
 
-                        ### START WARNING CHECKS ####
-                        if (debug or NAB.savedShowWarningsTable[iAccountLoop]) and (not lFromSimulate or iAccountLoop == justIndex):
+                    ### START WARNING CHECKS ####
+                    if (debug or NAB.savedShowWarningsTable[iAccountLoop]) and (not lFromSimulate or iAccountLoop == justIndex):
 
-                            # DETECT ILLOGICAL CALCULATIONS - OR OTHER WARNINGS...
+                        # DETECT ILLOGICAL CALCULATIONS - OR OTHER WARNINGS...
 
-                            if (not isNetWorthUpgradedBuild() and NAB.savedApplyNWRules[iAccountLoop]):
+                        if (not isNetWorthUpgradedBuild() and NAB.savedApplyNWRules[iAccountLoop]):
+                            lWarningDetected = True
+                            iWarningType = (23 if (iWarningType is None or iWarningType == 23) else 0)
+                            iWarningDetectedInRow = (onRow if (iWarningDetectedInRow is None or iWarningDetectedInRow == onRow) else 0)
+                            warnTxt = ("WARNING: Row: %s >> 'Apply Net Worth rules' enabled, but Moneydance version too old! (minimum build: %s). Calculations will be ignoring this setting!"
+                                       %(onRow, GlobalVars.MD_NETWORTH_UPGRADED_BUILD))
+                            myPrint("B", warnTxt)
+                            NAB.warningMessagesTable.append(warnTxt)
+
+                        if not NAB.isValidTagNameForRowIdx(iAccountLoop, validTagDict):
+                            lWarningDetected = True
+                            iWarningType = (17 if (iWarningType is None or iWarningType == 17) else 0)
+                            iWarningDetectedInRow = (onRow if (iWarningDetectedInRow is None or iWarningDetectedInRow == onRow) else 0)
+                            warnTxt = ("WARNING: Row: %s >> tag name '%s' specified, but is invalid, or it's used elsewhere!"
+                                       %(onRow, NAB.savedTagNameTable[iAccountLoop]))
+                            myPrint("B", warnTxt)
+                            NAB.warningMessagesTable.append(warnTxt)
+
+                        asOfBalDateInt = getBalanceAsOfDateSelected(NAB.savedBalanceAsOfDateTable[iAccountLoop], NAB.savedBalanceType[iAccountLoop])
+
+                        # Check for invalid cost basis issues - scan the row's own table, not accountsToShow. AutoSum'd
+                        # children are in here but are never iterated in the account loop above, so their flags would otherwise never be read.
+                        if isAnyCostBasisOptionTypeSelected(iAccountLoop) and isParallelBalanceTableOperational(iAccountLoop):
+                            _useCurrentFlag = (NAB.savedBalanceType[iAccountLoop] == GlobalVars.BALTYPE_CURRENTBALANCE)
+                            for _holdBal in parallelBalanceTable[iAccountLoop].values():                            # type: HoldBalance
+                                if (_holdBal.isCurrentCostBasisInvalid() if _useCurrentFlag else _holdBal.isCostBasisInvalid()):
+                                    lWarningDetected = True
+                                    iWarningType = (14 if (iWarningType is None or iWarningType == 14) else 0)
+                                    iWarningDetectedInRow = (onRow if (iWarningDetectedInRow is None or iWarningDetectedInRow == onRow) else 0)
+                                    warnTxt = ("WARNING: Row: %s >> Returning Cost Basis / ur-gains / capital gains but account '%s' is reporting 'INVALID' Cost Basis"
+                                               %(onRow, _holdBal.getFullAccountName()))
+                                    myPrint("B", warnTxt)
+                                    NAB.warningMessagesTable.append(warnTxt)
+                            del _useCurrentFlag
+
+                        if ((iCountIncomeExpense and (iCountAccounts)) or (iCountSecurities and (iCountIncomeExpense))):
+                            lWarningDetected = True
+                            iWarningType = (4 if (iWarningType is None or iWarningType == 4) else 0)
+                            iWarningDetectedInRow = (onRow if (iWarningDetectedInRow is None or iWarningDetectedInRow == onRow) else 0)
+                            warnTxt = ("WARNING: Row: %s >> Mix and match of different accounts/categories/securities detected. Accts: %s, NonInvestAccts: %s, Securities: %s, I/E Categories: %s"
+                                       %(onRow, iCountAccounts, iCountNonInvestAccounts, iCountSecurities, iCountIncomeExpense))
+                            myPrint("B", warnTxt)
+                            NAB.warningMessagesTable.append(warnTxt)
+
+                        if ((isAnyCostBasisOptionTypeSelected(iAccountLoop) and (iCountSecurities or (isUseCostBasisCashSelected(iAccountLoop) and iCountInvestAccounts)))):
+                            if (iCountIncomeExpense or iCountNonInvestAccounts):
                                 lWarningDetected = True
-                                iWarningType = (23 if (iWarningType is None or iWarningType == 23) else 0)
+                                iWarningType = (6 if (iWarningType is None or iWarningType == 6) else 0)
                                 iWarningDetectedInRow = (onRow if (iWarningDetectedInRow is None or iWarningDetectedInRow == onRow) else 0)
-                                warnTxt = ("WARNING: Row: %s >> 'Apply Net Worth rules' enabled, but Moneydance version too old! (minimum build: %s). Calculations will be ignoring this setting!"
-                                           %(onRow, GlobalVars.MD_NETWORTH_UPGRADED_BUILD))
-                                myPrint("B", warnTxt)
-                                NAB.warningMessagesTable.append(warnTxt)
-
-                            if not NAB.isValidTagNameForRowIdx(iAccountLoop, validTagDict):
-                                lWarningDetected = True
-                                iWarningType = (17 if (iWarningType is None or iWarningType == 17) else 0)
-                                iWarningDetectedInRow = (onRow if (iWarningDetectedInRow is None or iWarningDetectedInRow == onRow) else 0)
-                                warnTxt = ("WARNING: Row: %s >> tag name '%s' specified, but is invalid, or it's used elsewhere!"
-                                           %(onRow, NAB.savedTagNameTable[iAccountLoop]))
-                                myPrint("B", warnTxt)
-                                NAB.warningMessagesTable.append(warnTxt)
-
-                            asOfBalDateInt = getBalanceAsOfDateSelected(NAB.savedBalanceAsOfDateTable[iAccountLoop], NAB.savedBalanceType[iAccountLoop])
-                            if ((iCountIncomeExpense and (iCountAccounts)) or (iCountSecurities and (iCountIncomeExpense))):
-                                lWarningDetected = True
-                                iWarningType = (4 if (iWarningType is None or iWarningType == 4) else 0)
-                                iWarningDetectedInRow = (onRow if (iWarningDetectedInRow is None or iWarningDetectedInRow == onRow) else 0)
-                                warnTxt = ("WARNING: Row: %s >> Mix and match of different accounts/categories/securities detected. Accts: %s, NonInvestAccts: %s, Securities: %s, I/E Categories: %s"
+                                warnTxt = ("WARNING: Row: %s >> Mix and match when returning Security's cost basis / ur-gains / capital gains with other non-security / invest(with cash) accounts detected. Accts: %s, NonInvestAccts: %s, Securities: %s, I/E Categories: %s"
                                            %(onRow, iCountAccounts, iCountNonInvestAccounts, iCountSecurities, iCountIncomeExpense))
                                 myPrint("B", warnTxt)
                                 NAB.warningMessagesTable.append(warnTxt)
 
-                            if ((isAnyCostBasisOptionTypeSelected(iAccountLoop) and (iCountSecurities or (isUseCostBasisCashSelected(iAccountLoop) and iCountInvestAccounts)))):
-                                if (iCountIncomeExpense or iCountNonInvestAccounts):
-                                    lWarningDetected = True
-                                    iWarningType = (6 if (iWarningType is None or iWarningType == 6) else 0)
-                                    iWarningDetectedInRow = (onRow if (iWarningDetectedInRow is None or iWarningDetectedInRow == onRow) else 0)
-                                    warnTxt = ("WARNING: Row: %s >> Mix and match when returning Security's cost basis / ur-gains / capital gains with other non-security / invest(with cash) accounts detected. Accts: %s, NonInvestAccts: %s, Securities: %s, I/E Categories: %s"
-                                               %(onRow, iCountAccounts, iCountNonInvestAccounts, iCountSecurities, iCountIncomeExpense))
-                                    myPrint("B", warnTxt)
-                                    NAB.warningMessagesTable.append(warnTxt)
-
-                                if (NAB.savedIncludeRemindersTable[iAccountLoop][AsOfDateChooser.ASOF_DRC_ENABLED_IDX]):
-                                    lWarningDetected = True
-                                    iWarningType = (7 if (iWarningType is None or iWarningType == 7) else 0)
-                                    iWarningDetectedInRow = (onRow if (iWarningDetectedInRow is None or iWarningDetectedInRow == onRow) else 0)
-                                    warnTxt = ("WARNING: Row: %s >> Mix and match when returning Security's cost basis / ur-gains / capital gains, and including reminders. Accts: %s, NonInvestAccts: %s, Securities: %s, I/E Categories: %s"
-                                               %(onRow, iCountAccounts, iCountNonInvestAccounts, iCountSecurities, iCountIncomeExpense))
-                                    myPrint("B", warnTxt)
-                                    NAB.warningMessagesTable.append(warnTxt)
-
-                                if (NAB.savedBalanceType[iAccountLoop] == GlobalVars.BALTYPE_CLEAREDBALANCE):
-                                    lWarningDetected = True
-                                    iWarningType = (13 if (iWarningType is None or iWarningType == 13) else 0)
-                                    iWarningDetectedInRow = (onRow if (iWarningDetectedInRow is None or iWarningDetectedInRow == onRow) else 0)
-                                    warnTxt = ("WARNING: Row: %s >> Security's cost basis / ur-gains / capital gains selected with Cleared Balance ILLOGICAL. Calculated 'Balance' cost basis / ur-gains / capital gains will be returned. Accts: %s, NonInvestAccts: %s, Securities: %s, I/E Categories: %s"
-                                               %(onRow, iCountAccounts, iCountNonInvestAccounts, iCountSecurities, iCountIncomeExpense))
-                                    myPrint("B", warnTxt)
-                                    NAB.warningMessagesTable.append(warnTxt)
-
-                                if isUseCostBasisCapitalGainsSelected(iAccountLoop):
-                                    _asof = todayInt if asOfBalDateInt == 0 else asOfBalDateInt
-                                    if NAB.savedUseCostBasisTable[iAccountLoop][GlobalVars.COSTBASIS_DR_KEY_IDX] != MyDateRangeChooser.KEY_DR_ALL_DATES:
-                                        dateRange = getCapitalGainsDateRangeSelected(NAB.savedUseCostBasisTable[iAccountLoop], adjForBalType=NAB.savedBalanceType[iAccountLoop])
-                                        if dateRange.getEndDateInt() > _asof:
-                                            lWarningDetected = True
-                                            iWarningType = (15 if (iWarningType is None or iWarningType == 15) else 0)
-                                            iWarningDetectedInRow = (onRow if (iWarningDetectedInRow is None or iWarningDetectedInRow == onRow) else 0)
-                                            warnTxt = ("WARNING: Row: %s >> Security's capital gains date range (%s - %s) exceeds asof balance date (%s). Txns/Gains after asof date will be excluded! Accts: %s, NonInvestAccts: %s, Securities: %s, I/E Categories: %s"
-                                                       %(onRow, convertStrippedIntDateFormattedText(dateRange.getStartDateInt()), convertStrippedIntDateFormattedText(dateRange.getEndDateInt()), convertStrippedIntDateFormattedText(_asof),
-                                                         iCountAccounts, iCountNonInvestAccounts, iCountSecurities, iCountIncomeExpense))
-                                            myPrint("B", warnTxt)
-                                            NAB.warningMessagesTable.append(warnTxt)
-                                    del _asof
-
-                            if (lBalanceAsOfDateSelected and NAB.savedBalanceType[iAccountLoop] == GlobalVars.BALTYPE_CLEAREDBALANCE
-                                    and getBalanceAsOfDateSelected(NAB.savedBalanceAsOfDateTable[iAccountLoop]) < todayInt):
+                            if (NAB.savedIncludeRemindersTable[iAccountLoop][AsOfDateChooser.ASOF_DRC_ENABLED_IDX]):
                                 lWarningDetected = True
-                                iWarningType = (11 if (iWarningType is None or iWarningType == 11) else 0)
+                                iWarningType = (7 if (iWarningType is None or iWarningType == 7) else 0)
                                 iWarningDetectedInRow = (onRow if (iWarningDetectedInRow is None or iWarningDetectedInRow == onRow) else 0)
-                                warnTxt = ("WARNING: Row: %s >> Past asof date in conjunction with Cleared Balance ILLOGICAL (will use calculated asof balance). Accts: %s, NonInvestAccts: %s, Securities: %s, I/E Categories: %s"
+                                warnTxt = ("WARNING: Row: %s >> Mix and match when returning Security's cost basis / ur-gains / capital gains, and including reminders. Accts: %s, NonInvestAccts: %s, Securities: %s, I/E Categories: %s"
                                            %(onRow, iCountAccounts, iCountNonInvestAccounts, iCountSecurities, iCountIncomeExpense))
                                 myPrint("B", warnTxt)
                                 NAB.warningMessagesTable.append(warnTxt)
 
-                            if NAB.savedUseTaxDates:
-                                if (NAB.savedIncludeRemindersTable[iAccountLoop][AsOfDateChooser.ASOF_DRC_ENABLED_IDX]):
-                                    lWarningDetected = True
-                                    iWarningType = (8 if (iWarningType is None or iWarningType == 8) else 0)
-                                    iWarningDetectedInRow = (onRow if (iWarningDetectedInRow is None or iWarningDetectedInRow == onRow) else 0)
-                                    warnTxt = ("WARNING: Row: %s >> Tax date cannot be derived on included reminders. Accts: %s, NonInvestAccts: %s, Securities: %s, I/E Categories: %s"
-                                               %(onRow, iCountAccounts, iCountNonInvestAccounts, iCountSecurities, iCountIncomeExpense))
-                                    myPrint("B", warnTxt)
-                                    NAB.warningMessagesTable.append(warnTxt)
+                            if (NAB.savedBalanceType[iAccountLoop] == GlobalVars.BALTYPE_CLEAREDBALANCE):
+                                lWarningDetected = True
+                                iWarningType = (13 if (iWarningType is None or iWarningType == 13) else 0)
+                                iWarningDetectedInRow = (onRow if (iWarningDetectedInRow is None or iWarningDetectedInRow == onRow) else 0)
+                                warnTxt = ("WARNING: Row: %s >> Security's cost basis / ur-gains / capital gains selected with Cleared Balance ILLOGICAL. Calculated 'Balance' cost basis / ur-gains / capital gains will be returned. Accts: %s, NonInvestAccts: %s, Securities: %s, I/E Categories: %s"
+                                           %(onRow, iCountAccounts, iCountNonInvestAccounts, iCountSecurities, iCountIncomeExpense))
+                                myPrint("B", warnTxt)
+                                NAB.warningMessagesTable.append(warnTxt)
 
-                                if isAnyCostBasisOptionTypeSelected(iAccountLoop):
-                                    lWarningDetected = True
-                                    iWarningType = (9 if (iWarningType is None or iWarningType == 9) else 0)
-                                    iWarningDetectedInRow = (onRow if (iWarningDetectedInRow is None or iWarningDetectedInRow == onRow) else 0)
-                                    warnTxt = ("WARNING: Row: %s >> Tax date cannot be derived on calculated costbasis / ur-gains / capital gains. Accts: %s, NonInvestAccts: %s, Securities: %s, I/E Categories: %s"
-                                               %(onRow, iCountAccounts, iCountNonInvestAccounts, iCountSecurities, iCountIncomeExpense))
-                                    myPrint("B", warnTxt)
-                                    NAB.warningMessagesTable.append(warnTxt)
+                            if isUseCostBasisCapitalGainsSelected(iAccountLoop):
+                                _asof = todayInt if asOfBalDateInt == 0 else asOfBalDateInt
+                                if NAB.savedUseCostBasisTable[iAccountLoop][GlobalVars.COSTBASIS_DR_KEY_IDX] != MyDateRangeChooser.KEY_DR_ALL_DATES:
+                                    dateRange = getCapitalGainsDateRangeSelected(NAB.savedUseCostBasisTable[iAccountLoop], adjForBalType=NAB.savedBalanceType[iAccountLoop])
+                                    if dateRange.getEndDateInt() > _asof:
+                                        lWarningDetected = True
+                                        iWarningType = (15 if (iWarningType is None or iWarningType == 15) else 0)
+                                        iWarningDetectedInRow = (onRow if (iWarningDetectedInRow is None or iWarningDetectedInRow == onRow) else 0)
+                                        warnTxt = ("WARNING: Row: %s >> Security's capital gains date range (%s - %s) exceeds asof balance date (%s). Txns/Gains after asof date will be excluded! Accts: %s, NonInvestAccts: %s, Securities: %s, I/E Categories: %s"
+                                                   %(onRow, convertStrippedIntDateFormattedText(dateRange.getStartDateInt()), convertStrippedIntDateFormattedText(dateRange.getEndDateInt()), convertStrippedIntDateFormattedText(_asof),
+                                                     iCountAccounts, iCountNonInvestAccounts, iCountSecurities, iCountIncomeExpense))
+                                        myPrint("B", warnTxt)
+                                        NAB.warningMessagesTable.append(warnTxt)
+                                del _asof
 
-                                if lBalanceAsOfDateSelected:
-                                    lWarningDetected = True
-                                    iWarningType = (10 if (iWarningType is None or iWarningType == 10) else 0)
-                                    iWarningDetectedInRow = (onRow if (iWarningDetectedInRow is None or iWarningDetectedInRow == onRow) else 0)
-                                    warnTxt = ("WARNING: Row: %s >> Tax date cannot be derived on as-of calculated balances. Accts: %s, NonInvestAccts: %s, Securities: %s, I/E Categories: %s"
-                                               %(onRow, iCountAccounts, iCountNonInvestAccounts, iCountSecurities, iCountIncomeExpense))
-                                    myPrint("B", warnTxt)
-                                    NAB.warningMessagesTable.append(warnTxt)
+                        if (lBalanceAsOfDateSelected and NAB.savedBalanceType[iAccountLoop] == GlobalVars.BALTYPE_CLEAREDBALANCE
+                                and getBalanceAsOfDateSelected(NAB.savedBalanceAsOfDateTable[iAccountLoop]) < todayInt):
+                            lWarningDetected = True
+                            iWarningType = (11 if (iWarningType is None or iWarningType == 11) else 0)
+                            iWarningDetectedInRow = (onRow if (iWarningDetectedInRow is None or iWarningDetectedInRow == onRow) else 0)
+                            warnTxt = ("WARNING: Row: %s >> Past asof date in conjunction with Cleared Balance ILLOGICAL (will use calculated asof balance). Accts: %s, NonInvestAccts: %s, Securities: %s, I/E Categories: %s"
+                                       %(onRow, iCountAccounts, iCountNonInvestAccounts, iCountSecurities, iCountIncomeExpense))
+                            myPrint("B", warnTxt)
+                            NAB.warningMessagesTable.append(warnTxt)
 
-                            rowTagName = validTagsFormulaDict[iAccountLoop].tag
-                            if rowTagName:
-                                if rowTagName.startswith("row") or (str(onRow) in rowTagName):                          # noqa
-                                    lWarningDetected = True
-                                    iWarningType = (21 if (iWarningType is None or iWarningType == 21) else 0)
-                                    iWarningDetectedInRow = (onRow if (iWarningDetectedInRow is None or iWarningDetectedInRow == onRow) else 0)
-                                    warnTxt = ("WARNING: Row: %s >> Tag name '%s' used... Tags should not start with 'row' or contain own row number!" %(onRow, NAB.getTagVariableNameForRowIdx(iAccountLoop, returnOriginalCase=True)))
-                                    myPrint("B", warnTxt)
-                                    NAB.warningMessagesTable.append(warnTxt)
+                        if NAB.savedUseTaxDates:
+                            if (NAB.savedIncludeRemindersTable[iAccountLoop][AsOfDateChooser.ASOF_DRC_ENABLED_IDX]):
+                                lWarningDetected = True
+                                iWarningType = (8 if (iWarningType is None or iWarningType == 8) else 0)
+                                iWarningDetectedInRow = (onRow if (iWarningDetectedInRow is None or iWarningDetectedInRow == onRow) else 0)
+                                warnTxt = ("WARNING: Row: %s >> Tax date cannot be derived on included reminders. Accts: %s, NonInvestAccts: %s, Securities: %s, I/E Categories: %s"
+                                           %(onRow, iCountAccounts, iCountNonInvestAccounts, iCountSecurities, iCountIncomeExpense))
+                                myPrint("B", warnTxt)
+                                NAB.warningMessagesTable.append(warnTxt)
 
-                                if rowTagName in NAB.FILTER_FORMULA_EXPR_ALLOWED_WORDS:
-                                    lWarningDetected = True
-                                    iWarningType = (22 if (iWarningType is None or iWarningType == 22) else 0)
-                                    iWarningDetectedInRow = (onRow if (iWarningDetectedInRow is None or iWarningDetectedInRow == onRow) else 0)
-                                    warnTxt = ("WARNING: Row: %s >> Tag name '%s' used... Tags should NOT be the same as function names (%s)!" %(onRow, NAB.getTagVariableNameForRowIdx(iAccountLoop, returnOriginalCase=True), NAB.FILTER_FORMULA_EXPR_ALLOWED_WORDS))
-                                    myPrint("B", warnTxt)
-                                    NAB.warningMessagesTable.append(warnTxt)
+                            if isAnyCostBasisOptionTypeSelected(iAccountLoop):
+                                lWarningDetected = True
+                                iWarningType = (9 if (iWarningType is None or iWarningType == 9) else 0)
+                                iWarningDetectedInRow = (onRow if (iWarningDetectedInRow is None or iWarningDetectedInRow == onRow) else 0)
+                                warnTxt = ("WARNING: Row: %s >> Tax date cannot be derived on calculated costbasis / ur-gains / capital gains. Accts: %s, NonInvestAccts: %s, Securities: %s, I/E Categories: %s"
+                                           %(onRow, iCountAccounts, iCountNonInvestAccounts, iCountSecurities, iCountIncomeExpense))
+                                myPrint("B", warnTxt)
+                                NAB.warningMessagesTable.append(warnTxt)
 
-                        ### END WARNING CHECKS ###
+                            if lBalanceAsOfDateSelected:
+                                lWarningDetected = True
+                                iWarningType = (10 if (iWarningType is None or iWarningType == 10) else 0)
+                                iWarningDetectedInRow = (onRow if (iWarningDetectedInRow is None or iWarningDetectedInRow == onRow) else 0)
+                                warnTxt = ("WARNING: Row: %s >> Tax date cannot be derived on as-of calculated balances. Accts: %s, NonInvestAccts: %s, Securities: %s, I/E Categories: %s"
+                                           %(onRow, iCountAccounts, iCountNonInvestAccounts, iCountSecurities, iCountIncomeExpense))
+                                myPrint("B", warnTxt)
+                                NAB.warningMessagesTable.append(warnTxt)
+
+                        rowTagName = validTagsFormulaDict[iAccountLoop].tag
+                        if rowTagName:
+                            if rowTagName.startswith("row") or (str(onRow) in rowTagName):                          # noqa
+                                lWarningDetected = True
+                                iWarningType = (21 if (iWarningType is None or iWarningType == 21) else 0)
+                                iWarningDetectedInRow = (onRow if (iWarningDetectedInRow is None or iWarningDetectedInRow == onRow) else 0)
+                                warnTxt = ("WARNING: Row: %s >> Tag name '%s' used... Tags should not start with 'row' or contain own row number!" %(onRow, NAB.getTagVariableNameForRowIdx(iAccountLoop, returnOriginalCase=True)))
+                                myPrint("B", warnTxt)
+                                NAB.warningMessagesTable.append(warnTxt)
+
+                            if rowTagName in NAB.FILTER_FORMULA_EXPR_ALLOWED_WORDS:
+                                lWarningDetected = True
+                                iWarningType = (22 if (iWarningType is None or iWarningType == 22) else 0)
+                                iWarningDetectedInRow = (onRow if (iWarningDetectedInRow is None or iWarningDetectedInRow == onRow) else 0)
+                                warnTxt = ("WARNING: Row: %s >> Tag name '%s' used... Tags should NOT be the same as function names (%s)!" %(onRow, NAB.getTagVariableNameForRowIdx(iAccountLoop, returnOriginalCase=True), NAB.FILTER_FORMULA_EXPR_ALLOWED_WORDS))
+                                myPrint("B", warnTxt)
+                                NAB.warningMessagesTable.append(warnTxt)
+
+                    ### END WARNING CHECKS ###
 
 
                     # todo - consider if nuking the balance is the right thing to do here...?
@@ -16901,12 +16917,13 @@ Visit: %s (Author's site)
                                             lWarningDetected = True
                                             iWarningType = (16 if (iWarningType is None or iWarningType == 16) else 0)
                                             iWarningDetectedInRow = (onRow if (iWarningDetectedInRow is None or iWarningDetectedInRow == onRow) else 0)
-                                            warnTxt = ("WARNING: Row: %s >> Mixing different currencies within a single UOR chain - e.g. '%s' with '%s' (skipping further checks)"
-                                                       %(onRow, balanceObj.getCurrencyType(), otherRowBalanceObj.getCurrencyType()))
+                                            warnTxt = ("WARNING: Row: %s >> Mixing different currencies within a single UOR chain - row: %s '%s' with row: %s '%s' (skipping further checks)"
+                                                       %(onRow, onChainedUORIdx+1, balanceObj.getCurrencyType(), otherRowIdx+1, otherRowBalanceObj.getCurrencyType()))
                                             myPrint("B", warnTxt)
                                             NAB.warningMessagesTable.append(warnTxt)
 
-                                    if (otherRowBalLong is None or otherRowBalWithDecimals == 0.0):
+                                    uorOperator = NAB.savedOperateOnAnotherRowTable[onChainedUORIdx][NAB.OPERATE_OTHER_ROW_OPERATOR]
+                                    if (otherRowBalLong is None or (otherRowBalWithDecimals == 0.0 and uorOperator != "*")):
                                         if debug: myPrint("B", "...... RowIdx: %s (calc: %s - %s) otherRowIdx: %s balance (calc: %s - %s) is NOT valid (or is zero), so skipping this step!" %(i, thisRowBalLong, thisRowBalWithDecimals, otherRowIdx, otherRowBalLong, otherRowBalWithDecimals))
                                         continue
 
@@ -16919,7 +16936,7 @@ Visit: %s (Author's site)
                                             otherRowBalLong = otherRowBalanceObj.getBalance()
                                             otherRowBalWithDecimals = otherRowBalanceObj.getBalanceWithDecimalsPreserved()
 
-                                    operator = NAB.savedOperateOnAnotherRowTable[onChainedUORIdx][NAB.OPERATE_OTHER_ROW_OPERATOR]
+                                    operator = uorOperator
                                     newRowBalWithDecimals = MyHomePageView.calculateUsingSymbol(thisRowBalWithDecimals, operator, otherRowBalWithDecimals)
                                     newRowBalLong = balanceObj.getCurrencyType().getLongValue(newRowBalWithDecimals)
 
@@ -16981,8 +16998,11 @@ Visit: %s (Author's site)
                         if debug: myPrint("B", "@@ row: %s has error flagged - removing %s from validTagDict" %(i+1, tagName))
                         del validTagDict[tagName]                    # None / Invalid - so remove from valid tags...
                     else:
-                        if debug: myPrint("B", "@@ row: %s updating %s with %s in validTagDict" %(i+1, tagName, balanceObj.getBalanceWithDecimalsPreserved()))
-                        validTagDict[tagName] = balanceObj.getBalanceWithDecimalsPreserved()
+                        _bal = balanceObj.getBalanceWithDecimalsPreserved()
+                        if _bal is None: _bal = 0.0                              # match the @this coercion above
+                        if debug: myPrint("B", "@@ row: %s updating %s with %s in validTagDict" %(i+1, tagName, _bal))
+                        validTagDict[tagName] = _bal
+                        del _bal
                     continue
 
                 if debug:
@@ -17035,7 +17055,7 @@ Visit: %s (Author's site)
                             if formula is not None:
                                 thisTag = validTagsFormulaDict[i].tag
                                 if not validTagsFormulaDict[i].nothis:
-                                    if ("this00000row" not in formula and (thisTag is None or thisTag not in formula)):
+                                    if ("this00000row" not in formula and (thisTag is None or not re.search(r"\b%s\b" %(re.escape(thisTag)), formula))):
                                         lWarningDetected = True
                                         iWarningType = (20 if (iWarningType is None or iWarningType == 20) else 0)
                                         iWarningDetectedInRow = (onRow if (iWarningDetectedInRow is None or iWarningDetectedInRow == onRow) else 0)
@@ -17663,7 +17683,7 @@ Visit: %s (Author's site)
                                     useTaxDatesText = "" if not NAB.savedUseTaxDates else "*TAX DATES* "
                                     hiddenRowsText = "" if not hiddenRows else "*HIDDEN ROW(s)* "
                                     filteredRowsText = "" if not filteredRows else "*FILTERED ROW(s)* "
-                                    CCEngineText = "" if (CostCalculation != MyCostCalculation) else "" if (not debug and not NAB.isPreview) else "*INT CC ENG* "
+                                    CCEngineText = "" if (not debug and not NAB.isPreview) else ("*INT CC ENG* " if (CostCalculation == MyCostCalculation) else "*STD CC ENG* ")
                                     filterGroupIDText = "" if NAB.savedFilterByGroupID == "" else "*Filter: '%s'* " %(NAB.savedFilterByGroupID)
                                     combinedTxt = ""
                                     _countTxtAdded = 0

@@ -1523,27 +1523,32 @@ Visit: %s (Author's site)
 
         myPrint("DB","Will try to save parameter file:", migratedFilename)
 
-        ostr = FileOutputStream(migratedFilename)
-
         myPrint("DB", "about to Pickle.dump and save parameters to unencrypted file:", migratedFilename)
 
+        ostr = None
+
         try:
+            ostr = FileOutputStream(migratedFilename)
             save_file = FileUtil.wrap(ostr)
             pickle.dump(GlobalVars.parametersLoadedFromFile, save_file, protocol=0)
             save_file.close()
+            ostr = None
 
             myPrint("DB","GlobalVars.parametersLoadedFromFile now contains...:")
             for key in sorted(GlobalVars.parametersLoadedFromFile.keys()):
                 myPrint("DB","...variable:", key, GlobalVars.parametersLoadedFromFile[key])
 
         except:
-            myPrint("B", "Error - failed to create/write parameter file.. Ignoring and continuing.....")
+            myPrint("B", "@@ ERROR - failed to create/write parameter file '%s' - IT MAY NOW BE DAMAGED/EMPTY - settings may be lost at next restart!" %(migratedFilename))
             dump_sys_error_to_md_console_and_errorlog()
+
+            try:
+                if ostr is not None: ostr.close()
+            except: pass
 
             return
 
         myPrint("DB","Parameter file written and parameters saved to disk.....")
-
         return
 
     def get_time_stamp_as_nice_text(timeStamp, _format=None, lUseHHMMSS=True):
@@ -1979,6 +1984,7 @@ Visit: %s (Author's site)
 
         if not check_file_writable(copyToFile):
             myPopupInformationBox(_theFrame, "Sorry, that file/location does not appear allowed by the operating system!?")
+            return
 
         toFile = copyToFile
         try:

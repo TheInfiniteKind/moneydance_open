@@ -5,7 +5,34 @@ Custom Balances (version 2000 onwards) works with Moneydance 2024(5100) onwards.
 - If you need to run Custom Balances on earlier builds of Moneydance, then you need to install
   Custom Balances version 1058 (Dec 2025) which works on Moneydance builds 2021.1(3056) onwards.
 
-DISCLAIMER: THIS EXTENSION IS READONLY (IT DOES NOT CHANGE DATA) >> YOU USE AT YOUR OWN RISK!
+
+CONTENTS: (search for the heading text to jump to a section)
+  DEFINITIONS                                       - terms used in this guide
+  INSTALLATION                                      - how to install / upgrade
+  PURPOSE                                           - what Custom Balances does
+  LET'S GET STARTED                                 - quick tour of the settings screen
+  CREATING ROWS AND SAVING                          - adding, copying, deleting and saving rows
+  CHOICES/CONFIGURATION FOR A ROW                   - all per-row settings explained
+  MATH ON CALCULATED BALANCES                       - formulas, tags, UOR, row maths, nw()
+  FORMATTING FOR ROW DISPLAY                        - formatting guide - hide row when, hide decimals, separators
+  ACCOUNT SELECTION LIST (PICKLIST)                 - selecting accounts / categories / securities
+  FILTERS FOR LIST CHOICES                          - narrowing the picklist
+  OPTIONS MENU                                      - the settings screen's own menu
+  BACKUP/RESTORE                                    - saving and restoring your configuration
+  SELECT ROW INFORMATION                            - what the row selector box is telling you
+  SEARCH BOX AND GROUPID                            - grouping rows and filtering the widget
+  TAG FIELD                                         - naming a row for use in formulas
+  WARNINGS BOX                                      - what the warnings mean
+  DATE OFFSET                                       - shifting date ranges by n periods
+  ROW NAME FORMATTING                               - html, colours, and the gray (info) text
+  KEY TO ROW FORMATTING ON SUMMARY SCREEN           - explaining the widget's colours and marks
+  DETAILS ON HOW CALCULATIONS OF BALANCES OCCURS    - the calculation sequence, rounding
+  NOTES ON NET WORTH FEATURES                       - net worth rules and nw() behaviour
+  NOTES ON COST BASIS / CAPITAL GAINS               - cost basis, u/r gains, capital gains
+  KNOWN MONEYDANCE (INTERNAL) COLOUR NAMES          - colour names usable in row name html
+  HISTORICAL UPGRADE NOTES                          - changes across versions
+  TECHNICAL/HISTORICAL NOTES                        - internals, limitations, background
+
 
 DEFINITIONS:
 - CB means this extension / Custom Balances
@@ -144,6 +171,7 @@ CHOICES/CONFIGURATION FOR A ROW:
            ... ie. once they are recorded/committed then they are already within the actual balance for that date
 
         - The 'balance asof date' setting has no bearing on (non-recorded) Reminders to include.
+        - The 'I/E date range' setting has no bearing on (non-recorded) Reminders to include.
         - Only uncommitted (ie. non-recorded) Reminders will be selected. Then...
         - Reminder date(s) will be forward calculated up to the Reminder's asof date setting. Then...
         - The normal rules will apply when calculating Balance, Current Balance, Cleared Balance balances
@@ -584,10 +612,30 @@ GroupID allows you create groups of rows that you can separately display.
          Enter '&' (and) to make the filter include rows where all the requested filters match
                         NOTE: |(or) is default - will be the default anyway unless '!' or '&' used
          Group ID Filters are cAsE InSeNsItIve...
-         Each filter you use will be remembered and stored for later quick selection.. The most recent will always be
-              top of the list. Click the little up/down selector on the widget title bar, or in the GUI to select one
-              Use CMD-SHIFT-G to edit the list and provide names to the filters
-              Only the most recent 20 will be saved...
+         Group ID Filters match on PART of a groupid, not the whole thing. So a filter of 'Min' will match a row
+              whose groupid is 'MinimumBalance'.
+
+         THE FILTER SELECTOR (the small up/down 'double caret' arrows on the widget title bar, and also in the GUI):
+              Click it to pick a filter without typing. The menu contains:
+                  <NO FILTER>       clears the filter - all rows are shown again
+                  'your filter'     each filter you have previously used (see below)
+                  <EDIT FILTERS>    opens the remembered filter list for editing (same as CMD-SHIFT-G)
+
+              IMPORTANT: this menu lists the filters YOU HAVE PREVIOUSLY USED - it is NOT a list of the groupids
+                   that exist on your rows. A groupid you have set on a row but never typed into the filter box
+                   will not appear in the menu until you use it as a filter at least once.
+
+              Each filter you use is remembered and added to the menu, most recent at the top.
+              Only the most recent 20 are saved...
+
+              <EDIT FILTERS> (or CMD-SHIFT-G) shows the remembered list in two columns:
+                  Name            an optional friendly label for the filter - shown in the menu when set
+                  GroupIDFilter   the actual filter text that gets applied
+              Click the +/- cell on the right of a line to add or delete an entry.
+
+         IF A FILTER BLANKS THE WIDGET: no row's groupid contains that text. Check the groupids you have actually
+              set - the main row selector in the settings shows '<groupid: xxx>' against each row, and rows
+              currently filtered out are shown in red.
 
    WARNING: Only enter one of '!|&' characters as only one search type can be used within a single filter.
          NOTE:    !(not) is always implicitly also &(and) - i.e. !1;2 (means not '1' and not '2')
