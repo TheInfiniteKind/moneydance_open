@@ -538,7 +538,7 @@ else:
     from com.infinitekind.moneydance.model import DateRange
     from com.infinitekind.moneydance.model import ReportSpec, AddressBookEntry, OnlineService, MoneydanceSyncableItem
     from com.infinitekind.moneydance.model import OnlinePayeeList, OnlinePaymentList, InvestFields, AbstractTxn
-    from com.infinitekind.moneydance.model import CurrencySnapshot, OnlineTxnList, CurrencyTable
+    from com.infinitekind.moneydance.model import CurrencySnapshot, CurrencySplit, OnlineTxnList, CurrencyTable
     from com.infinitekind.moneydance.model import TxnSet, InvestTxnType, SecurityType, CostCalculation                  # noqa
 
     from com.infinitekind.moneydance.online import OnlineTxnMerger, OFXAuthInfo                                         # noqa
