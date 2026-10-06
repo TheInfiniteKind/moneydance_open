@@ -95,16 +95,17 @@ public class SecTable extends JTable {
 	public static int tickerCol = 1;
 	public static int altTickerCol = 2;
 	public static int exchangeCol = 3;
-	public static int accountCol = 4;
-	public static int sourceCol = 5;
-	public static int lastPriceCol = 6;
-	public static int lastDateCol = 7;
-	public static int newPriceCol = 8;
-	public static int perChangeCol = 9;
-	public static int amtChangeCol = 10;
-	public static int tradeDateCol = 11;
-	public static int tradeCurCol = 12;
-	public static int volumeCol = 13;
+	public static int multiplierCol = 4;
+	public static int accountCol = 5;
+	public static int sourceCol = 6;
+	public static int lastPriceCol = 7;
+	public static int lastDateCol = 8;
+	public static int newPriceCol = 9;
+	public static int perChangeCol = 10;
+	public static int amtChangeCol = 11;
+	public static int tradeDateCol = 12;
+	public static int tradeCurCol = 13;
+	public static int volumeCol = 14;
 	private Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
 	private Double screenHeight;
 	private MDColors colors = MDColors.getSingleton();
@@ -305,10 +306,24 @@ public class SecTable extends JTable {
 		header.setReorderingAllowed(false);
 		header.setResizingAllowed(true);
 		columnWidths = Main.preferences.getIntArray(Constants.PROGRAMNAME + ".SEC." + Constants.CRNTCOLWIDTH);
-		if (columnWidths == null || columnWidths.length == 0) {
-			Main.preferences.put(Constants.PROGRAMNAME + ".SEC." + Constants.CRNTCOLWIDTH,
-					Constants.DEFAULTCOLWIDTH);
-			columnWidths = Constants.DEFAULTCOLWIDTH;
+		if (columnWidths == null || columnWidths.length < Constants.NUMTABLECOLS) {
+			int[] newWidths = new int[Constants.NUMTABLECOLS];
+			if (columnWidths != null) {
+				if (columnWidths.length == 14) {
+					System.arraycopy(columnWidths, 0, newWidths, 0, 4);
+					newWidths[4] = Constants.DEFAULTCOLWIDTH[4];
+					System.arraycopy(columnWidths, 4, newWidths, 5, 10);
+				} else {
+					System.arraycopy(columnWidths, 0, newWidths, 0, Math.min(columnWidths.length, Constants.NUMTABLECOLS));
+					for (int i = columnWidths.length; i < Constants.NUMTABLECOLS; i++) {
+						newWidths[i] = Constants.DEFAULTCOLWIDTH[i];
+					}
+				}
+			} else {
+				newWidths = Constants.DEFAULTCOLWIDTH;
+			}
+			columnWidths = newWidths;
+			Main.preferences.put(Constants.PROGRAMNAME + ".SEC." + Constants.CRNTCOLWIDTH, columnWidths);
 		}
 		allSources = new JComboBox<String>(params.getSourceArray());
 		currencyEditor = new MyCurrencyEditor(params);
@@ -386,7 +401,7 @@ public class SecTable extends JTable {
       this.getColumnModel().getColumn(col).setPreferredWidth(columnWidths[col]);
     }
 
-    for (int col : new int[] {tickerCol, altTickerCol, exchangeCol, accountCol, sourceCol}) {
+    for (int col : new int[] {tickerCol, altTickerCol, exchangeCol, multiplierCol, accountCol, sourceCol}) {
       this.getColumnModel().getColumn(col).setCellRenderer(borderOnlyRenderer);
     }
 

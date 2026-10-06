@@ -282,5 +282,14 @@ public class SecurityTableLine {
     }
   }
 
+  private Double multiplier;
+  public Double getMultiplier() {
+    if (multiplier == null)
+      return 1.0;
+    return multiplier;
+  }
+  public void setMultiplier(Double multiplier) {
+    this.multiplier = multiplier;
+  }
 
 }

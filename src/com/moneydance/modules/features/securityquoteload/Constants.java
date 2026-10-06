@@ -222,9 +222,9 @@ public abstract class Constants {
 	public static final int RUN0800 = 15;
 	public static final int[] TIMEVALUES= {RUNSTARTUP,RUN0200,RUN0400,RUN0600,RUN0800,RUN0900,RUN1100,RUN1300,RUN1500,RUN1700,RUN1900,RUN2100,RUN2200,RUN2300,RUN2400};
 	public static final int[] TIMESTART = {0,2,4,6,8,9,11,13,15,17,19,21,22,23,24};
-	public static final int NUMTABLECOLS = 14; 
+	public static final int NUMTABLECOLS = 15; 
 	public static final int NUMCURTABLECOLS = 10; 
-	public static final int[]  DEFAULTCOLWIDTH = {40,100,100,100,300,80,80,80,80,80,80,80,80,80};
+	public static final int[]  DEFAULTCOLWIDTH = {40,100,100,100,80,300,80,80,80,80,80,80,80,80,80};
 	public static final int[]  DEFAULTCURCOLWIDTH = {40,100,300,80,80,80,80,80,80,80};
 	/*
 	 * Currency identifier
