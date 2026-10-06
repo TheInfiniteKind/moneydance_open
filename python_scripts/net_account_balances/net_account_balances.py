@@ -109,7 +109,7 @@ assert isinstance(0/1, float), "LOGIC ERROR: Custom Balances extension assumes t
 # build: 2000 - updated CostCalculation with latest bugfixes from MD2027(5511) - 5th September 2026
 # build: 2000 - updated CostCalculation with latest bugfixes from MD2027(5512) - 18th September 2026
 # build: 2000 - fixes to leverage the two invalid cost basis states (current and future). Maintain parallel flags.
-# build: 2001 - tweaked cost calculation section to pre-sweep txns and cache calculations...
+# build: 2001 - tweaked cost calculation section to pre-sweep txns and cache calculations...; updated MyCC (v15 and fixes/tax dates) and added MyCapitalGainResult
 # build: 2001 - ???
 
 # todo - tweak getConvertXBalanceRecursive() and getXBalance() to also exclude inactives from recursive balances (like apply networth rules)
@@ -473,7 +473,6 @@ else:
     from com.moneydance.apps.md.view.gui import MoneydanceGUI, MoneydanceLAF, ConsoleWindow, MainFrame
     from com.moneydance.apps.md.controller import FeatureModule, PreferencesListener, UserPreferences
     from com.infinitekind.moneydance.model import AccountListener, AbstractTxn, CurrencyListener, DateRange, TxnSet
-    from com.infinitekind.moneydance.model import CapitalGainResult
 
     # from com.infinitekind.moneydance.model import TxnIterator
     from com.infinitekind.util import StringUtils, StreamVector
@@ -3118,12 +3117,12 @@ Visit: %s (Author's site)
         return None
 
     # NOTE: Two bugs were later fixed in the MD CC class from MD2024(5119); and then again from MD2026(5500)
-    GlobalVars.MD_COSTCALCULATION_UPGRADED_BUILD = 5512                                                                 # MD2026(5500)
+    GlobalVars.MD_COSTCALCULATION_UPGRADED_BUILD = 5512;                                                                 # MD2026(5500)
     def isCostCalculationUpgradedBuild(): return (MD_REF.getBuild() >= GlobalVars.MD_COSTCALCULATION_UPGRADED_BUILD)
     if not isCostCalculationUpgradedBuild():
-        global CostCalculation
+        global CostCalculation, CapitalGainResult
     else:
-        from com.infinitekind.moneydance.model import CostCalculation
+        from com.infinitekind.moneydance.model import CostCalculation, CapitalGainResult
 
     GlobalVars.MD_DATERANGECHOOSER_UPGRADED_BUILD = 5128;                                                                # MD2024.2(5128) - fixes between 5100 and 5128
     # def isDateRangeChooserUpgradedBuild(): return (MD_REF.getBuild() >= GlobalVars.MD_DATERANGECHOOSER_UPGRADED_BUILD)
@@ -3458,7 +3457,7 @@ Visit: %s (Author's site)
         # Reference all code/objects from extra script here (back into main code)....
         global _extra_code_initialiser
         global AsOfDateChooser, MyDateRangeChooser
-        global MyCostCalculation
+        global MyCostCalculation, MyCapitalGainResult
 
         _extraCodeString = myModuleID + "_extra_code" + ".py"
         if MD_EXTENSION_LOADER is not None:
@@ -3483,7 +3482,8 @@ Visit: %s (Author's site)
         # switch CostCalculation engines if required...
         if not isCostCalculationUpgradedBuild():
             CostCalculation = MyCostCalculation
-        myPrint("DB", "CostCalculation engine in operation: %s (%s)" %(CostCalculation, type(CostCalculation)))
+            CapitalGainResult = MyCapitalGainResult
+        myPrint("DB", "CostCalculation engine and CapitalGainResult class(s) in operation: %s (%s) %s (%s)" %(CostCalculation, type(CostCalculation), CapitalGainResult, type(CapitalGainResult)))
 
     except:
         dump_sys_error_to_md_console_and_errorlog()
