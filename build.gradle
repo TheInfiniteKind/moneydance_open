@@ -1161,6 +1161,7 @@ registerFeature("moneyPie", files(moneypieJar))
 registerFeature("mousetester")
 registerFeature("contextmenutools")
 registerFeature("customgraphreports")
+registerFeature("autorun")
 
 // Mike Bray's extensions
 // note: mrbutil is defined as a sourceSet elsewhere in this build file
