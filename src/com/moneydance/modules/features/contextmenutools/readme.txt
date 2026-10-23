@@ -34,6 +34,7 @@ MENU OPTIONS (in the order they appear)
   - Edit Originating Reminder
   - Zap/Clean Memo
   - Show Other Side: Select Split
+  - Edit date entered
   - Jump to date in register
   - Show Raw Details
   - Copy Raw Details to Clipboard
@@ -363,6 +364,25 @@ Three related options in the config screen, all under this feature's own checkbo
     stays as you've set it here regardless of that preference changing later
   - Include single-split transactions - turns this feature on even for transactions with only
     one split, where the only "other side" to jump to is the parent (or vice versa) (default off)
+
+
+EDIT DATE ENTERED
+--------------------
+Right-click a single transaction in any register and choose this option to change its "date
+entered" - the date and time Moneydance recorded when the transaction was entered. Moneydance uses
+it to decide the order of transactions that share the same date. It belongs to the whole
+transaction, so it is always the parent transaction's value that is changed, even from a split
+row. Off by default - turn it on in the config screen.
+
+The window shows the transaction's account, description, amount, date and tax date, then the date
+entered (in your Moneydance date format) and the time entered (24-hour, HH:mm:ss, in your
+computer's time zone), both of which you can change. The time has up/down arrows that change
+whichever part - hours, minutes or seconds - the cursor is in.
+
+Any date can be entered, but not a date/time later than now: if you press OK with one, or with a
+date or time that isn't valid, a message tells you nothing was saved. Pressing OK without changing
+anything saves nothing. A change is saved straight away as a single
+named Undo step - Menu > Edit > Undo reverses it.
 
 
 JUMP TO DATE IN REGISTER

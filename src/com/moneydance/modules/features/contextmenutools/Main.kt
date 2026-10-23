@@ -152,7 +152,8 @@ class Main : FeatureModule(), PreferencesListener {
     val showOtherSideMenuEnabled = getMenuBoolSetting(menuSettings, SETTING_MENU_SHOW_OTHER_SIDE_ENABLED, true)
     val editOriginatingReminderMenuEnabled = getMenuBoolSetting(menuSettings, SETTING_MENU_EDIT_ORIGINATING_REMINDER_ENABLED, true)
     val zapCleanMemoMenuEnabled = getMenuBoolSetting(menuSettings, SETTING_MENU_ZAP_CLEAN_MEMO_ENABLED, false)
-    
+    val editDateEnteredMenuEnabled = getMenuBoolSetting(menuSettings, SETTING_MENU_EDIT_DATE_ENTERED_ENABLED, false)
+
     // menu-build-time only reminder cache - avoids CopyPasteSplits/UpdateReminderValue/
     // EditOriginatingReminder each independently calling book.reminders.allReminders (which
     // rebuilds a fresh list from scratch every call, no caching of its own) when more than one
@@ -242,7 +243,11 @@ class Main : FeatureModule(), PreferencesListener {
       if (zapCleanMemoMenuEnabled) actions += ZapCleanMemo().getActions(menuContext = context, listAccts = listAccts, listTxns = listTxns)
       if (showOtherSideMenuEnabled) actions += ShowOtherSideSelectSplit(warnBeforeCategorySplit = warnCategorySplit, showFullAccountNames = showFullAcctNames, includeSingleSplitTxns = includeSingleSplitTxns).getActions(menuContext = context, listAccts = listAccts, listTxns = listTxns)
     }
-    
+
+    if (isDataEntryRegisterActionType(contextType = context.type, includeSecReg = true)) {
+      if (editDateEnteredMenuEnabled) actions += EditDateEntered().getActions(menuContext = context, listAccts = listAccts, listTxns = listTxns)
+    }
+
     if (isDataEntryRegisterActionType(contextType = context.type, includeSecReg = false) || isSearchActionType(contextType = context.type)) {
       if (jumpMenuEnabled) actions += JumpToDate().getActions(menuContext = context, listAccts = listAccts, listTxns = listTxns)
     }
@@ -403,7 +408,11 @@ class Main : FeatureModule(), PreferencesListener {
     private val enableMenuZapCleanMemoCheckbox = JCheckBox(STRING_MENU_ZAP_CLEAN_MEMO_ENABLED).apply {
       isSelected = getMenuBoolSetting(menuSettingsOnOpen, SETTING_MENU_ZAP_CLEAN_MEMO_ENABLED, false)
     }
-    
+
+    private val enableMenuEditDateEnteredCheckbox = JCheckBox(STRING_MENU_EDIT_DATE_ENTERED_ENABLED).apply {
+      isSelected = getMenuBoolSetting(menuSettingsOnOpen, SETTING_MENU_EDIT_DATE_ENTERED_ENABLED, false)
+    }
+
     private val includeSingleSplitCheckbox = JCheckBox(STRING_TEMPLATE_INCLUDE_SINGLE_SPLIT).apply {
       isSelected = getMenuBoolSetting(menuSettingsOnOpen, SETTING_TEMPLATE_INCLUDE_SINGLE_SPLIT, false)
       isEnabled = enableMenuTemplateCheckbox.isSelected
@@ -584,6 +593,9 @@ class Main : FeatureModule(), PreferencesListener {
       
       form.add(enableMenuZapCleanMemoCheckbox, GridC.getc(0, y++).west().insets(4, 4, 4, 4))
       form.add(JSeparator(), GridC.getc(0, y++).west().wx(1f).fillboth().insets(6, 0, 6, 0))
+
+      form.add(enableMenuEditDateEnteredCheckbox, GridC.getc(0, y++).west().insets(4, 4, 4, 4))
+      form.add(JSeparator(), GridC.getc(0, y++).west().wx(1f).fillboth().insets(6, 0, 6, 0))
       
       form.add(enableMenuShowOtherSideCheckbox, GridC.getc(0, y++).west().insets(4, 4, 4, 4))
       
@@ -652,6 +664,7 @@ class Main : FeatureModule(), PreferencesListener {
           menuSettings[SETTING_INCLUDE_SINGLE_SPLIT_TXNS] = includeSingleSplitTxnsCheckbox.isSelected
           menuSettings[SETTING_MENU_EDIT_ORIGINATING_REMINDER_ENABLED] = enableMenuEditOriginatingReminderCheckbox.isSelected
           menuSettings[SETTING_MENU_ZAP_CLEAN_MEMO_ENABLED] = enableMenuZapCleanMemoCheckbox.isSelected
+          menuSettings[SETTING_MENU_EDIT_DATE_ENTERED_ENABLED] = enableMenuEditDateEnteredCheckbox.isSelected
           menuSettings[SETTING_MENU_DEBUG_ENABLED] = enableMenuDebugCheckbox.isSelected
           menuSettings[SETTING_TEMPLATE_INCLUDE_SINGLE_SPLIT] = includeSingleSplitCheckbox.isSelected
           menuSettings[SETTING_TEMPLATE_MATCH_ACCOUNT] = templateMatchAccountCheckbox.isSelected
@@ -753,6 +766,7 @@ class Main : FeatureModule(), PreferencesListener {
     const val STRING_MENU_SHOW_OTHER_SIDE_ENABLED = "Enable context menu: 'Show Other Side: Select Split'"
     const val STRING_MENU_EDIT_ORIGINATING_REMINDER_ENABLED = "Enable context menu: 'Edit Originating Reminder'"
     const val STRING_MENU_ZAP_CLEAN_MEMO_ENABLED = "Enable context menu: 'Zap/Clean Memo'"
+    const val STRING_MENU_EDIT_DATE_ENTERED_ENABLED = "Enable context menu: 'Edit date entered'"
     const val STRING_WARN_CATEGORY_SPLIT = "Warn before showing a Category split"
     const val STRING_SHOW_FULL_ACCT_NAMES = "Show full account names (not just account name)"
     const val STRING_INCLUDE_SINGLE_SPLIT_TXNS = "Include single-split transactions"
@@ -787,6 +801,7 @@ class Main : FeatureModule(), PreferencesListener {
     const val SETTING_MENU_SHOW_OTHER_SIDE_ENABLED = "menu.enabled.show_other_side"
     const val SETTING_MENU_EDIT_ORIGINATING_REMINDER_ENABLED = "menu.enabled.edit_originating_reminder"
     const val SETTING_MENU_ZAP_CLEAN_MEMO_ENABLED = "menu.enabled.zap_clean_memo"
+    const val SETTING_MENU_EDIT_DATE_ENTERED_ENABLED = "menu.enabled.edit_date_entered"
     const val SETTING_WARN_CATEGORY_SPLIT = "show_other_side.warn_category_split"
     const val SETTING_SHOW_FULL_ACCT_NAMES = "show_other_side.show_full_acct_names"
     const val SETTING_INCLUDE_SINGLE_SPLIT_TXNS = "show_other_side.include_single_split"
