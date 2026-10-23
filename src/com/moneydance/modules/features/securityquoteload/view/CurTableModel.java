@@ -236,7 +236,17 @@ public class CurTableModel extends DefaultTableModel {
 			if (rowData.getTradeDate() == null || rowData.getTradeDate() == 0)
 				return "";
 			String dateString = Main.cdate.format(rowData.getTradeDate());
-			if (rowData.getHistory() != null && !rowData.getHistory().isEmpty())
+			boolean hasNewHistory = false;
+			if (rowData.getHistory() != null) {
+				Integer priceDate = rowData.getPriceDate();
+				for (HistoryPrice hp : rowData.getHistory()) {
+					if (priceDate == null || priceDate == -1 || hp.getDate() > priceDate) {
+						hasNewHistory = true;
+						break;
+					}
+				}
+			}
+			if (hasNewHistory)
 				dateString += "++";
 			return dateString;
 		default:
