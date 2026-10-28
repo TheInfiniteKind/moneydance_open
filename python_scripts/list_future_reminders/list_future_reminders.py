@@ -83,7 +83,9 @@
 # build: 1032 - MD2024.2(5142) - moneydance_extension_loader was nuked and moneydance_this_fm with getResourceAsStream() was provided.
 # build: 1033 - More safety on 'skip next occurrence of all reminders' option; add undo manager on the en-mass change 'skip next occurrence of all reminders' option...
 # build: 1034 - fix comparator if/elif bug
-# build: 1033 - ???
+# build: 1035 - ???
+# build: 1035 - BUGFIX: amounts now in the reminder account's currency (previously base currency); fixed errors when clicking below the rows or after dragging columns; list now empties when the last reminder is deleted; first row now remembered when selected
+# build: 1035 - ???
 
 # todo - @he "Include subtotals / totals. Would be nice if user could select what to subtotal (by date / by account for sure)"
 # todo - Add the fields from extract_data:extract_reminders, with options future on/off, hide / select columns etc
@@ -94,7 +96,7 @@
 
 # SET THESE LINES
 myModuleID = u"list_future_reminders"
-version_build = "1034"
+version_build = "1035"
 MIN_BUILD_REQD = 1904                                               # Check for builds less than 1904 / version < 2019.4
 _I_CAN_RUN_AS_DEVELOPER_CONSOLE_SCRIPT = True
 
@@ -1636,27 +1638,32 @@ Visit: %s (Author's site)
 
         myPrint("DB","Will try to save parameter file:", migratedFilename)
 
-        ostr = FileOutputStream(migratedFilename)
-
         myPrint("DB", "about to Pickle.dump and save parameters to unencrypted file:", migratedFilename)
 
+        ostr = None
+
         try:
+            ostr = FileOutputStream(migratedFilename)
             save_file = FileUtil.wrap(ostr)
             pickle.dump(GlobalVars.parametersLoadedFromFile, save_file, protocol=0)
             save_file.close()
+            ostr = None
 
             myPrint("DB","GlobalVars.parametersLoadedFromFile now contains...:")
             for key in sorted(GlobalVars.parametersLoadedFromFile.keys()):
                 myPrint("DB","...variable:", key, GlobalVars.parametersLoadedFromFile[key])
 
         except:
-            myPrint("B", "Error - failed to create/write parameter file.. Ignoring and continuing.....")
+            myPrint("B", "@@ ERROR - failed to create/write parameter file '%s' - IT MAY NOW BE DAMAGED/EMPTY - settings may be lost at next restart!" %(migratedFilename))
             dump_sys_error_to_md_console_and_errorlog()
+
+            try:
+                if ostr is not None: ostr.close()
+            except: pass
 
             return
 
         myPrint("DB","Parameter file written and parameters saved to disk.....")
-
         return
 
     def get_time_stamp_as_nice_text(timeStamp, _format=None, lUseHHMMSS=True):
@@ -2092,6 +2099,7 @@ Visit: %s (Author's site)
 
         if not check_file_writable(copyToFile):
             myPopupInformationBox(_theFrame, "Sorry, that file/location does not appear allowed by the operating system!?")
+            return
 
         toFile = copyToFile
         try:
@@ -4513,9 +4521,14 @@ Visit: %s (Author's site)
 
             myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()", "Event: ", event )
 
+            # These act on the selected reminder, so do nothing when no row is selected
+            if (event.getActionCommand() in ["show_reminders_raw_details", "edit_reminder", "delete_reminder", "record_next_occurrence", "edit_last_acknowledged_date"]
+                    and GlobalVars.saveJTable.getSelectedRow() < 0):
+                return
+
             # ##########################################################################################################
             if event.getActionCommand() == "show_reminders_raw_details":
-                MD_REF.getUI().showRawItemDetails(GlobalVars.saveJTable.getValueAt(GlobalVars.saveSelectedRowIndex, 0), list_future_reminders_frame_)
+                MD_REF.getUI().showRawItemDetails(saveSelectedRowAndObject()[1], list_future_reminders_frame_)
 
             # ##########################################################################################################
             if event.getActionCommand() == "edit_reminder":
@@ -4906,7 +4919,8 @@ Visit: %s (Author's site)
 
             rems = MD_REF.getCurrentAccountBook().getReminders().getAllReminders()
 
-            if rems.size() < 1:
+            # On a refresh carry on with no reminders, so the table is emptied
+            if rems.size() < 1 and ind == 0:
                 return False
 
             myPrint("DB", "Success: read %s reminders" %(rems.size()))
@@ -5076,7 +5090,7 @@ Visit: %s (Author's site)
 
                     elif str(remtype) == 'TRANSACTION':
                         txnparent = rem.getTransaction()
-                        amount = GlobalVars.baseCurrency.getDoubleValue(txnparent.getValue())
+                        amount = txnparent.getAccount().getCurrencyType().getDoubleValue(txnparent.getValue())
 
                         for index2 in [0]:
                             if index2 > 0: amount = ''  # Don't repeat the new amount on subsequent split lines (so you can total column). The split amount will be correct
@@ -5349,7 +5363,7 @@ Visit: %s (Author's site)
                         myPrint("DB", ".. getValueIsAdjusting() is True.... Ignoring.....")
                         return
                     try:
-                        if GlobalVars.saveJTable.getSelectedRow() > 0:
+                        if GlobalVars.saveJTable.getSelectedRow() >= 0:
                             saveSelectedRowAndObject()
                             myPrint("DB","Reminder Obj saved:", GlobalVars.saveLastReminderObj)
                         else:
@@ -5419,8 +5433,10 @@ Visit: %s (Author's site)
 
                 # Select the row when right-click initiated
                 point = event.getPoint()
-                GlobalVars.saveSelectedRowIndex = GlobalVars.saveJTable.rowAtPoint(point)
-                GlobalVars.saveLastReminderObj = GlobalVars.saveJTable.getValueAt(GlobalVars.saveSelectedRowIndex, 0)
+                clickedRow = GlobalVars.saveJTable.rowAtPoint(point)
+                if clickedRow < 0: return
+                GlobalVars.saveSelectedRowIndex = clickedRow
+                GlobalVars.saveLastReminderObj = GlobalVars.saveJTable.getModel().getValueAt(GlobalVars.saveJTable.convertRowIndexToModel(clickedRow), GlobalVars.tableHeaderRowList.index("THE_REMINDER_OBJECT"))
                 GlobalVars.saveJTable.setRowSelectionInterval(GlobalVars.saveSelectedRowIndex, GlobalVars.saveSelectedRowIndex)
 
 
@@ -5429,7 +5445,7 @@ Visit: %s (Author's site)
                 myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()")
 
                 clicks = event.getClickCount()
-                if clicks == 2:
+                if clicks == 2 and GlobalVars.saveJTable.getSelectedRow() >= 0:
                     recordNextReminderOccurrence()
                 myPrint("D", "Exiting ", inspect.currentframe().f_code.co_name, "()")
 
@@ -5438,7 +5454,8 @@ Visit: %s (Author's site)
             # noinspection PyUnusedLocal
             def actionPerformed(self, event):
                 myPrint("D", "In ", inspect.currentframe().f_code.co_name, "()")
-                recordNextReminderOccurrence()
+                if GlobalVars.saveJTable.getSelectedRow() >= 0:
+                    recordNextReminderOccurrence()
                 myPrint("D", "Exiting ", inspect.currentframe().f_code.co_name, "()")
 
         class CloseAction(AbstractAction):
@@ -5546,7 +5563,12 @@ Visit: %s (Author's site)
                 elif convertColIdx == 1:
                     renderer = MyClunkyRenderer(lDate=True)
                 elif GlobalVars.tableHeaderRowFormats[convertColIdx][0] == Number:
-                    renderer = MyClunkyRenderer(lNumber=True)
+                    # Amounts are in the reminder account's currency
+                    curr = None
+                    if 0 <= row < self.getRowCount():
+                        rem = self.getModel().getValueAt(self.convertRowIndexToModel(row), GlobalVars.tableHeaderRowList.index("THE_REMINDER_OBJECT"))
+                        if str(rem.getReminderType()) == 'TRANSACTION': curr = rem.getTransaction().getAccount().getCurrencyType()
+                    renderer = MyClunkyRenderer(lNumber=True, curr=curr)
                 else:
                     renderer = MyClunkyRenderer()
 
@@ -5667,10 +5689,11 @@ Visit: %s (Author's site)
 
         class MyClunkyRenderer(DefaultTableCellRenderer):
 
-            def __init__(self, lDate=False, lNumber=False):
+            def __init__(self, lDate=False, lNumber=False, curr=None):
                 self.padding = BorderFactory.createEmptyBorder(0, 10, 0, 0)
                 self.lDate = lDate
                 self.lNumber = lNumber
+                self.curr = curr
                 super(self.__class__, self).__init__()                                                                  # noqa
 
             def setValue(self, value):
@@ -5678,7 +5701,8 @@ Visit: %s (Author's site)
 
                 if self.lNumber:
                     if isinstance(value, (float, int)):
-                        self.setText(GlobalVars.baseCurrency.formatFancy(int(value*100), GlobalVars.decimalCharSep, True))
+                        curr = self.curr if self.curr is not None else GlobalVars.baseCurrency
+                        self.setText(curr.formatFancy(curr.getLongValue(float(value)), GlobalVars.decimalCharSep, True))
                     else:
                         self.setText(str(value))
                     return
@@ -6148,7 +6172,7 @@ Visit: %s (Author's site)
                         remIdx = GlobalVars.tableHeaderRowList.index("THE_REMINDER_OBJECT")
                         dateIdx = jt.convertModelColumnToViewColumntoView(GlobalVars.tableHeaderRowList.index("Next Due"))
                         for rowViewIdx in range(0, jt.getRowCount()):
-                            remAtRow = jt.getValueAt(rowViewIdx, remIdx)
+                            remAtRow = jt.getModel().getValueAt(jt.convertRowIndexToModel(rowViewIdx), remIdx)
                             dateIntAtRow = jt.getValueAt(rowViewIdx, dateIdx)
                             if remAtRow is reselectReminder and dateIntAtRow == reselectOccurrenceDateInt:
                                 jt.setRowSelectionInterval(rowViewIdx, rowViewIdx)
