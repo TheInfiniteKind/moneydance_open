@@ -212,6 +212,11 @@ class DuplicateTransactions: ContextMenuAction {
     }
     
     if (duplicatedTxnPairs.size == 1) {
+      if (!txnRegister.isEditable()) { // a read-only list cannot edit the copy: save it, then edit it in its account
+        duplicateTxnsRecordChanges(listOf(duplicatedTxnPairs.first().first))
+        mdGUI.showTxn(duplicatedTxnPairs.first().second)
+        return
+      }
       txnRegister.beginEditing(duplicatedTxnPairs.first().second, true)
       return
     }
