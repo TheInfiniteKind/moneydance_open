@@ -112,7 +112,22 @@
 # build: 1050 - fix for EIT with security splits now allowing multi-same-day as of MD2026(5501)
 # build: 1050 - fix for default reminder sort, and also comparator if/elif bug
 # build: 1050 - Update MyCostCalculation with v11 from MD2027(5511); and again from 5512 (CC fixes and CapitalGainResult)
-# build: 1050 - ???
+# build: 1051 - ???
+# build: 1051 - BUGFIX Reminders: view, edit and delete now always act on the clicked reminder (previously could pick the wrong one)
+# build: 1051 - BUGFIX Reminders: amounts now in the reminder account's currency (previously base currency scale and symbol); Print, refresh, empty list, column drag, Split# sort, one-off reminders and 'future reminders' option fixed
+# build: 1051 - BUGFIX Account Balances: console now lists its own settings, and an invalid 'years to include' now defaults to 0 (previously Security Balances settings, and 1)
+# build: 1051 - BUGFIX Extract chooser: the auto extract warning now shows once (previously could repeat)
+# build: 1051 - BUGFIX Security Balances: cash rows now kept with an account filter, and foreign cash rows show their own currency and rate (previously dropped, and shown as base)
+# build: 1051 - BUGFIX Common: backwards text search now finds every match, and popup height uses the height limit (previously could skip a match, and used the width limit)
+# build: 1051 - BUGFIX Currency History: current rate now uses Moneydance's rate, and rate column headings now match Moneydance (previously used an old stored value, and R2B/B2R headings were swapped)
+# build: 1051 - BUGFIX StockGlance2020: values now use the full price, number sorting no longer fails, same-named securities stay apart, and CSV numbers keep all digits (previously rounded price, sort could crash, rows could mix, digits lost)
+# build: 1051 - StockGlance2020: carries on with a zero cost basis (and a warning) when Moneydance cannot calculate it (previously the extract stopped)
+# build: 1051 - BUGFIX StockGlance2020: cost basis now correct for securities priced in other currencies, and account names containing ' : ' now shown correctly (previously could be out by a power of ten, and mangled)
+# build: 1051 - BUGFIX StockGlance2020: 'Use Current Price' unticked now uses the latest price history price (previously had no effect)
+# build: 1051 - BUGFIX Investment Transactions: share rows show the amount as entered and dividend transfers show the dividend; currency filter, hidden securities, attachments, lot shares, opening balance date and split-price crash fixed
+# build: 1051 - Security Balances: carries on with a zero cost basis (and a warning) when it cannot be calculated (previously the extract stopped)
+# build: 1051 - BUGFIX Account Registers: hidden accounts, foreign currency totals and decimals, split ID and index, opening balance date, attachment links with a dot in the name, tag filter, auto extract single account, sub accounts box and first-use date choice fixed
+# build: 1051 - ???
 
 # todo - EAR: Switch to 'proper' usage of DateRangeChooser() (rather than my own 'copy')
 
@@ -121,13 +136,19 @@
 # todo - extract budget data?
 # todo - import excel writer?
 
+# KNOWN ISSUES:
+# - Investment Transactions: a relative date range (eg 'Last 12 months') is saved as two fixed dates, so auto extract
+#   keeps using the dates from the last time the screen was run (see FIXME in the parameter screen)
+# - Account Registers: the same - a relative date range is saved as two fixed dates, so auto extract keeps using the dates
+#   from the last time the screen was run
+
 # CUSTOMIZE AND COPY THIS ##############################################################################################
 # CUSTOMIZE AND COPY THIS ##############################################################################################
 # CUSTOMIZE AND COPY THIS ##############################################################################################
 
 # SET THESE LINES
 myModuleID = u"extract_data"
-version_build = "1050"
+version_build = "1051"
 MIN_BUILD_REQD = 1904                                               # Check for builds less than 1904 / version < 2019.4
 _I_CAN_RUN_AS_DEVELOPER_CONSOLE_SCRIPT = True
 
@@ -660,6 +681,9 @@ else:
     # Setup other variables used in the program...
     GlobalVars.csvheaderline_ERTC = None
     GlobalVars.headerFormats_ERTC = None
+    GlobalVars.reminderUUIDs_ERTC = None
+    GlobalVars.reminderCurrencies_ERTC = None
+    GlobalVars.reminderSplitCurrencies_ERTC = None
 
     GlobalVars.COLKEY_SHRS_RAW_SG2020 = None
     GlobalVars.COLKEY_PRICE_FORMATTED_SG2020 = None
@@ -1366,7 +1390,7 @@ Visit: %s (Author's site)
                         maxDimension = Dimension(maxDialogWidth,maxDialogHeight)
                     else:
                         maxDialogWidth = min(screenSize.width-20, max(GetFirstMainFrame.DEFAULT_MAX_WIDTH, int(round(GetFirstMainFrame.getSize().width *.9,0))))
-                        maxDialogHeight = min(screenSize.height-40, max(GetFirstMainFrame.DEFAULT_MAX_WIDTH, int(round(GetFirstMainFrame.getSize().height *.9,0))))
+                        maxDialogHeight = min(screenSize.height-40, max(GetFirstMainFrame.DEFAULT_MAX_HEIGHT, int(round(GetFirstMainFrame.getSize().height *.9,0))))
                         maxDimension = Dimension(maxDialogWidth,maxDialogHeight)
 
                     # noinspection PyUnresolvedReferences
@@ -2202,10 +2226,10 @@ Visit: %s (Author's site)
 
             else:
                 direction = "[backwards]"
-                endPos = len(theText)-1
+                endPos = len(theText)      # rfind()'s end is exclusive, so use the full length to find a match at the very end
 
                 if searchWhat == self.lastSearch:
-                    if self.previousEndPosn < 0: self.previousEndPosn = len(theText)-1
+                    if self.previousEndPosn < 0: self.previousEndPosn = len(theText)
                     endPos = max(0,self.previousEndPosn)
                     if lSwitch: endPos = max(0,self.lastPosn-1)
 
@@ -2221,13 +2245,13 @@ Visit: %s (Author's site)
                 except: pass
                 if response == 0:
                     self.lastPosn = pos+len(searchWhat)
-                    self.previousEndPosn = len(theText)-1
+                    self.previousEndPosn = len(theText)
                 else:
                     self.lastPosn = pos-len(searchWhat)
-                    self.previousEndPosn = pos-1
+                    self.previousEndPosn = pos+len(searchWhat)-1     # next backwards search finds any match starting before this one
             else:
                 self.lastPosn = 0
-                self.previousEndPosn = len(theText)-1
+                self.previousEndPosn = len(theText)
                 myPopupInformationBox(self.theFrame,"Searching %s text not found" %direction)
 
             return
@@ -5123,6 +5147,9 @@ Visit: %s (Author's site)
         # from extract_reminders - converted from globals
         GlobalVars.csvheaderline_ERTC = None
         GlobalVars.headerFormats_ERTC = None
+        GlobalVars.reminderUUIDs_ERTC = None
+        GlobalVars.reminderCurrencies_ERTC = None
+        GlobalVars.reminderSplitCurrencies_ERTC = None
 
 
     resetGlobalVariables()
@@ -5497,7 +5524,7 @@ Visit: %s (Author's site)
             def isEnableListener(self,): return self.enableListener
 
             def actionPerformed(self, event):
-                if self.isEnabled():
+                if self.isEnableListener():
                     option = event.getSource()
                     if isinstance(option, JCheckBox): pass
                     if option.isSelected():
@@ -5512,6 +5539,10 @@ Visit: %s (Author's site)
 
         _options = ["EXIT", "PROCEED"]
 
+        # Add the listener once - the dialog below can be shown several times
+        warnAlert = WarningMessage(None, user_autoExtractWhenFileClosing)
+        user_autoExtractWhenFileClosing.addActionListener(warnAlert)
+
         while True:
             setFilePathValidationMessage(statusLabel)
             rowHeight = 24
@@ -5524,8 +5555,7 @@ Visit: %s (Author's site)
             pane.setOptionType(JOptionPane.OK_CANCEL_OPTION)
             pane.setOptions(_options)
             dlg = pane.createDialog(extract_data_frame_, "EXTRACT DATA: SELECT OPTION")
-            warnAlert = WarningMessage(dlg, user_autoExtractWhenFileClosing)
-            user_autoExtractWhenFileClosing.addActionListener(warnAlert)
+            warnAlert.dialog = dlg
             dlg.setVisible(True)
 
             rtnValue = pane.getValue()
@@ -6019,9 +6049,9 @@ Visit: %s (Author's site)
             else:
                 GlobalVars.saved_extractDateFormat_SWSS = "%Y/%m/%d"  # PROBLEM / default
 
+            GlobalVars.saved_lExtractFutureRemindersToo_ERTC = user_selectEFR.isSelected()
             if user_selectEFR.isSelected():
                 myPrint("DB", "User asked calculate and extract Future Reminders too....")
-                GlobalVars.saved_lExtractFutureRemindersToo_ERTC = user_selectEFR.isSelected()
 
             days = user_daysLookForward.getText()
             if StringUtils.isEmpty(days): days = "0"
@@ -6264,7 +6294,7 @@ Visit: %s (Author's site)
             user_includeSubAccounts.setSelected(False)
 
         else:
-            user_includeSubAccounts.setSelected(True)
+            user_includeSubAccounts.setEnabled(True)
             user_hideInactiveAccounts.setEnabled(False)
             user_hideHiddenAccounts.setEnabled(False)
             user_selectAccounts.setEnabled(False)
@@ -6340,6 +6370,8 @@ Visit: %s (Author's site)
             try:
                 dateDropdown.setSelectedItem(GlobalVars.saved_dropDownDateRangeKey_EAR)
             except: pass
+        else:
+            dateDropdown.setSelectedItem("all_dates")   # first use: no saved choice means all dates, so show that
 
         labelDateDropDown = JLabel("Select Date Range:")
 
@@ -6904,6 +6936,9 @@ Visit: %s (Author's site)
 
             GlobalVars.saved_lFilterDateRange_EIT = user_filterDateRange.isSelected()
             if GlobalVars.saved_lFilterDateRange_EIT:
+                # FIXME: a relative date choice (eg 'Last 12 months') is stored as two fixed dates, so auto extract reuses stale dates.
+                #        Fix would be to save the chooser's option key and recalculate the dates when auto extract runs (check the
+                #        DateRangeChooser key methods exist in older Moneydance builds first)
                 GlobalVars.saved_filterDateRangeStart_EIT = user_dateRangeChooser.getDateRange().getStartDateInt()
                 GlobalVars.saved_filterDateRangeEnd_EIT = user_dateRangeChooser.getDateRange().getEndDateInt()
                 if user_dateRangeChooser.getAllDatesSelected():
@@ -7501,8 +7536,8 @@ Visit: %s (Author's site)
                 GlobalVars.saved_yearsToInclude_EAB = int(years)
                 myPrint("DB", "Extract Account Balances - Years to look back/include set at: %s" %(GlobalVars.saved_yearsToInclude_EAB))
             else:
-                GlobalVars.saved_yearsToInclude_EAB = 1
-                myPrint("DB", "Extract Account Balances - Years to look back/include INVALID (should be 0 to 99 years) - defaulting to 1....")
+                GlobalVars.saved_yearsToInclude_EAB = 0
+                myPrint("DB", "Extract Account Balances - Years to look back/include INVALID (should be 0 to 99 years) - defaulting to 0....")
 
             GlobalVars.saved_lConvertValuesToBase_EAB = user_lConvertValuesToBase.isSelected()
 
@@ -7540,7 +7575,7 @@ Visit: %s (Author's site)
 
             debug = user_selectDEBUG.isSelected()
 
-            listExtractSecurityBalancesParameters()
+            listExtractAccountBalancesParameters()
 
         return _exit
 
@@ -8421,8 +8456,14 @@ Visit: %s (Author's site)
 
                                                     _roundPrice = GlobalVars.saved_maxDecimalPlacesRounding_SG2020   # Don't use currency.getDecimalPlaces() as this is for stock qty balances, not price...!
 
-                                                    priceDate = (0 if (GlobalVars.saved_lUseCurrentPrice_SG2020) else DateUtil.convertCalToInt(today))
-                                                    price = round(1.0 / curr.adjustRateForSplitsInt(DateUtil.convertCalToInt(today),curr.getRelativeRate(priceDate)), _roundPrice)
+                                                    relativeRate = curr.getRelativeRate(0)
+                                                    if not GlobalVars.saved_lUseCurrentPrice_SG2020:
+                                                        # Latest price history entry; getRelativeRate(today) would just return the current price
+                                                        priceSnap = curr.getSnapshotForDate(DateUtil.convertCalToInt(today))
+                                                        if priceSnap is not None: relativeRate = priceSnap.getRate()
+                                                    # Values use the full price; only the displayed price is rounded
+                                                    rawPrice = 1.0 / curr.adjustRateForSplitsInt(DateUtil.convertCalToInt(today), relativeRate)
+                                                    price = round(rawPrice, _roundPrice)
 
                                                     qty = self.QtyOfSharesTable.get(curr)
                                                     if qty is None: qty = 0
@@ -8449,8 +8490,8 @@ Visit: %s (Author's site)
                                                                 for iSplitAcctArray in range(0, len(split_acct_array)):
                                                                     qtySplit = split_acct_array[iSplitAcctArray][1]
 
-                                                                    balance = (0.0 if (qty is None) else curr.getDoubleValue(qty) * price)  # Value in Currency
-                                                                    balanceSplit = (0.0 if (qtySplit is None) else curr.getDoubleValue(qtySplit) * price)  # Value in Currency
+                                                                    balance = (0.0 if (qty is None) else curr.getDoubleValue(qty) * rawPrice)  # Value in Currency
+                                                                    balanceSplit = (0.0 if (qtySplit is None) else curr.getDoubleValue(qtySplit) * rawPrice)  # Value in Currency
                                                                     exchangeRate = 1.0
                                                                     securityIsBase = True
                                                                     ct = curr.getTable()
@@ -8473,15 +8514,16 @@ Visit: %s (Author's site)
                                                                         if self.sameCurrency is None:               self.sameCurrency = self.currXrate
                                                                         if self.sameCurrency != self.currXrate:     self.allOneCurrency = False
 
-                                                                    balanceBase = (0.0 if (qty is None) else (curr.getDoubleValue(qty) * price / exchangeRate))                 # Value in Base Currency
-                                                                    balanceBaseSplit = (0.0 if (qtySplit is None) else (curr.getDoubleValue(qtySplit) * price / exchangeRate))  # Value in Base Currency
+                                                                    balanceBase = (0.0 if (qty is None) else (curr.getDoubleValue(qty) * rawPrice / exchangeRate))                 # Value in Base Currency
+                                                                    balanceBaseSplit = (0.0 if (qtySplit is None) else (curr.getDoubleValue(qtySplit) * rawPrice / exchangeRate))  # Value in Base Currency
 
                                                                     # costBasisBase = (0.0 if (securityCostBasis is None) else round(self.currXrate.getDoubleValue(securityCostBasis) / exchangeRate, 2))
-                                                                    costBasisBase = (0.0 if (securityCostBasis is None) else round(self.currXrate.getDoubleValue(securityCostBasis), 2))
+                                                                    # Cost basis is already in base currency (converted in sumInfoBySecurity), so use base's decimal places
+                                                                    costBasisBase = (0.0 if (securityCostBasis is None) else round(_baseCurrency.getDoubleValue(securityCostBasis), 2))
                                                                     gainBase = round(balanceBase, 2) - costBasisBase
 
                                                                     # costBasisBaseSplit = round(self.currXrate.getDoubleValue(split_acct_array[iSplitAcctArray][2]) / exchangeRate, 2)
-                                                                    costBasisBaseSplit = round(self.currXrate.getDoubleValue(split_acct_array[iSplitAcctArray][2]), 2)
+                                                                    costBasisBaseSplit = round(_baseCurrency.getDoubleValue(split_acct_array[iSplitAcctArray][2]), 2)
                                                                     gainBaseSplit = round(balanceBaseSplit, 2) - costBasisBaseSplit
 
                                                                     if debug:
@@ -8514,14 +8556,14 @@ Visit: %s (Author's site)
                                                                     try: entry.append(round(gainBaseSplit / costBasisBaseSplit, 3))
                                                                     except ZeroDivisionError: entry.append(0.0)
 
-                                                                    entry.append(split_acct_array[iSplitAcctArray][0].replace(GlobalVars.acctSeparator_SG2020, "", 1))                     # Acct
+                                                                    entry.append(split_acct_array[iSplitAcctArray][0][:-len(GlobalVars.acctSeparator_SG2020)])                             # Acct (drop the trailing separator only)
                                                                     entry.append(curr.getDoubleValue(qtySplit))                                                         # _Shrs
                                                                     entry.append(price)                                                                                 # _Price = raw number
                                                                     entry.append(x)                                                                                     # _CValue
                                                                     entry.append(round(balanceBaseSplit, 2))                                                            # _BValue
                                                                     entry.append(costBasisBaseSplit)                                                                    # _Cost Basis
                                                                     entry.append(gainBaseSplit)                                                                         # _Gain
-                                                                    entry.append(curr.getName().upper() + "000" + split_acct_array[iSplitAcctArray][0].upper().replace(GlobalVars.acctSeparator_SG2020, "", 1))  # _SORT
+                                                                    entry.append(curr.getName().upper() + "\x00" + curr.getUUID() + "000" + split_acct_array[iSplitAcctArray][0][:-len(GlobalVars.acctSeparator_SG2020)].upper())  # _SORT
                                                                     entry.append(False)                                                                                 # Never exclude
                                                                     GlobalVars.rawDataTable_SG2020.append(entry)
                                                                 # NEXT
@@ -8546,7 +8588,7 @@ Visit: %s (Author's site)
                                                                     blankEntry.append("----------")
                                                                     blankEntry.append("----------")
                                                                     blankEntry.append("----------")
-                                                                    blankEntry.append(curr.getName().upper() + "555")
+                                                                    blankEntry.append(curr.getName().upper() + "\x00" + curr.getUUID() + "555")
                                                                     blankEntry.append(GlobalVars.saved_lExcludeTotalsFromCSV_SG2020)
                                                                     GlobalVars.rawDataTable_SG2020.append(blankEntry)
 
@@ -8585,7 +8627,8 @@ Visit: %s (Author's site)
                                                                 entry.append(round(balanceBase, 2))                                                             # _BValue =  (raw number)
                                                                 entry.append(costBasisBase)                                                                     # _Cost Basis
                                                                 entry.append(gainBase)                                                                          # _Gain
-                                                                entry.append(curr.getName().upper() + "888")                                                    # _SORT
+                                                                # _SORT: name, then "\x00" and the UUID, so two securities with the same (or similar) name never interleave
+                                                                entry.append(curr.getName().upper() + "\x00" + curr.getUUID() + "888")                         # _SORT
                                                                 entry.append((False if (not GlobalVars.saved_lSplitSecuritiesByAccount_SG2020) else GlobalVars.saved_lExcludeTotalsFromCSV_SG2020))
                                                                 GlobalVars.rawDataTable_SG2020.append(entry)
 
@@ -8608,7 +8651,7 @@ Visit: %s (Author's site)
                                                                     blankEntry.append(None)
                                                                     blankEntry.append(None)
                                                                     blankEntry.append(None)
-                                                                    blankEntry.append(curr.getName().upper() + "999")
+                                                                    blankEntry.append(curr.getName().upper() + "\x00" + curr.getUUID() + "999")
                                                                     blankEntry.append(GlobalVars.saved_lExcludeTotalsFromCSV_SG2020)
                                                                     GlobalVars.rawDataTable_SG2020.append(blankEntry)
 
@@ -9008,7 +9051,15 @@ Visit: %s (Author's site)
                                                     totals[curr] = total
 
                                                     # getTheCostBasis = InvestUtil.getCostBasis(acct)
-                                                    getTheCostBasis = CurrencyUtil.convertValue(InvestUtil.getCostBasis(acct), acct.getParentAccount().getCurrencyType(), base)
+                                                    try:
+                                                        getTheCostBasis = CurrencyUtil.convertValue(InvestUtil.getCostBasis(acct), acct.getParentAccount().getCurrencyType(), base)
+                                                    except:
+                                                        # Moneydance's cost calculation can fail on bad data (fixed from MD2027(5512)) - use zero and carry on
+                                                        getTheCostBasis = 0L
+                                                        _msgTxt = _THIS_EXTRACT_NAME + "@@ WARNING: Moneydance could not calculate the cost basis for '%s' in '%s' - using zero (review console)" %(curr, acct.getParentAccount())
+                                                        myPrint("B", _msgTxt)
+                                                        dump_sys_error_to_md_console_and_errorlog()
+                                                        GlobalVars.AUTO_MESSAGES.append(_msgTxt)
                                                     costbasis = (0L if (costbasis is None) else costbasis) + getTheCostBasis
                                                     cbbasistotals[curr] = costbasis
 
@@ -9098,23 +9149,27 @@ Visit: %s (Author's site)
                                                     else:
                                                         self.lSortNumber = False
 
-                                                def compare(self, str1, str2):
-                                                    validString = "-0123456789" + GlobalVars.decimalCharSep  # Yes this will strip % sign too, but that still works
-                                                    if self.lSortNumber:
-                                                        # strip non numerics from string so can convert back to float - yes, a bit of a reverse hack
-                                                        conv_string1 = ""
-                                                        if str1 is None or str1 == "": str1 = "0"
-                                                        if str2 is None or str2 == "": str2 = "0"
-                                                        for char in str1:
-                                                            if char in validString:
-                                                                conv_string1 = conv_string1 + char
+                                                @staticmethod
+                                                def textToNumber(theText):
+                                                    # Displayed numbers carry thousands separators and currency text (eg 'Fr.'), so read just the number; 0 if none
+                                                    if theText is None: return 0.0
+                                                    if isinstance(theText, (int, float)): return float(theText)
+                                                    decimalChar = GlobalVars.decimalCharSep
+                                                    text = theText.replace("," if decimalChar == "." else ".", "")
+                                                    digits = ""
+                                                    for char in text:
+                                                        if char.isdigit() or (char == decimalChar and digits and decimalChar not in digits):
+                                                            digits += char
+                                                        elif digits:
+                                                            break
+                                                    if not digits: return 0.0
+                                                    number = float(digits.replace(decimalChar, "."))
+                                                    return -number if ("-" in text) else number
 
-                                                        conv_string2 = ""
-                                                        for char in str2:
-                                                            if char in validString:
-                                                                conv_string2 = conv_string2 + char
-                                                        str1 = float(conv_string1)
-                                                        str2 = float(conv_string2)
+                                                def compare(self, str1, str2):
+                                                    if self.lSortNumber:
+                                                        str1 = self.textToNumber(str1)
+                                                        str2 = self.textToNumber(str2)
 
                                                         if str1 > str2:
                                                             return 1
@@ -9830,7 +9885,8 @@ Visit: %s (Author's site)
                                                 theString = "{:.1%}".format(theString)
                                                 return theString
 
-                                            if lNumber: return str(theString)
+                                            # str() keeps only 12 significant digits; round to 8dp (drops float noise) then repr() keeps the rest
+                                            if lNumber: return repr(round(theString, 8)) if isinstance(theString, float) else str(theString)
 
                                             theString = theString.strip()  # remove leading and trailing spaces
 
@@ -9925,6 +9981,15 @@ Visit: %s (Author's site)
                                             myPrint("B", _THIS_EXTRACT_NAME + "Error. Final dispose failed....?")
                                             dump_sys_error_to_md_console_and_errorlog()
 
+                                    def getReminderForTableRow(viewRow):
+                                        if viewRow < 0 or viewRow >= GlobalVars.table.getRowCount(): return None
+                                        # Read Number# from the model, as the user can reorder the columns on screen
+                                        number = GlobalVars.table.getModel().getValueAt(GlobalVars.table.convertRowIndexToModel(viewRow), 0)
+                                        reminder = MD_REF.getCurrentAccountBook().getItemForID(GlobalVars.reminderUUIDs_ERTC[number - 1])
+                                        if reminder is None:
+                                            myPopupInformationBox(extract_data_frame_, "This reminder no longer exists - please refresh", "REMINDERS", theMessageType=JOptionPane.WARNING_MESSAGE)
+                                        return reminder
+
                                     class DoTheMenu(AbstractAction):
 
                                         def __init__(self): pass
@@ -9933,14 +9998,13 @@ Visit: %s (Author's site)
                                             myPrint("D", _THIS_EXTRACT_NAME + "In ", inspect.currentframe().f_code.co_name, "()", "Event: ", event )
 
                                             if event.getActionCommand() == "show_raw_details":
-                                                reminders = MD_REF.getCurrentAccountBook().getReminders()
-                                                reminder = reminders.getAllReminders()[GlobalVars.table.getValueAt(GlobalVars.rememberTableRow, 0) - 1]
-                                                MD_REF.getUI().showRawItemDetails(reminder, extract_data_frame_)
+                                                reminder = getReminderForTableRow(GlobalVars.rememberTableRow)
+                                                if reminder is not None:
+                                                    MD_REF.getUI().showRawItemDetails(reminder, extract_data_frame_)
 
                                             if event.getActionCommand() == "delete_reminder":
-                                                reminders = MD_REF.getCurrentAccountBook().getReminders()
-                                                reminder = reminders.getAllReminders()[GlobalVars.table.getValueAt(GlobalVars.rememberTableRow, 0) - 1]
-                                                if myPopupAskQuestion(extract_data_frame_, "DELETE REMINDER", "Delete reminder?", theMessageType=JOptionPane.WARNING_MESSAGE):
+                                                reminder = getReminderForTableRow(GlobalVars.rememberTableRow)
+                                                if reminder is not None and myPopupAskQuestion(extract_data_frame_, "DELETE REMINDER", "Delete reminder: '%s'?" %(reminder.getDescription()), theMessageType=JOptionPane.WARNING_MESSAGE):
                                                     reminder.deleteItem()
                                                     RefreshMenuAction().refresh()
 
@@ -9993,8 +10057,6 @@ Visit: %s (Author's site)
                                     def build_future_reminders_table(reminderTable):
 
                                         FUTURE_MAX_END_DATE = 20991231
-
-                                        baseCurr = MD_REF.getCurrentAccount().getBook().getCurrencies().getBaseType()
 
                                         # Future Reminders Table
                                         GlobalVars.tableHeaderRowList_reminders_future = [
@@ -10064,14 +10126,15 @@ Visit: %s (Author's site)
                                                     txnparent = rem.getTransaction()
                                                     if isinstance(txnparent, ParentTxn): pass
 
-                                                    amount = baseCurr.getDoubleValue(txnparent.getValue())
+                                                    acctCurr = txnparent.getAccount().getCurrencyType()
+                                                    amount = acctCurr.getDoubleValue(txnparent.getValue())
                                                     stripacct = txnparent.getAccount().getFullAccountName().strip()     # noqa
 
                                                     catsAmounts = ""
                                                     for iRemSplit in range(0, txnparent.getOtherTxnCount()):
                                                         remSplit = txnparent.getOtherTxn(iRemSplit)
                                                         stripCat = remSplit.getAccount().getFullAccountName().strip()   # noqa
-                                                        splitValue = GlobalVars.baseCurrency.getDoubleValue(remSplit.getValue()) * -1
+                                                        splitValue = remSplit.getAccount().getCurrencyType().getDoubleValue(-remSplit.getValue())
                                                         catsAmounts += "{%s;%s}" %(stripCat, splitValue)
 
                                                     csvline = []
@@ -10096,10 +10159,17 @@ Visit: %s (Author's site)
 
                                         rems = root.getReminders().getAllReminders()
 
-                                        if rems.size() < 1:
+                                        # On a refresh carry on with no reminders, so the table is emptied
+                                        if rems.size() < 1 and ind == 0:
                                             return False
 
                                         myPrint("B", _THIS_EXTRACT_NAME + "Success: read: %s reminders" %(rems.size()))
+
+                                        # Number# is a position in this list, whose order can change, so the row actions look reminders up by UUID
+                                        GlobalVars.reminderUUIDs_ERTC = [rem.getUUID() for rem in rems]
+
+                                        # Amounts are in the reminder account's currency (None for a note reminder)
+                                        GlobalVars.reminderCurrencies_ERTC = [(rem.getTransaction().getAccount().getCurrencyType() if str(rem.getReminderType()) == 'TRANSACTION' else None) for rem in rems]
 
                                         GlobalVars.csvheaderline_ERTC = [
                                             "Number#",
@@ -10146,6 +10216,7 @@ Visit: %s (Author's site)
 
                                         # Read each reminder and create a csv line for each in the GlobalVars.csvlines_reminders array
                                         GlobalVars.csvlines_reminders = []
+                                        GlobalVars.reminderSplitCurrencies_ERTC = []    # per table row: the split's own account currency (its amount is in that currency)
 
                                         for index in range(0, int(rems.size())):
                                             rem = rems[index]  # Get the reminder
@@ -10217,7 +10288,7 @@ Visit: %s (Author's site)
                                                 countfreqs += 1
 
                                             if len(remfreq) < 1 or countfreqs == 0:
-                                                remfreq = '!ERROR! NO ACTUAL FREQUENCY OPTIONS SET PROPERLY ' + remfreq
+                                                remfreq = 'ONCE (no repeat)'
 
                                             if countfreqs > 1:
                                                 remfreq = "**MULTI** " + remfreq
@@ -10255,13 +10326,15 @@ Visit: %s (Author's site)
                                                 csvline.append('')  # SplitAmount
                                                 csvline.append('')  # Category
                                                 csvline.append('')  # Description
-                                                csvline.append('"' + memo + '"')  # Memo
+                                                csvline.append(memo)  # Memo
                                                 csvline.append('')  # tags
                                                 GlobalVars.csvlines_reminders.append(csvline)
+                                                GlobalVars.reminderSplitCurrencies_ERTC.append(None)
 
                                             elif str(remtype) == 'TRANSACTION':
                                                 txnparent = rem.getTransaction()
-                                                amount = GlobalVars.baseCurrency.getDoubleValue(txnparent.getValue())
+                                                acctCurr = txnparent.getAccount().getCurrencyType()
+                                                amount = acctCurr.getDoubleValue(txnparent.getValue())
 
                                                 for index2 in range(0, int(txnparent.getOtherTxnCount())):
                                                     splitTxn = txnparent.getOtherTxn(index2)
@@ -10301,12 +10374,14 @@ Visit: %s (Author's site)
                                                     csvline.append(stripacct)
                                                     csvline.append(maindesc)
                                                     csvline.append(str(index + 1) + '.' + str(index2 + 1))
-                                                    csvline.append(GlobalVars.baseCurrency.getDoubleValue(splitTxn.getValue()) * -1)
+                                                    splitCurr = splitTxn.getAccount().getCurrencyType()
+                                                    csvline.append(splitCurr.getDoubleValue(-splitTxn.getValue()))
                                                     csvline.append(stripcat)
                                                     csvline.append(splitdesc)
                                                     csvline.append(splitmemo)
                                                     csvline.append(splitTagsAsStr)
                                                     GlobalVars.csvlines_reminders.append(csvline)
+                                                    GlobalVars.reminderSplitCurrencies_ERTC.append(splitCurr)
 
                                             index += 1
 
@@ -10353,9 +10428,10 @@ Visit: %s (Author's site)
                                         def columnMarginChanged(self, evt):
                                             sourceModel = self.sourceTable.getColumnModel()
                                             for _iii in range(0, sourceModel.getColumnCount()):
-                                                # Saving for later... Yummy!!
-                                                GlobalVars.saved_columnWidths_ERTC[_iii] = sourceModel.getColumn(_iii).getWidth()
-                                                myPrint("D", _THIS_EXTRACT_NAME + "Saving column %s as width %s for later..." %(_iii,GlobalVars.saved_columnWidths_ERTC[_iii]))
+                                                # Saving for later... Yummy!! (by model index, as the columns can be reordered on screen)
+                                                _col = sourceModel.getColumn(_iii)
+                                                GlobalVars.saved_columnWidths_ERTC[_col.getModelIndex()] = _col.getWidth()
+                                                myPrint("D", _THIS_EXTRACT_NAME + "Saving column %s as width %s for later..." %(_col.getModelIndex(),_col.getWidth()))
 
                                     class DefaultTableHeaderCellRenderer(DefaultTableCellRenderer):
 
@@ -10423,13 +10499,13 @@ Visit: %s (Author's site)
                                             terminate_script()
 
                                     class PrintJTable(AbstractAction):
-                                        def __init__(self, _frame, _table, _title):
+                                        def __init__(self, _frame, _title):
                                             self._frame = _frame
-                                            self._table = _table
                                             self._title = _title
 
+                                        # The table is rebuilt on each refresh, so print the current one
                                         def actionPerformed(self, event):                                               # noqa
-                                            printJTable(_theFrame=self._frame, _theJTable=self._table, _theTitle=self._title)
+                                            printJTable(_theFrame=self._frame, _theJTable=GlobalVars.table, _theTitle=self._title)
 
                                     class WindowListener(WindowAdapter):
                                         def __init__(self, theFrame):
@@ -10477,9 +10553,10 @@ Visit: %s (Author's site)
                                                     build_the_data_file(1)  # Re-extract data when window focus gained - assume something changed
                                                     myPrint("DB", _THIS_EXTRACT_NAME + "back from build_the_data_file(), gained focus, row: ", GlobalVars.rememberTableRow)
                                                     GlobalVars.EditedReminderCheck_ERTC = False
-                                                GlobalVars.table.setRowSelectionInterval(0, GlobalVars.rememberTableRow)
-                                                cellRect = GlobalVars.table.getCellRect(GlobalVars.rememberTableRow, 0, True)
-                                                GlobalVars.table.scrollRectToVisible(cellRect)  # force the scrollpane to make the row visible
+                                                if GlobalVars.rememberTableRow < GlobalVars.table.getRowCount():
+                                                    GlobalVars.table.setRowSelectionInterval(0, GlobalVars.rememberTableRow)
+                                                    cellRect = GlobalVars.table.getCellRect(GlobalVars.rememberTableRow, 0, True)
+                                                    GlobalVars.table.scrollRectToVisible(cellRect)  # force the scrollpane to make the row visible
                                                 GlobalVars.table.requestFocus()
 
                                             myPrint("D", _THIS_EXTRACT_NAME + "Exiting ", inspect.currentframe().f_code.co_name, "()")
@@ -10504,18 +10581,19 @@ Visit: %s (Author's site)
 
                                             # Select the row when right-click initiated
                                             point = event.getPoint()
-                                            GlobalVars.rememberTableRow = GlobalVars.table.rowAtPoint(point)
-                                            GlobalVars.table.setRowSelectionInterval(GlobalVars.rememberTableRow, GlobalVars.rememberTableRow)
+                                            clickedRow = GlobalVars.table.rowAtPoint(point)
+                                            if clickedRow >= 0:
+                                                GlobalVars.rememberTableRow = clickedRow
+                                                GlobalVars.table.setRowSelectionInterval(GlobalVars.rememberTableRow, GlobalVars.rememberTableRow)
                                             myPrint("D", _THIS_EXTRACT_NAME + "Exiting ", inspect.currentframe().f_code.co_name, "()")
 
                                         # noinspection PyMethodMayBeStatic
                                         def mousePressed(self, event):
                                             myPrint("D", _THIS_EXTRACT_NAME + "In ", inspect.currentframe().f_code.co_name, "()")
                                             clicks = event.getClickCount()
-                                            if clicks == 2:
+                                            if clicks == 2 and GlobalVars.table.getSelectedRow() >= 0:
                                                 GlobalVars.rememberTableRow = GlobalVars.table.getSelectedRow()
-                                                index = GlobalVars.table.getValueAt(GlobalVars.rememberTableRow, 0)
-                                                ShowEditForm(index)
+                                                ShowEditForm(GlobalVars.rememberTableRow)
                                             myPrint("D", _THIS_EXTRACT_NAME + "Exiting ", inspect.currentframe().f_code.co_name, "()")
 
                                     ML = MouseListener()
@@ -10525,9 +10603,9 @@ Visit: %s (Author's site)
                                         # noinspection PyUnusedLocal
                                         def actionPerformed(self, event):
                                             myPrint("D", _THIS_EXTRACT_NAME + "In ", inspect.currentframe().f_code.co_name, "()")
-                                            GlobalVars.rememberTableRow = GlobalVars.table.getSelectedRow()
-                                            index = GlobalVars.table.getValueAt(GlobalVars.rememberTableRow, 0)
-                                            ShowEditForm(index)
+                                            if GlobalVars.table.getSelectedRow() >= 0:
+                                                GlobalVars.rememberTableRow = GlobalVars.table.getSelectedRow()
+                                                ShowEditForm(GlobalVars.rememberTableRow)
                                             myPrint("D", _THIS_EXTRACT_NAME + "Exiting ", inspect.currentframe().f_code.co_name, "()")
                                             return
 
@@ -10550,7 +10628,8 @@ Visit: %s (Author's site)
                                             myPrint("D", _THIS_EXTRACT_NAME + "In ", inspect.currentframe().f_code.co_name, "()", "\npre-extract details(1), GlobalVars.rememberTableRow: ", GlobalVars.rememberTableRow)
                                             build_the_data_file(1)  # Re-extract data
                                             myPrint("D", _THIS_EXTRACT_NAME + "back from extractdetails(1), GlobalVars.rememberTableRow: ", GlobalVars.rememberTableRow)
-                                            GlobalVars.table.setRowSelectionInterval(0, GlobalVars.rememberTableRow)
+                                            if GlobalVars.table.getRowCount() > 0:
+                                                GlobalVars.table.setRowSelectionInterval(0, GlobalVars.rememberTableRow)
                                             GlobalVars.table.requestFocus()
                                             myPrint("D", _THIS_EXTRACT_NAME + "Exiting ", inspect.currentframe().f_code.co_name, "()")
                                             return
@@ -10576,31 +10655,49 @@ Visit: %s (Author's site)
                                         # noinspection PyUnusedLocal
                                         # noinspection PyMethodMayBeStatic
                                         def getCellRenderer(self, row, column):											# noqa
-                                            if column == 0:
+                                            modelColumn = self.convertColumnIndexToModel(column)
+                                            if modelColumn == 0:
                                                 renderer = MyClunkyRenderer(lPlainNumber=True)
-                                            elif GlobalVars.headerFormats_ERTC[column][0] == Number:
-                                                renderer = MyClunkyRenderer(lNumber=True)
+                                            elif GlobalVars.headerFormats_ERTC[modelColumn][0] == Number:
+                                                curr = None
+                                                if 0 <= row < self.getRowCount():
+                                                    modelRow = self.convertRowIndexToModel(row)
+                                                    if modelColumn == 14:   # SplitAmount
+                                                        curr = GlobalVars.reminderSplitCurrencies_ERTC[modelRow]
+                                                    else:
+                                                        number = self.getModel().getValueAt(modelRow, 0)
+                                                        curr = GlobalVars.reminderCurrencies_ERTC[number - 1]
+                                                renderer = MyClunkyRenderer(lNumber=True, curr=curr)
                                             else:
                                                 renderer = MyClunkyRenderer()
 
-                                            renderer.setHorizontalAlignment(GlobalVars.headerFormats_ERTC[column][1])
+                                            renderer.setHorizontalAlignment(GlobalVars.headerFormats_ERTC[modelColumn][1])
 
                                             return renderer
 
                                         class MyTextNumberComparator(Comparator):
                                             lSortNumber = False
                                             lSortRealNumber = False
+                                            lSortSplitNumber = False
 
                                             def __init__(self, sortType):
                                                 if sortType == "N":
                                                     self.lSortNumber = True
                                                 elif sortType == "%":
                                                     self.lSortRealNumber = True
+                                                elif sortType == "S":
+                                                    self.lSortSplitNumber = True
                                                 else:
                                                     self.lSortNumber = False
 
                                             def compare(self, str1, str2):
                                                 validString = "-0123456789" + GlobalVars.decimalCharSep  # Yes this will strip % sign too, but that still works
+
+                                                if self.lSortSplitNumber:
+                                                    # Split# is "reminder.split" - compare each part as a number, so 1.10 sorts after 1.9
+                                                    key1 = [int(x) for x in str1.split(".")]
+                                                    key2 = [int(x) for x in str2.split(".")]
+                                                    return cmp(key1, key2)
 
                                                 if isinstance(str1, StoreDateInt) or isinstance(str2, StoreDateInt):
                                                     if str1.getDateInt() > str2.getDateInt():
@@ -10667,6 +10764,8 @@ Visit: %s (Author's site)
                                                     sorter.setComparator(_iii, self.MyTextNumberComparator("%"))
                                                 elif _iii == 9 or _iii == 14:
                                                     sorter.setComparator(_iii, self.MyTextNumberComparator("N"))
+                                                elif _iii == 13:
+                                                    sorter.setComparator(_iii, self.MyTextNumberComparator("S"))
                                                 else:
                                                     sorter.setComparator(_iii, self.MyTextNumberComparator("T"))
                                             if GlobalVars.saveRemindersSortKeys is None:
@@ -10684,10 +10783,11 @@ Visit: %s (Author's site)
 
                                     class MyClunkyRenderer(DefaultTableCellRenderer):
 
-                                        def __init__(self, lPlainNumber=False, lNumber=False):
+                                        def __init__(self, lPlainNumber=False, lNumber=False, curr=None):
                                             self.padding = BorderFactory.createEmptyBorder(0, 10, 0, 0)
                                             self.lPlainNumber = lPlainNumber
                                             self.lNumber = lNumber
+                                            self.curr = curr
                                             super(self.__class__, self).__init__()                                      # noqa
 
                                         def setValue(self, value):
@@ -10695,8 +10795,8 @@ Visit: %s (Author's site)
 
                                             if self.lNumber:
                                                 if isinstance(value, (float, int)):
-                                                    base = MD_REF.getCurrentAccountBook().getCurrencies().getBaseType()
-                                                    self.setText(base.formatFancy(int(value * 100), GlobalVars.decimalCharSep, True))
+                                                    curr = self.curr if self.curr is not None else MD_REF.getCurrentAccountBook().getCurrencies().getBaseType()
+                                                    self.setText(curr.formatFancy(curr.getLongValue(float(value)), GlobalVars.decimalCharSep, True))
                                                 else:
                                                     if isinstance(value, StoreDateInt):
                                                         self.setText(value.getDateIntFormatted())
@@ -10837,7 +10937,7 @@ Visit: %s (Author's site)
                                             printButton.setToolTipText("Prints the output displayed in this window to your printer")
                                             printButton.setOpaque(SetupMDColors.OPAQUE)
                                             printButton.setBackground(SetupMDColors.BACKGROUND); printButton.setForeground(SetupMDColors.FOREGROUND)
-                                            printButton.addActionListener(PrintJTable(extract_data_frame_, GlobalVars.table, "Extract Reminders"))
+                                            printButton.addActionListener(PrintJTable(extract_data_frame_, "Extract Reminders"))
 
                                             mb = JMenuBar()
 
@@ -10885,7 +10985,7 @@ Visit: %s (Author's site)
 
                                         # As the JTable is new each time, add this here....
                                         extract_data_frame_.getRootPane().getActionMap().remove("print-me")
-                                        extract_data_frame_.getRootPane().getActionMap().put("print-me", PrintJTable(extract_data_frame_, GlobalVars.table, "Extract Reminders"))
+                                        extract_data_frame_.getRootPane().getActionMap().put("print-me", PrintJTable(extract_data_frame_, "Extract Reminders"))
 
                                         GlobalVars.table.getTableHeader().setReorderingAllowed(True)
                                         GlobalVars.table.getTableHeader().setDefaultRenderer(DefaultTableHeaderCellRenderer())
@@ -10961,10 +11061,10 @@ Visit: %s (Author's site)
 
                                         return
 
-                                    def ShowEditForm(item):
+                                    def ShowEditForm(viewRow):
                                         myPrint("D", _THIS_EXTRACT_NAME + "In ", inspect.currentframe().f_code.co_name, "()")
-                                        reminders = MD_REF.getCurrentAccountBook().getReminders()
-                                        reminder = reminders.getAllReminders()[item-1]
+                                        reminder = getReminderForTableRow(viewRow)
+                                        if reminder is None: return
                                         myPrint("D", _THIS_EXTRACT_NAME + "Calling MD EditRemindersWindow() function...")
 
                                         # EditRemindersWindow.editReminder(None, MD_REF.getUI(), reminder)
@@ -11128,7 +11228,7 @@ Visit: %s (Author's site)
                                                                 _msgTxt = _THIS_EXTRACT_NAME + "(Future Reminders) @@ ERROR writing to CSV on row %s. Please review console" %(iRow)
                                                                 GlobalVars.AUTO_MESSAGES.append(_msgTxt)
                                                                 myPrint("B", _msgTxt)
-                                                                myPrint("B", GlobalVars.csvlines_reminders[iRow])
+                                                                myPrint("B", GlobalVars.csvlines_reminders_future[iRow])
                                                                 raise
 
                                                     _msgTxt = _THIS_EXTRACT_NAME + "(Future Reminders) CSV file: '%s' created (%s records)" %(GlobalVars.csvfilename_EFRTC, len(GlobalVars.csvlines_reminders_future))
@@ -11231,6 +11331,7 @@ Visit: %s (Author's site)
                                 GlobalVars.csvfilename = getExtractFullPath("EAR")
 
                                 GlobalVars.attachmentFolder_EAR_EIT = ""
+                                GlobalVars.lUsedAttachmentFolder_EAR_EIT = False
                                 if GlobalVars.saved_lExtractAttachments_EAR:
                                     GlobalVars.attachmentFolder_EAR_EIT = getAttachmentPath(GlobalVars.csvfilename)
 
@@ -11269,6 +11370,8 @@ Visit: %s (Author's site)
                                                 if (acct.getAccountOrParentIsInactive()): return False
                                                 if (acct.getHideOnHomePage() and acct.getBalance() == 0): return False
 
+                                            if self._hideHiddenAccounts and acct.getHideOnHomePage(): return False
+
                                             if self._lAllAccounts or (self._filterForAccounts.upper().strip() in acct.getFullAccountName().upper().strip()):
                                                 pass
                                             else:
@@ -11301,6 +11404,12 @@ Visit: %s (Author's site)
                                             return True
 
                                         return False
+
+                                    # Auto extract never runs the screen, so pick up the saved single account here
+                                    if GlobalVars.dropDownAccount_EAR is None and GlobalVars.saved_dropDownAccountUUID_EAR:
+                                        GlobalVars.dropDownAccount_EAR = AccountUtil.findAccountWithID(MD_REF.getRootAccount(), GlobalVars.saved_dropDownAccountUUID_EAR)
+                                        if GlobalVars.dropDownAccount_EAR is None:
+                                            myPrint("B", _THIS_EXTRACT_NAME + "@@ WARNING: saved account (UUID: %s) not found - using the account filters instead" %(GlobalVars.saved_dropDownAccountUUID_EAR))
 
                                     if GlobalVars.dropDownAccount_EAR:
                                         if GlobalVars.saved_lIncludeSubAccounts_EAR:
@@ -11395,7 +11504,8 @@ Visit: %s (Author's site)
 
                                     def tag_search( searchForTags, theTagListToSearch ):
 
-                                        searchTagList = searchForTags.upper().strip().split(",")
+                                        # strip spaces after commas, and ignore empty entries (eg a trailing comma) which would match every tag
+                                        searchTagList = [_t.strip() for _t in searchForTags.upper().split(",") if _t.strip() != ""]
 
                                         for tag in theTagListToSearch:
                                             for searchTag in searchTagList:
@@ -11404,11 +11514,18 @@ Visit: %s (Author's site)
 
                                         return False
 
+                                    def toBaseDouble(value, valueCurr, dateInt):
+                                        # value is in valueCurr's units; convert to base when needed, then scale with base's decimals
+                                        if valueCurr != GlobalVars.baseCurrency:
+                                            value = CurrencyUtil.convertValue(value, valueCurr, GlobalVars.baseCurrency, dateInt)
+                                        return GlobalVars.baseCurrency.getDoubleValue(value)
+
                                     def getTotalLocalValue(theTxn):
                                         lValue = 0
                                         _p = theTxn.getParentTxn()
                                         for _iSplit in range(0, (theTxn.getOtherTxnCount())):
-                                            lValue += GlobalVars.baseCurrency.getDoubleValue(_p.getOtherTxn(_iSplit).getValue()) * -1
+                                            _split = _p.getOtherTxn(_iSplit)
+                                            lValue += toBaseDouble(_split.getValue(), _split.getAccount().getCurrencyType(), _p.getDateInt()) * -1
                                         return lValue
 
                                     copyValidAccountList = ArrayList()
@@ -11424,7 +11541,7 @@ Visit: %s (Author's site)
                                                 if acctBal not in copyValidAccountList:
                                                     copyValidAccountList.add(acctBal)
 
-                                    relativePath = os.path.splitext(os.path.basename(GlobalVars.attachmentFolder_EAR_EIT))[0]
+                                    relativePath = os.path.basename(GlobalVars.attachmentFolder_EAR_EIT or "")   # a folder name has no extension (splitext would cut at a dot in the name); None if not created
 
                                     for txn in txns:
 
@@ -11551,7 +11668,8 @@ Visit: %s (Author's site)
                                                 _row[GlobalVars.dataKeys["_TOTALAMOUNT"][_COLUMN]] = localValue
                                             else:
                                                 _row[GlobalVars.dataKeys["_FOREIGNTOTALAMOUNT"][_COLUMN]] = acctCurr.getDoubleValue(txn.getValue())
-                                                _row[GlobalVars.dataKeys["_TOTALAMOUNT"][_COLUMN]] = acctCurr.getDoubleValue(txn.getAmount())
+                                                # a split's amount is in the parent account's currency
+                                                _row[GlobalVars.dataKeys["_TOTALAMOUNT"][_COLUMN]] = toBaseDouble(txn.getAmount(), parent_Txn.getAccount().getCurrencyType(), txn.getDateInt())
 
                                         _row[GlobalVars.dataKeys["_PARENTHASATTACHMENTS"][_COLUMN]] = parent_Txn.hasAttachments()
                                         if str(parent_Txn.getKeywords()) != "[]": _row[GlobalVars.dataKeys["_PARENTTAGS"][_COLUMN]] = safeStr(parent_Txn.getKeywords())
@@ -11597,7 +11715,7 @@ Visit: %s (Author's site)
 
                                                 splitFAmount = None
                                                 if otherSideTxn.getAmount() != otherSideTxn.getValue():
-                                                    splitFAmount = acctCurr.getDoubleValue(otherSideTxn.getValue()) * -1
+                                                    splitFAmount = otherSideTxn.getAccount().getCurrencyType().getDoubleValue(otherSideTxn.getValue()) * -1   # the split account's currency
                                                     splitAmount = acctCurr.getDoubleValue(otherSideTxn.getAmount()) * -1
                                                 else:
                                                     splitAmount = acctCurr.getDoubleValue(otherSideTxn.getValue()) * -1
@@ -11655,7 +11773,7 @@ Visit: %s (Author's site)
                                                 splitFAmount = None
                                                 if txn.getAmount() != txn.getValue():
                                                     splitFAmount = acctCurr.getDoubleValue(txn.getValue())
-                                                    splitAmount = acctCurr.getDoubleValue(txn.getAmount())
+                                                    splitAmount = parent_Txn.getAccount().getCurrencyType().getDoubleValue(txn.getAmount())   # the parent account's currency
                                                 else:
                                                     splitAmount = acctCurr.getDoubleValue(txn.getValue())
 
@@ -11693,7 +11811,7 @@ Visit: %s (Author's site)
                                             splitRowCopy[GlobalVars.dataKeys["_ISTRANSFERTOACCT"][_COLUMN]] = isTransfer
                                             splitRowCopy[GlobalVars.dataKeys["_ISTRANSFERSELECTED"][_COLUMN]] = isTransferWithinExtract
                                             splitRowCopy[GlobalVars.dataKeys["_ISPARENTTXN"][_COLUMN]] = lParent
-                                            splitRowCopy[GlobalVars.dataKeys["_SPLITUUID"][_COLUMN]] = otherSideTxn.getUUID()
+                                            splitRowCopy[GlobalVars.dataKeys["_SPLITUUID"][_COLUMN]] = otherSideTxn.getUUID() if lParent else txn.getUUID()   # on a split row, the split itself
 
                                             holdTheKeys = ArrayList()
                                             holdTheLocations = ArrayList()
@@ -11766,7 +11884,6 @@ Visit: %s (Author's site)
                                                         for _c in range(GlobalVars.dataKeys["_PARENTHASATTACHMENTS"][_COLUMN]+1,GlobalVars.dataKeys["_ATTACHMENTLINK"][_COLUMN]):
                                                             rowCopy[_c] = None
 
-                                                    rowCopy[GlobalVars.dataKeys["_SPLITIDX"][_COLUMN]] = _ii
                                                     rowCopy[GlobalVars.dataKeys["_ATTACHMENTLINK"][_COLUMN]] = '=HYPERLINK("'+attachmentFileList[_i] + '","FILE: ' + os.path.basename(attachmentFileList[_i])[len(uniqueFileString)+1:]+'")'
                                                     rowCopy[GlobalVars.dataKeys["_ATTACHMENTLINKREL"][_COLUMN]] = '=HYPERLINK("'+os.path.join(".", relativePath, os.path.basename(attachmentFileList[_i]))+'","FILE: '+os.path.basename(attachmentFileList[_i])[len(uniqueFileString)+1:]+'")'
                                                     GlobalVars.transactionTable.append(rowCopy)
@@ -11781,7 +11898,9 @@ Visit: %s (Author's site)
 
                                             acctCurr = acctBal.getCurrencyType()  # Currency of the acct
 
-                                            if (GlobalVars.saved_lIncludeOpeningBalances_EAR):
+                                            # Accounts can be in this list only for an adjustment, so check the opening balance date here too
+                                            if (GlobalVars.saved_lIncludeOpeningBalances_EAR
+                                                    and GlobalVars.saved_filterDateRangeStart_EAR <= acctBal.getCreationDateInt() <= GlobalVars.saved_filterDateRangeEnd_EAR):
                                                 openBal = acctCurr.getDoubleValue(getUnadjustedStartBalance(acctBal))
                                                 if openBal != 0:
                                                     iBal += 1
@@ -12020,7 +12139,7 @@ Visit: %s (Author's site)
                                                 if not Platform.isWindows():
                                                     theCommand = 'zip -v -r "%s" "%s" "%s"' %(os.path.splitext(baseName)[0] + ".zip",
                                                                                               baseName,
-                                                                                              os.path.join(os.path.splitext(baseAttachFolder)[0], ""))
+                                                                                              os.path.join(baseAttachFolder, ""))
 
                                                     lShell = True
                                                 else:
@@ -12028,7 +12147,7 @@ Visit: %s (Author's site)
                                                         if float(System.getProperty("os.version")) >= 10:
                                                             theCommand = 'tar -a -cvf "%s" "%s" "%s"' %(os.path.splitext(baseName)[0] + ".zip",
                                                                                                         baseName,
-                                                                                                        os.path.join(os.path.splitext(baseAttachFolder)[0], "*.*"))
+                                                                                                        os.path.join(baseAttachFolder, "*.*"))
 
                                                             lShell = False
                                                     except: pass
@@ -12104,6 +12223,7 @@ Visit: %s (Author's site)
                                 GlobalVars.csvfilename = getExtractFullPath("EIT")
 
                                 GlobalVars.attachmentFolder_EAR_EIT = ""
+                                GlobalVars.lUsedAttachmentFolder_EAR_EIT = False
                                 if GlobalVars.saved_lExtractAttachments_EIT:
                                     GlobalVars.attachmentFolder_EAR_EIT = getAttachmentPath(GlobalVars.csvfilename)
 
@@ -12182,25 +12302,19 @@ Visit: %s (Author's site)
 
                                             txnCurr = txnAcct.getCurrencyType()
 
-                                            if self._lAllSecurity:
-                                                securityCurr = None                                                     # noqa
-                                                securityTxn = None                                                      # noqa
-                                                securityAcct = None                                                     # noqa
-                                            else:
+                                            securityCurr = None                                                         # noqa
+                                            securityTxn = TxnUtil.getSecurityPart(txn) if lParent else None             # noqa
+                                            if securityTxn is not None:
+                                                securityCurr = securityTxn.getAccount().getCurrencyType()               # noqa
 
-                                                if not lParent: return False
+                                            # Applies with or without a security filter
+                                            if securityCurr is not None and self._hideHiddenSecurities and securityCurr.getHideInUI():
+                                                return False
+
+                                            if not self._lAllSecurity:
 
                                                 # If we don't have a security record, then we are not interested!
-                                                securityTxn = TxnUtil.getSecurityPart(txn)                              # noqa
-                                                if securityTxn is None:
-                                                    return False
-
-                                                securityAcct = securityTxn.getAccount()                                 # noqa
-                                                securityCurr = securityAcct.getCurrencyType()                           # noqa
-
-                                                if not self._hideHiddenSecurities or (self._hideHiddenSecurities and not securityCurr.getHideInUI()):
-                                                    pass
-                                                else:
+                                                if securityCurr is None:
                                                     return False
 
                                                 # noinspection PyUnresolvedReferences
@@ -12213,56 +12327,15 @@ Visit: %s (Author's site)
                                                 else:
                                                     return False
 
+                                            # Currency filter tests the account's currency (the extract's amounts are in it), even when the security is priced in another currency
                                             if self._lAllCurrency:
                                                 pass
+                                            elif (self._filterForCurrency.upper().strip() in txnCurr.getIDString().upper().strip()):
+                                                pass
+                                            elif (self._filterForCurrency.upper().strip() in txnCurr.getName().upper().strip()):
+                                                pass
                                             else:
-                                                if securityCurr:
-                                                    # noinspection PyUnresolvedReferences
-                                                    if txnCurr.getIDString().upper().strip() != securityCurr.getRelativeCurrency().getIDString().upper().strip():
-                                                        _msgTxt = _THIS_EXTRACT_NAME + "LOGIC ERROR: I can't see how the Security's currency is different to the Account's currency?"
-                                                        myPrint("B", _msgTxt)
-                                                        # noinspection PyUnresolvedReferences
-                                                        myPrint("B", _THIS_EXTRACT_NAME, txnCurr.getIDString().upper().strip(), securityCurr.getRelativeCurrency().getIDString().upper().strip())
-                                                        myPrint("B", _THIS_EXTRACT_NAME, repr(txn))
-                                                        myPrint("B", _THIS_EXTRACT_NAME, repr(txnCurr))
-                                                        myPrint("B", _THIS_EXTRACT_NAME, repr(securityCurr))
-                                                        # noinspection PyUnresolvedReferences
-                                                        if not GlobalVars.AUTO_EXTRACT_MODE:
-                                                            DoExtractsSwingWorker.killPleaseWait()
-                                                            genericSwingEDTRunner(True, True, myPopupInformationBox, extract_data_frame_, _msgTxt, "LOGIC ERROR", JOptionPane.ERROR_MESSAGE)
-                                                        # noinspection PyUnresolvedReferences
-                                                        raise Exception(_THIS_EXTRACT_NAME + "LOGIC Error - Security's currency: "
-                                                                        + securityCurr.getRelativeCurrency().getIDString().upper().strip()   # noqa
-                                                                        + " is different to txn currency: "
-                                                                        + txnCurr.getIDString().upper().strip()
-                                                                        + " Aborting")
-
-
-                                                    # All accounts and security records can have currencies
-                                                    # noinspection PyUnresolvedReferences
-                                                    if self._lAllCurrency:
-                                                        pass
-                                                    elif (self._filterForCurrency.upper().strip() in txnCurr.getIDString().upper().strip()) \
-                                                            and (
-                                                            self._filterForCurrency.upper().strip() in securityCurr.getRelativeCurrency().getIDString().upper().strip()):
-                                                        pass
-                                                    elif (self._filterForCurrency.upper().strip() in txnCurr.getName().upper().strip()) \
-                                                            and (
-                                                            self._filterForCurrency.upper().strip() in securityCurr.getRelativeCurrency().getName().upper().strip()):
-                                                        pass
-                                                    else:
-                                                        return False
-
-                                                else:
-                                                    # All accounts and security records can have currencies
-                                                    if self._lAllCurrency:
-                                                        pass
-                                                    elif (self._filterForCurrency.upper().strip() in txnCurr.getIDString().upper().strip()):
-                                                        pass
-                                                    elif (self._filterForCurrency.upper().strip() in txnCurr.getName().upper().strip()):
-                                                        pass
-                                                    else:
-                                                        return False
+                                                return False
 
                                             return True
 
@@ -12454,7 +12527,7 @@ Visit: %s (Author's site)
                                                 if acctBal not in copyValidAccountList:
                                                     copyValidAccountList.add(acctBal)
 
-                                    relativePath = os.path.splitext(os.path.basename(GlobalVars.attachmentFolder_EAR_EIT))[0]
+                                    relativePath = os.path.basename(GlobalVars.attachmentFolder_EAR_EIT or "")   # a folder name has no extension (splitext would cut at a dot in the name); None if not created
 
                                     for txn in txns:
 
@@ -12697,7 +12770,12 @@ Visit: %s (Author's site)
                                         else:
                                             _row[GlobalVars.dataKeys["_AMOUNT"][_COLUMN]] = acctCurr.getDoubleValue(txn.getValue())
 
-                                        if xfrTxn:  # Override the value set above. Why? It's the amount TXF'd out of the account....
+                                        if securityTxn and securityTxn.getValue() != 0:
+                                            pass    # rows that move shares keep the security amount as entered (fee is in its own column)
+                                        elif incTxn and lParent and str(txn.getInvestTxnType()) == "DIVIDENDXFR":
+                                            # Dividend Transfer shows the dividend like other dividends; the amount transferred is in TxnNetAmount
+                                            _row[GlobalVars.dataKeys["_AMOUNT"][_COLUMN]] = (acctCurr.getDoubleValue(incTxn.getAmount())) * -1
+                                        elif xfrTxn:  # Override the value set above. Why? It's the amount TXF'd out of the account....
                                             _row[GlobalVars.dataKeys["_AMOUNT"][_COLUMN]] = (acctCurr.getDoubleValue(xfrTxn.getAmount())) * -1
                                         elif incTxn:
                                             _row[GlobalVars.dataKeys["_AMOUNT"][_COLUMN]] = (acctCurr.getDoubleValue(incTxn.getAmount())) * -1
@@ -12766,7 +12844,7 @@ Visit: %s (Author's site)
                                             _row[GlobalVars.dataKeys["_PRICE"][_COLUMN]] = price
                                             # price = None
 
-                                            if GlobalVars.saved_lAdjustForSplits_EIT:
+                                            if GlobalVars.saved_lAdjustForSplits_EIT and _row[GlobalVars.dataKeys["_SHRSAFTERSPLIT"][_COLUMN]]:   # split-adjusted shares can round to zero
                                                 # noinspection PyUnresolvedReferences
                                                 price = ((_row[GlobalVars.dataKeys["_AMOUNT"][_COLUMN]] / (_row[GlobalVars.dataKeys["_SHRSAFTERSPLIT"][_COLUMN]])))
                                                 _row[GlobalVars.dataKeys["_PRICEAFTERSPLIT"][_COLUMN]] = price
@@ -12802,7 +12880,7 @@ Visit: %s (Author's site)
                                                                      relatedCBTxn.getTransferType(),
                                                                      relatedCBTxn.getOtherTxn(0).getInvestTxnType(),
                                                                      relatedCBTxn.getDateInt(),
-                                                                     acctCurr.formatSemiFancy(relatedCBTxn.getValue(), GlobalVars.decimalCharSep),
+                                                                     securityCurr.formatSemiFancy(relatedCBTxn.getValue(), GlobalVars.decimalCharSep),   # shares, so the security's decimals
                                                                      acctCurr.getDoubleValue(relatedCBTxn.getAmount()),
                                                                      ])
                                                 # endfor
@@ -12860,7 +12938,7 @@ Visit: %s (Author's site)
                                                 if _i > 0:  # If not on first record, update the key...
                                                     rowCopy[GlobalVars.dataKeys["_KEY"][_COLUMN]] = txnKey + "-" + str(keyIndex).zfill(3)
 
-                                                if _i == 1:
+                                                if _i > 0:
                                                     # Nuke repeated rows for Attachments (so totals are still OK)
                                                     rowCopy[GlobalVars.dataKeys["_SHARES"][_COLUMN]] = None
                                                     rowCopy[GlobalVars.dataKeys["_PRICE"][_COLUMN]] = None
@@ -12896,7 +12974,10 @@ Visit: %s (Author's site)
                                         for acctBal in copyValidAccountList:
                                             acctCurr = acctBal.getCurrencyType()  # Currency of the Investment Account
                                             openBal = acctCurr.getDoubleValue(getUnadjustedStartBalance(acctBal))
-                                            if (GlobalVars.saved_lIncludeOpeningBalances_EIT):
+                                            # Accounts can be in this list only for an adjustment, so check the opening balance date here too
+                                            if (GlobalVars.saved_lIncludeOpeningBalances_EIT
+                                                    and (not GlobalVars.saved_lFilterDateRange_EIT
+                                                         or (acctBal.getCreationDateInt() >= GlobalVars.saved_filterDateRangeStart_EIT and acctBal.getCreationDateInt() <= GlobalVars.saved_filterDateRangeEnd_EIT))):
                                                 if openBal != 0:
                                                     iBal+=1
                                                     _row = ([None] * GlobalVars.dataKeys["_END"][0])  # Create a blank row to be populated below...
@@ -13128,7 +13209,7 @@ Visit: %s (Author's site)
                                                 if not Platform.isWindows():
                                                     theCommand = 'zip -v -r "%s" "%s" "%s"' %(os.path.splitext(baseName)[0]+".zip",
                                                                                               baseName,
-                                                                                              os.path.join(os.path.splitext(baseAttachFolder)[0],""))
+                                                                                              os.path.join(baseAttachFolder,""))
 
                                                     lShell = True
                                                 else:
@@ -13136,7 +13217,7 @@ Visit: %s (Author's site)
                                                         if float(System.getProperty("os.version")) >= 10:
                                                             theCommand = 'tar -a -cvf "%s" "%s" "%s"' %(os.path.splitext(baseName)[0]+".zip",
                                                                                                         baseName,
-                                                                                                        os.path.join(os.path.splitext(baseAttachFolder)[0],"*.*"))
+                                                                                                        os.path.join(baseAttachFolder,"*.*"))
 
                                                             lShell = False
                                                     except: pass
@@ -13220,11 +13301,11 @@ Visit: %s (Author's site)
                                               "DecimalPlaces",
                                               "Prefix",
                                               "Suffix",
-                                              "CurrentRateR2B",
                                               "CurrentRateB2R",
+                                              "CurrentRateR2B",
                                               "Snap_Date",
-                                              "Snap_DailyRateR2B",
-                                              "Snap_DailyRateB2R"]
+                                              "Snap_DailyRateB2R",
+                                              "Snap_DailyRateR2B"]
 
                                     def list_currency_rate_history():
                                         curr_table = []
@@ -13278,7 +13359,7 @@ Visit: %s (Author's site)
                                                 row.append((curr.getPrefix()))
                                                 row.append((curr.getSuffix()))
 
-                                                _rate = float(curr.getParameter("rate", None))
+                                                _rate = curr.getRate(None)
                                                 row.append(round(_rate,dpc))
                                                 row.append(round(1/_rate, dpc) if _rate != 0.0 else 0.0)
 
@@ -13711,7 +13792,9 @@ Visit: %s (Author's site)
                                                 if (acct.getAccountOrParentIsInactive()): return False
                                                 if (acct.getHideOnHomePage() and acct.getBalance() == 0): return False
 
-                                            theAcct = acct.getParentAccount()
+                                            # Filter on the investment account: a security's parent, or the account itself for cash rows
+                                            # noinspection PyUnresolvedReferences
+                                            theAcct = acct.getParentAccount() if (acct.getAccountType() == Account.AccountType.SECURITY) else acct
 
                                             if (self._lAllAccounts
                                                     or (self._filterForAccounts.upper().strip() in theAcct.getFullAccountName().upper().strip())):
@@ -13868,11 +13951,19 @@ Visit: %s (Author's site)
                                             asOfDate = GlobalVars.saved_securityBalancesDate_ESB
                                             effectiveDateInt = None if (asOfDate == todayInt) else asOfDate
 
-                                        costCalculationBal = MyCostCalculation(securityAcct, asOfDate, None, False)  # True replicates InvestUtil.getCostBasis(securityAcct) - i.e. Balance (not Current Balance)
+                                        try:
+                                            costCalculationBal = MyCostCalculation(securityAcct, asOfDate, None, False)  # True replicates InvestUtil.getCostBasis(securityAcct) - i.e. Balance (not Current Balance)
 
-                                        sharesAndCostBasisForAsOf = costCalculationBal.getSharesAndCostBasisForAsOf()
-                                        # asofSharesBal = sharesAndCostBasisForAsOf.getSharesOwnedAsOf()
-                                        asofCostBasisBal = sharesAndCostBasisForAsOf.getCostBasisAsOf()
+                                            sharesAndCostBasisForAsOf = costCalculationBal.getSharesAndCostBasisForAsOf()
+                                            # asofSharesBal = sharesAndCostBasisForAsOf.getSharesOwnedAsOf()
+                                            asofCostBasisBal = sharesAndCostBasisForAsOf.getCostBasisAsOf()
+                                        except:
+                                            # The cost calculation can fail on bad data - use zero and carry on
+                                            asofCostBasisBal = 0L
+                                            _msgTxt = _THIS_EXTRACT_NAME + "@@ WARNING: could not calculate the cost basis for '%s' in '%s' - using zero (review console)" %(securityCurr, investAcct)
+                                            myPrint("B", _msgTxt)
+                                            dump_sys_error_to_md_console_and_errorlog()
+                                            GlobalVars.AUTO_MESSAGES.append(_msgTxt)
 
                                         costBasisBal = asofCostBasisBal
                                         costBasisBalBase = convertValue(costBasisBal, investAcctCurr, GlobalVars.baseCurrency, effectiveDateInt)
@@ -14023,9 +14114,9 @@ Visit: %s (Author's site)
                                                 cashBalCurrDbl = investAcctCurr.getDoubleValue(cashBalCurrLong)
                                                 cashBalBaseDbl = GlobalVars.baseCurrency.getDoubleValue(cashBalBaseLong)
 
-                                                if GlobalVars.saved_lHideZeroBalances_ESB and cashBalCurrDbl == 0.0: continue
+                                                cashPriceToBase = 1.0 / investAcctCurr.getRate(None, (GlobalVars.saved_securityBalancesDate_ESB if (not GlobalVars.saved_lAlwaysUseCurrentPosition_ESB) else 0))
 
-                                                if cashBalCurrDbl != 0.0:
+                                                if cashBalCurrDbl != 0.0 or not GlobalVars.saved_lHideZeroBalances_ESB:
                                                     _row = ([None] * GlobalVars.dataKeys["_END"][0])                    # Create a blank row to be populated below...
                                                     _row[GlobalVars.dataKeys["_KEY"][_COLUMN]] = ""
                                                     _row[GlobalVars.dataKeys["_ASOFDATE"][_COLUMN]] = GlobalVars.saved_securityBalancesDate_ESB if (not GlobalVars.saved_lAlwaysUseCurrentPosition_ESB) else todayInt
@@ -14034,13 +14125,13 @@ Visit: %s (Author's site)
                                                     _row[GlobalVars.dataKeys["_BASECURR"][_COLUMN]] = GlobalVars.baseCurrency.getIDString()
                                                     _row[GlobalVars.dataKeys["_SECURITY"][_COLUMN]] = "Cash Balance"
                                                     _row[GlobalVars.dataKeys["_SECURITYID"][_COLUMN]] = "CASH"
-                                                    _row[GlobalVars.dataKeys["_SECRELCURR"][_COLUMN]] = GlobalVars.baseCurrency.getIDString()
+                                                    _row[GlobalVars.dataKeys["_SECRELCURR"][_COLUMN]] = investAcctCurr.getIDString()
                                                     _row[GlobalVars.dataKeys["_SECMSTRUUID"][_COLUMN]] = ""
                                                     _row[GlobalVars.dataKeys["_TICKER"][_COLUMN]] = "__CASH BALANCE__"
                                                     _row[GlobalVars.dataKeys["_SECSHRHOLDING"][_COLUMN]] = 0.0
                                                     _row[GlobalVars.dataKeys["_CURRENTPRICE"][_COLUMN]] = 1.0
                                                     _row[GlobalVars.dataKeys["_MOSTRECENTPRICE"][_COLUMN]] = 1.0
-                                                    _row[GlobalVars.dataKeys["_CURRENTPRICETOBASE"][_COLUMN]] = 1.0
+                                                    _row[GlobalVars.dataKeys["_CURRENTPRICETOBASE"][_COLUMN]] = round(cashPriceToBase, 5)
                                                     _row[GlobalVars.dataKeys["_CURRENTPRICEINVESTCURR"][_COLUMN]] = 1.0
                                                     _row[GlobalVars.dataKeys["_ACCTCOSTBASIS"][_COLUMN]] = round(cashBalCurrDbl, 2)
                                                     _row[GlobalVars.dataKeys["_BASECOSTBASIS"][_COLUMN]] = round(cashBalBaseDbl, 2)
@@ -14713,8 +14804,10 @@ Visit: %s (Author's site)
                                             MD_REF.getCurrentAccountBook().saveTrunkFile()
 
                                             fout = FileOutputStream(File(GlobalVars.csvfilename))
-                                            localStorage.readFile(trunkName, fout)
-                                            fout.close()
+                                            try:
+                                                localStorage.readFile(trunkName, fout)
+                                            finally:
+                                                fout.close()
 
 
                                             _msgTxt = _THIS_EXTRACT_NAME + "Trunk file decrypted and extracted to disk: '%s'" %(GlobalVars.csvfilename)
@@ -14862,9 +14955,11 @@ Visit: %s (Author's site)
                                                     attachTag = txn.getAttachmentTag(attachKey)
                                                     txnDate = txn.getDateInt()
                                                     attachFile = File(attachTag).getName()
+                                                    safeAcctName = txn.getAccount().getAccountName()
+                                                    for _ch in '\\/:*?"<>|': safeAcctName = safeAcctName.replace(_ch, "_")
                                                     attachFolder = os.path.join(GlobalVars.extractAttachmentsFolder_EATTACH,
                                                                                 "ACCT-TYPE-%s" %(txn.getAccount().getAccountType()),
-                                                                                "ACCT-%s" %(txn.getAccount().getAccountName()))
+                                                                                "ACCT-%s" %(safeAcctName))
                                                     File(attachFolder).mkdirs()
                                                     outputPath = os.path.join(attachFolder, "{:04d}-{:02d}-{:02d}-{}-{}".format(txnDate / 10000, (txnDate / 100) % 100,
                                                                                                                                 txnDate % 100, str(iCountAttachments).zfill(5),
@@ -14875,6 +14970,8 @@ Visit: %s (Author's site)
                                                         attachmentsLog += ("Error - path: %s already exists... SKIPPING THIS ONE!\n" %(outputPath))
                                                     else:
                                                         myPrint("DB", "Exporting attachment [%s]" %(os.path.basename(outputPath)))
+                                                        outStream = None
+                                                        inStream = None
                                                         try:
                                                             outStream = FileOutputStream(File(outputPath))
                                                             inStream = convertBufferedSourceToInputStream(MD_REF.getCurrentAccountBook().getLocalStorage().openFileForReading(attachTag))
@@ -14886,7 +14983,7 @@ Visit: %s (Author's site)
                                                                                 %(pad(str(txn.getAccount().getAccountType()), 15),
                                                                                   pad(txn.getAccount().getAccountName(), 30),
                                                                                   convertStrippedIntDateFormattedText(txn.getDateInt()),
-                                                                                  rpad(txn.getValue() / 100.0, 10),
+                                                                                  rpad(txn.getAccount().getCurrencyType().getDoubleValue(txn.getValue()), 10),
                                                                                   pad(txn.getDescription(), 20),
                                                                                   outputPath[len(GlobalVars.extractAttachmentsFolder_EATTACH):])])
                                                         except:
@@ -14894,6 +14991,15 @@ Visit: %s (Author's site)
                                                             myPrint("B", _msgTxt)
                                                             attachmentsLog += ("%s\n" %(_msgTxt))
                                                             iSkip += 1
+                                                            try:
+                                                                if inStream is not None: inStream.close()
+                                                            except: pass
+                                                            try:
+                                                                if outStream is not None: outStream.close()
+                                                            except: pass
+                                                            try:
+                                                                if os.path.exists(outputPath): os.remove(outputPath)
+                                                            except: pass
                                             del txnSet
 
                                             attachmentsExtractedTxt = sorted(attachmentsExtractedTxt, key=lambda _sort: (_sort[0], _sort[1], _sort[2]))
@@ -14909,7 +15015,7 @@ Visit: %s (Author's site)
                                                 log.close()
                                             except: pass
 
-                                            _msgTxt = _THIS_EXTRACT_NAME + "%s Attachments extracted to disk (%s skipped)" %(iCountAttachments, iSkip)
+                                            _msgTxt = _THIS_EXTRACT_NAME + "%s Attachments extracted to disk (%s skipped)" %(iCountAttachments - iSkip, iSkip)
                                             myPrint("B", _msgTxt)
                                             GlobalVars.AUTO_MESSAGES.append(_msgTxt)
                                             GlobalVars.countFilesCreated += 1
