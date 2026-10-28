@@ -110,6 +110,7 @@ assert isinstance(0/1, float), "LOGIC ERROR: Custom Balances extension assumes t
 # build: 2000 - updated CostCalculation with latest bugfixes from MD2027(5512) - 18th September 2026
 # build: 2000 - fixes to leverage the two invalid cost basis states (current and future). Maintain parallel flags.
 # build: 2001 - tweaked cost calculation section to pre-sweep txns and cache calculations...; updated MyCC (v15 and fixes/tax dates) and added MyCapitalGainResult
+# build: 2001 - BUGFIX shutdown deadlock: cleanupAsBookClosing() and unload() no longer wait for HPV_LOCK - if busy, the work is pushed to the EDT via .invokeLater()
 # build: 2001 - ???
 
 # todo - tweak getConvertXBalanceRecursive() and getXBalance() to also exclude inactives from recursive balances (like apply networth rules)
@@ -18114,12 +18115,23 @@ Visit: %s (Author's site)
 
             self.cleanupAsBookClosing()
 
+            if self.HPV_LOCK.acquire(False):
+                try: self.is_unloaded = True
+                finally: self.HPV_LOCK.release()
+            else:
+                genericSwingEDTRunner(False, False, self.setUnloadedFlag)
+
+        def setUnloadedFlag(self):
             with self.HPV_LOCK: self.is_unloaded = True
 
         def cleanupAsBookClosing(self):
             myPrint("DB", "In %s.%s()" %(self, inspect.currentframe().f_code.co_name))
 
-            with self.HPV_LOCK:
+            if not self.HPV_LOCK.acquire(False):
+                myPrint("DB", "... HPV_LOCK is busy, so pushing the cleanup to the EDT via .invokeLater() (avoids a deadlock on shutdown)...")
+                genericSwingEDTRunner(False, False, self.cleanupAsBookClosing)
+                return
+            try:
                 for _viewWR in self.views:
                     _view = _viewWR.get()
                     if _view is None:
@@ -18130,6 +18142,8 @@ Visit: %s (Author's site)
                 del self.views[:]
                 self.reset()
                 self.deactivateListeners()
+            finally:
+                self.HPV_LOCK.release()
 
             myPrint("DB", "... Exiting %s.%s()" %(self, inspect.currentframe().f_code.co_name))
 
