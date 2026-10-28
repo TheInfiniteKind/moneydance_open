@@ -5452,8 +5452,7 @@ Visit: %s (Author's site)
                         for fileName in dirList:
                             fullPath = os.path.join(backupLocation,fileName)
                             if fileName.endswith(md_extn):
-                                if saveFiles.get(fileName) is not None:
-                                    saveFiles[fullPath] = True
+                                saveFiles[fullPath] = True
                             elif fileName.endswith(md_archive):
                                 saveArchiveFiles[fullPath] = True
                         del dirList
@@ -5470,8 +5469,10 @@ Visit: %s (Author's site)
 
             for _f in listTheFiles:
                 if saveFiles[_f] is not None:
+                    try: _modified = datetime.datetime.fromtimestamp(os.path.getmtime(_f)).strftime(convertMDShortDateFormat_strftimeFormat(lForceYYMMDDHMS=True))
+                    except: _modified = ""
                     output += ("Dataset: Mod: %s %s\n"
-                               %(pad(datetime.datetime.fromtimestamp(os.path.getmtime(_f)).strftime(convertMDShortDateFormat_strftimeFormat(lForceYYMMDDHMS=True)), 11), _f))
+                               %(pad(_modified, 11), _f))
             del listTheFiles
 
             output += ("\nBACKUP FILES\n"
@@ -5479,8 +5480,10 @@ Visit: %s (Author's site)
 
             for _f in listTheArchiveFiles:
                 if saveArchiveFiles[_f] is not None:
+                    try: _modified = datetime.datetime.fromtimestamp(os.path.getmtime(_f)).strftime(convertMDShortDateFormat_strftimeFormat(lForceYYMMDDHMS=True))
+                    except: _modified = ""
                     output += ("Archive: Mod: %s %s\n"
-                               %(pad(datetime.datetime.fromtimestamp(os.path.getmtime(_f)).strftime(convertMDShortDateFormat_strftimeFormat(lForceYYMMDDHMS=True)), 11), _f))
+                               %(pad(_modified, 11), _f))
             del listTheArchiveFiles
 
             output += ("\nSYNC FOLDERS FOUND:\n"
@@ -17563,7 +17566,7 @@ after saving the file, restart Moneydance
 
             theDir = os.path.join(theDir,"EXTRACT_MD_ATTACHMENTS-%s" %(UUID.randomUUID().toString()))
             if os.path.exists(theDir):
-                myPopupInformationBox(None, "SORRY - the folder %s already exists... I need to create it myself...", _THIS_METHOD_NAME, JOptionPane.WARNING_MESSAGE)
+                myPopupInformationBox(None, "SORRY - the folder %s already exists... I need to create it myself..." %(theDir), _THIS_METHOD_NAME, JOptionPane.WARNING_MESSAGE)
                 continue
 
             break
@@ -17598,7 +17601,9 @@ after saving the file, restart Moneydance
                     attachTag = txn.getAttachmentTag(attachKey)
                     txnDate = txn.getDateInt()
                     attachFile = File(attachTag).getName()
-                    attachFolder = os.path.join(exportFolder,"ACCT-TYPE-%s"%(txn.getAccount().getAccountType()),"ACCT-%s" %(txn.getAccount().getAccountName()))
+                    safeAcctName = txn.getAccount().getAccountName()
+                    for _ch in '\\/:*?"<>|': safeAcctName = safeAcctName.replace(_ch, "_")
+                    attachFolder = os.path.join(exportFolder,"ACCT-TYPE-%s"%(txn.getAccount().getAccountType()),"ACCT-%s" %(safeAcctName))
                     File(attachFolder).mkdirs()
                     outputPath = os.path.join(attachFolder, "{:04d}-{:02d}-{:02d}-{}-{}".format(txnDate/10000, (txnDate/100)%100,  txnDate%100, str(iCountAttachments).zfill(5), attachFile))
                     if os.path.exists(outputPath):
@@ -17607,6 +17612,8 @@ after saving the file, restart Moneydance
                         textLog += ("Error - path: %s already exists... SKIPPING THIS ONE!\n" %outputPath)
                     else:
                         myPrint("P", "Exporting attachment [%s]" %(os.path.basename(outputPath)))
+                        outStream = None
+                        inStream = None
                         try:
                             outStream = FileOutputStream(File(outputPath))
                             inStream = convertBufferedSourceToInputStream(MD_REF.getCurrentAccountBook().getLocalStorage().openFileForReading(attachTag))
@@ -17615,12 +17622,21 @@ after saving the file, restart Moneydance
                             inStream.close()
                             textRecords.append([txn.getAccount().getAccountType(), txn.getAccount().getAccountName(), txn.getDateInt(),
                                                 "%s %s %s %s %s .%s\n"
-                                                %(pad(str(txn.getAccount().getAccountType()),15),pad(txn.getAccount().getAccountName(),30),convertStrippedIntDateFormattedText(txn.getDateInt()),rpad(txn.getValue()/100.0,10),pad(txn.getDescription(),20),outputPath[len(exportFolder):])])
+                                                %(pad(str(txn.getAccount().getAccountType()),15),pad(txn.getAccount().getAccountName(),30),convertStrippedIntDateFormattedText(txn.getDateInt()),rpad(txn.getAccount().getCurrencyType().getDoubleValue(txn.getValue()),10),pad(txn.getDescription(),20),outputPath[len(exportFolder):])])
                         except:
                             txt = "Error extracting file - will SKIP : %s" %(outputPath)
                             myPrint("B", txt)
                             textLog += ("%s\n" %(txt))
                             iSkip += 1
+                            try:
+                                if inStream is not None: inStream.close()
+                            except: pass
+                            try:
+                                if outStream is not None: outStream.close()
+                            except: pass
+                            try:
+                                if os.path.exists(outputPath): os.remove(outputPath)
+                            except: pass
 
             textRecords = sorted(textRecords, key=lambda _sort: (_sort[0], _sort[1], _sort[2]))
             for r in textRecords:
@@ -17638,16 +17654,16 @@ after saving the file, restart Moneydance
 
             pleaseWait.kill()
 
-            txt = "%s: FINISHED: %s attachments extracted (%s skipped)..." %(_THIS_METHOD_NAME,iCountAttachments,iSkip)
+            txt = "%s: FINISHED: %s attachments extracted (%s skipped)..." %(_THIS_METHOD_NAME,iCountAttachments-iSkip,iSkip)
             setDisplayStatus(txt, "B"); myPrint("B", txt)
 
             logToolboxUpdates("extract_attachments", txt)
             play_the_money_sound()
 
             if iSkip < 1:
-                myPopupInformationBox(toolbox_frame_,"%s attachments extracted.." %(iCountAttachments), theTitle=_THIS_METHOD_NAME)
+                myPopupInformationBox(toolbox_frame_,"%s attachments extracted.." %(iCountAttachments-iSkip), theTitle=_THIS_METHOD_NAME)
             else:
-                myPopupInformationBox(toolbox_frame_,"%s attachments extracted.. AND YOU HAD %s Missing/Errors?" %(iCountAttachments,iSkip),theTitle=_THIS_METHOD_NAME, theMessageType=JOptionPane.WARNING_MESSAGE)
+                myPopupInformationBox(toolbox_frame_,"%s attachments extracted.. AND YOU HAD %s Missing/Errors?" %(iCountAttachments-iSkip,iSkip),theTitle=_THIS_METHOD_NAME, theMessageType=JOptionPane.WARNING_MESSAGE)
 
             try: MD_REF.getPlatformHelper().openDirectory(File(exportFolder))
             except: pass
@@ -17722,7 +17738,7 @@ after saving the file, restart Moneydance
                 _mdItem.getAccount().getAccountName(),
                 _mdItem.getAccount().getAccountType(),
                 _mdItem.getDateInt(),
-                _mdItem.getValue(),
+                _mdItem.getAccount().getCurrencyType().getDoubleValue(_mdItem.getValue()),
                 _mdItem.getAttachmentKeys()
             ]
             x = "Attachment keys: %s" %_mdItem.getAttachmentKeys()
@@ -17733,7 +17749,7 @@ after saving the file, restart Moneydance
                 if attachmentLocations.get(_mdItem.getAttachmentTag(_key)):
                     iDuplicateKeys += 1
                     x="@@ Error %s already exists in my attachment location list...!?" %_mdItem.getUUID()
-                    myPrint("B", )
+                    myPrint("B",x)
                     if debug: diagDisplay += (x + "\n")
 
                 attachmentLocations[_mdItem.getAttachmentTag(_key)] = [
@@ -17749,7 +17765,7 @@ after saving the file, restart Moneydance
                         _mdItem.getAccount().getAccountName(),
                         _mdItem.getAccount().getAccountType(),
                         _mdItem.getDateInt(),
-                        _mdItem.getValue(),
+                        _mdItem.getAccount().getCurrencyType().getDoubleValue(_mdItem.getValue()),
                         _mdItem.getAttachmentKeys()
                     ])
 
@@ -17771,6 +17787,7 @@ after saving the file, restart Moneydance
         for root, dirs, files in os.walk(attachmentFullPath):
 
             for name in files:
+                if name == ".DS_Store": continue
                 theFile = os.path.join(root,name)[len(attachmentFullPath)-len(MD_REF.getCurrentAccountBook().getAttachmentsFolder()):]
                 byteSize = os.path.getsize(os.path.join(root,name))
                 modified = datetime.datetime.fromtimestamp(os.path.getmtime(os.path.join(root,name))).strftime(convertMDShortDateFormat_strftimeFormat(lForceYYMMDDHMS=True))
@@ -17882,7 +17899,7 @@ after saving the file, restart Moneydance
             lErrors = True
             attachmentsNotInLS = sorted(attachmentsNotInLS, key=lambda _x: (_x[3]), reverse=False)
             for theOrphanRecord in attachmentsNotInLS:
-                x = "Attachment is missing from this Txn: AcctType: %s Account: %s Date: %s Value: %s AttachKey: %s" %(theOrphanRecord[1],
+                x = "Attachment is missing from this Txn: Account: %s AcctType: %s Date: %s Value: %s AttachKey: %s" %(theOrphanRecord[1],
                                                                                                                      theOrphanRecord[2],
                                                                                                                      convertStrippedIntDateFormattedText(theOrphanRecord[3]),
                                                                                                                      theOrphanRecord[4],
@@ -17927,8 +17944,8 @@ after saving the file, restart Moneydance
         if iAttachmentsFound:
             diagDisplay += "\n\nLISTING VALID ATTACHMENTS FOR REFERENCE\n"
             diagDisplay += " ======================================\n"
-            x = "\nBase Attachment Directory is: %s" %os.path.join(MD_REF.getCurrentAccountBook().getRootFolder().getCanonicalPath(), AccountBookWrapper.SAFE_SUBFOLDER_NAME, "")
-            diagDisplay += (x + "\n-----------\n")
+            baseDirMsg = "\nBase Attachment Directory is: %s" %os.path.join(MD_REF.getCurrentAccountBook().getRootFolder().getCanonicalPath(), AccountBookWrapper.SAFE_SUBFOLDER_NAME, "")
+            diagDisplay += (baseDirMsg + "\n-----------\n")
 
             for validLocation in attachmentLocations:
                 locationRecord = attachmentLocations[validLocation]
@@ -17938,7 +17955,7 @@ after saving the file, restart Moneydance
                                  %(pad(repr(record[2]),12),
                                    pad(safeStr(record[1]),20),       # Avoid utf-8 issue!
                                    convertStrippedIntDateFormattedText(record[3]),
-                                   rpad(record[4]/100.0,10),
+                                   rpad(record[4],10),
                                    validLocation)
 
                 except:
@@ -18017,8 +18034,11 @@ after saving the file, restart Moneydance
                             tmpFile = File.createTempFile(str(System.currentTimeMillis()), attachFileName, tmpDir)
                             tmpFile.deleteOnExit()
                             fout = FileOutputStream(tmpFile)
-                            LS.readFile(selectedOrphan[0], fout)                                                        # noqa
-                            fout.close()
+                            try:
+                                # TODO: confirm whether this path needs its separators converted to "/" on Windows
+                                LS.readFile(selectedOrphan[0], fout)                                                    # noqa
+                            finally:
+                                fout.close()
                             Desktop.getDesktop().open(tmpFile)
 
                     except:
@@ -25779,11 +25799,12 @@ after saving the file, restart Moneydance
                         lValidFile = False
 
                         fp = os.path.join(path, f)
-                        thisFileSize = os.path.getsize(fp)
+                        try: thisFileSize = os.path.getsize(fp)
+                        except: continue
 
                         total_size += thisFileSize
 
-                        if os.path.basename(f) == "key" and path == keyDir and len:
+                        if os.path.basename(f) == "key" and path == keyDir:
                             lValidFile = True
                             keySize = thisFileSize
                         if os.path.basename(f) == "settings" and path == settingsDir:
