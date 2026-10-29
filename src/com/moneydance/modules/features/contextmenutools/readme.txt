@@ -17,6 +17,7 @@ section below, or "Why isn't an option showing?" near the end of this guide.
 
 MENU OPTIONS (in the order they appear)
 ------------------------------------------
+  - Show share balance
   - Show Value of Selected Transactions
   - Duplicate Transactions...
       - With the same date(s)
@@ -383,6 +384,23 @@ Any date can be entered, but not a date/time later than now: if you press OK wit
 date or time that isn't valid, a message tells you nothing was saved. Pressing OK without changing
 anything saves nothing. A change is saved straight away as a single
 named Undo step - Menu > Edit > Undo reverses it.
+
+
+SHOW SHARE BALANCE
+--------------------
+Right-click a single transaction that has a security, in an investment account's register or in a
+security's own register, and choose this option to see how many shares were held. Off by default -
+turn it on in the config screen. The menu item shows the security's name (and ticker) and the shares
+held in that transaction's account today.
+
+A read-only window shows, for the transaction's account: the shares at the start of that day, this
+transaction, any other transactions for that security on the same day, the shares at the end of
+that day, and the shares held today. Each figure is shown as it stood on the transaction's date
+and also in today's terms, after any later stock splits. When the security is held in more than
+one account, the same figures are shown again as totals across all of them. The stock splits
+between the transaction's date and today are listed at the end. A split dated on the transaction's
+own day counts as already applied, and is listed above the figures. Transactions with no shares (a cash dividend, for
+example) show 0 for this transaction. The balances are only worked out when you click the option.
 
 
 JUMP TO DATE IN REGISTER
