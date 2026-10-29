@@ -28,6 +28,8 @@ import kotlin.math.abs
  * showSplitPercentages. Percentages assume all splits share the account's currency - set
  * showSplitPercentages = false for candidate lists that may include differing per-split
  * currencies, where a percent-of-total figure would be misleading.
+ *
+ * @author Stuart Beesley - August 2026
  */
 class ReminderPickerRenderer(
   private val mdGUI:MoneydanceGUI,

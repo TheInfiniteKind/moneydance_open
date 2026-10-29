@@ -51,6 +51,8 @@ import javax.swing.Action
  * preferences itself. Defaults to true only for standalone use/testing; Main.kt supplies the
  * real (default-off) preference value.
  * @param showEnabled Whether "Show Raw Details" should be offered. Same sourcing as copyEnabled.
+ *
+ * @author Stuart Beesley - August 2026
  */
 class CopyRawDetailsToClipboard(
   private val copyEnabled:Boolean = true,

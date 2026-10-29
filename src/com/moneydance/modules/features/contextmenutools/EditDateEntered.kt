@@ -42,6 +42,8 @@ import javax.swing.border.EmptyBorder
  *   the value stays unique;
  * - OK with no change saves nothing and records no undo step;
  * - a change is saved straight away as one undo/redo step.
+ *
+ * @author Stuart Beesley - October 2026
  */
 class EditDateEntered:ContextMenuAction {
 

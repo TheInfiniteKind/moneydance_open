@@ -9,6 +9,8 @@ import com.moneydance.modules.features.contextmenutools.Main
  * Extension-specific (contextmenutools-only) shared transaction-eligibility helpers - unlike
  * Util.kt (common across StuWareSoftSystems extensions), this file holds logic specific to how
  * THIS extension defines "protected" and "unreconciled" for its own split-editing actions.
+ *
+ * @author Stuart Beesley - August 2026
  */
 
 /**

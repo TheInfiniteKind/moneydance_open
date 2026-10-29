@@ -16,6 +16,9 @@ import javax.swing.JOptionPane
 import javax.swing.SwingUtilities
 import kotlin.math.roundToLong
 
+/**
+ * @author Stuart Beesley - February 2026
+ */
 @Suppress("DuplicatedCode", "PrivatePropertyName", "LocalVariableName", "SameParameterValue")
 
 class ValueSelectedTxns: ContextMenuAction {

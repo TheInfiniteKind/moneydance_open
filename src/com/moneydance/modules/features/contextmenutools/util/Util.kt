@@ -42,6 +42,9 @@ fun UndoableChange.setNameCompat(name:String) {
   }
 }
 
+/**
+ * @author Stuart Beesley - February-August 2026
+ */
 object Util {
 
   @JvmField var APPDEBUG_ENABLED = false

@@ -50,6 +50,8 @@ import javax.swing.border.EmptyBorder
  * call is taken directly from the original script's own working Jython source - but several of
  * the exact Kotlin accessor forms (property vs explicit getter) are inferred, not independently
  * compiled/tested. Flagged inline at each specific call.
+ *
+ * @author Stuart Beesley - August 2026
  */
 class ZapCleanMemo:ContextMenuAction {
   private val ORIG_TXN_TAG = "ol.orig-txn"  // copies AbstractTxn.ORIG_TXN_TAG (which is private)

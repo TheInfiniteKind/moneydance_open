@@ -22,6 +22,9 @@ import javax.swing.border.EmptyBorder
 
 enum class DialogResult { OK, CANCEL }
 
+/**
+ * @author Stuart Beesley - February-August 2026
+ */
 class StatusPopupDialog(mdGUI:MoneydanceGUI,
                         parent:Component?,
                         title:String,

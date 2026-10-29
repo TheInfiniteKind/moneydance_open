@@ -64,6 +64,8 @@ import javax.swing.border.EmptyBorder
  * register transaction - it's called explicitly on BOTH the Reminder and the fetched/replaced
  * ParentTxn wherever this class touches either, since the getter's fresh-construction path does
  * NOT call it itself (only the transaction SETTER does).
+ *
+ * @author Stuart Beesley - August 2026
  */
 class UpdateReminderValue(
   private val allReminders:List<Reminder>? = null

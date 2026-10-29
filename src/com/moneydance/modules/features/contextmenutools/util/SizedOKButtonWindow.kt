@@ -27,6 +27,8 @@ import javax.swing.JComponent
  * field or list that should be ready for keyboard input immediately). Optional.
  * @param sizeKey Preferences key for remembering window size. Optional - omit to not persist.
  * @param locationKey Preferences key for remembering window location. Optional - omit to not persist.
+ *
+ * @author Stuart Beesley - August 2026
  */
 class SizedOKButtonWindow(
   mdGUI:MoneydanceGUI,

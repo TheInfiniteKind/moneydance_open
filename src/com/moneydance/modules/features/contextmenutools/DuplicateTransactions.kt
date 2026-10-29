@@ -29,6 +29,9 @@ import javax.swing.event.DocumentListener
 import kotlin.math.abs
 import kotlin.math.max
 
+/**
+ * @author Stuart Beesley - February-October 2026
+ */
 @Suppress("DuplicatedCode", "PrivatePropertyName", "AssignedValueIsNeverRead")
 
 class DuplicateTransactions: ContextMenuAction {

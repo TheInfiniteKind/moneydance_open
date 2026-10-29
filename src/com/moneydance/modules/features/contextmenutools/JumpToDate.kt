@@ -20,6 +20,9 @@ import javax.swing.JPanel
 import javax.swing.border.EmptyBorder
 import kotlin.math.abs
 
+/**
+ * @author Stuart Beesley - March-August 2026
+ */
 @Suppress("DuplicatedCode", "PrivatePropertyName")
 
 class JumpToDate:ContextMenuAction {

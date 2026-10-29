@@ -114,6 +114,8 @@ import kotlin.math.abs
  * CopyRawDetailsToClipboard's copyEnabled/showEnabled parameters.
  * @param rebalanceEnabled Whether the "Rebalance Splits" menu action should be offered.
  * Same sourcing as copyPasteEnabled.
+ *
+ * @author Stuart Beesley - August 2026
  */
 class CopyPasteSplits(
   private val copyPasteEnabled:Boolean = true,

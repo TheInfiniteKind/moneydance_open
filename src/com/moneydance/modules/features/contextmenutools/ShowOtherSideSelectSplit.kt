@@ -47,6 +47,8 @@ private fun isSelectableAccountType(txn:AbstractTxn):Boolean {
  * Candidate labelling: selecting the parent lists every split as 1, 2, 3... . Selecting a split
  * lists "Parent" plus every OTHER split, skipping the one currently selected but not renumbering
  * the rest - e.g. on split 3 of 5, the list reads Parent, 1, 2, 4, 5.
+ *
+ * @author Stuart Beesley - August 2026
  */
 @Suppress("PrivatePropertyName")
 class ShowOtherSideSelectSplit(

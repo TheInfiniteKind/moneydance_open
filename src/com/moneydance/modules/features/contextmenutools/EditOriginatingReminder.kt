@@ -29,6 +29,8 @@ import javax.swing.Action
  *
  * TODO: placeholder for additional narrowing rules if the plain UUID.date search ever proves too
  * broad in practice.
+ *
+ * @author Stuart Beesley - August 2026
  */
 class EditOriginatingReminder(
   private val allReminders:List<Reminder>? = null

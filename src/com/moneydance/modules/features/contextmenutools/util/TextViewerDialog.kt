@@ -39,6 +39,8 @@ import kotlin.math.min
  *
  * @param sizeKey Preferences key for remembering window size. Optional - omit to not persist.
  * @param locationKey Preferences key for remembering window location. Optional - omit to not persist.
+ *
+ * @author Stuart Beesley - August 2026
  */
 class TextViewerDialog(
   mdGUI:MoneydanceGUI,
