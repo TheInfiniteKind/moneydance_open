@@ -12682,7 +12682,7 @@ Visit: %s (Author's site)
                                             _row[GlobalVars.dataKeys["_SECCURR"][_COLUMN]] = safeStr(securityCurr.getRelativeCurrency().getIDString())
                                             _row[GlobalVars.dataKeys["_TICKER"][_COLUMN]] = safeStr(securityCurr.getTickerSymbol())
                                             _row[GlobalVars.dataKeys["_SHARES"][_COLUMN]] = securityCurr.getDoubleValue(securityTxn.getValue())
-                                            _row[GlobalVars.dataKeys["_PRICE"][_COLUMN]] = acctCurr.getDoubleValue(securityTxn.getAmount())
+                                            _row[GlobalVars.dataKeys["_PRICE"][_COLUMN]] = 0
                                             _row[GlobalVars.dataKeys["_AVGCOST"][_COLUMN]] = securityAcct.getUsesAverageCost()
                                             _row[GlobalVars.dataKeys["_SECSHRHOLDING"][_COLUMN]] = securityCurr.formatSemiFancy(securityAcct.getBalance(),GlobalVars.decimalCharSep)
 
