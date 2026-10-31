@@ -70,7 +70,7 @@ public class SecTableModel extends DefaultTableModel {
 	private MainPriceWindow controller;
 	private MRBDebug debugInst = Main.debugInst;
 	private Boolean includeDonotload = true;
-	private static String[] columnNames = { "Select", "Ticker", "Alt Ticker", "Exch Mod", "Name", "Source->>",
+	private static String[] columnNames = { "Select", "Ticker", "Alt Ticker", "Exch Mod", "Multiplier", "Name", "Source->>",
 			"Last Price", "Price Date", "New Price", "% chg", "Amt chg", "Trade Date", "Trade Currency",
 			"Volume" };
 
@@ -214,14 +214,19 @@ public class SecTableModel extends DefaultTableModel {
 		case 3:
 			return rowData.getExchange();
 		/*
-		 * Account Name
+		 * Multiplier
 		 */
 		case 4:
+			return String.format("%.4f", rowData.getMultiplier());
+		/*
+		 * Account Name
+		 */
+		case 5:
 			return rowData.getAccountName();
 		/*
 		 * Price Source
 		 */
-		case 5:
+		case 6:
 			int source = rowData.getSource();
 			if (rowData.getTicker().indexOf(Constants.TICKEREXTID)>0)
 				return "Copy from primary";
@@ -231,7 +236,7 @@ public class SecTableModel extends DefaultTableModel {
 		/*
 		 * last price
 		 */
-		case 6:
+		case 7:
 			cellCur = baseCurrency;
 			Double dValue = rowData.getLastPrice();
 			if (rowData.getDifferentCur()) {
@@ -245,14 +250,14 @@ public class SecTableModel extends DefaultTableModel {
 		/*
 		 * last Price Date
 		 */
-		case 7:
+		case 8:
 			if (rowData.getInError())
 				return Main.cdate.format(rowData.getPriceDate()) + "*";
 			return Main.cdate.format(rowData.getPriceDate());
 		/*
 		 * New Price
 		 */
-		case 8:
+		case 9:
 			if (rowData.getNewPrice() == null || rowData.getNewPrice() == 0.0)
 				return "0" + Main.decimalChar + "0";
 			Double newValue = Math.round(rowData.getNewPrice() * multiplier) / multiplier;
@@ -262,31 +267,41 @@ public class SecTableModel extends DefaultTableModel {
 		/*
 		 * % Change
 		 */
-		case 9:
+		case 10:
 			if (rowData.getPercentChg() == 0.0 || rowData.getPercentChg().isInfinite())
 				return "";
 			return numberFormat.format(rowData.getPercentChg());
 		/*
 		 * Amount Changed
 		 */
-		case 10:
+		case 11:
 			if (rowData.getAmtChg() == 0.0 || rowData.getAmtChg().isInfinite())
 				return "";
 			return numberFormat.format(rowData.getAmtChg());
 		/*
 		 * Trade Date
 		 */
-		case 11:
+		case 12:
 			if (rowData.getTradeDate() == null || rowData.getTradeDate() == 0)
 				return "";
 			String dateString = Main.cdate.format(rowData.getTradeDate());
-			if (rowData.getHistory() != null && !rowData.getHistory().isEmpty())
+			boolean hasNewHistory = false;
+			if (rowData.getHistory() != null) {
+				Integer priceDate = rowData.getPriceDate();
+				for (HistoryPrice hp : rowData.getHistory()) {
+					if (priceDate == null || priceDate == -1 || hp.getDate() > priceDate) {
+						hasNewHistory = true;
+						break;
+					}
+				}
+			}
+			if (hasNewHistory)
   				dateString += "++";
 			return dateString;
 		/*
 		 * trade currency
 		 */
-		case 12:
+		case 13:
 			String quoteCurrency = rowData.getTradeCur();
 			if (quoteCurrency == null || quoteCurrency.isEmpty())
 				return "";
@@ -314,12 +329,13 @@ public class SecTableModel extends DefaultTableModel {
 		switch (col) {
 		case 2:
 		case 3:
+		case 4:
             return rowData.getSource() != 0 && rowData.getTicker().indexOf(Constants.TICKEREXTID) <= 0;
-		case 5:
+		case 6:
                 return rowData.getTicker().indexOf(Constants.TICKEREXTID) <= 0;
 		case 0:
-		case 8:
-		case 11:
+		case 9:
+		case 12:
 			return true;
 		default:
 			return false;
@@ -379,9 +395,21 @@ public class SecTableModel extends DefaultTableModel {
 			rowData.setInError(false);
 			break;
 		/*
+		 * Multiplier
+		 */
+		case 4:
+			try {
+				Double newMult = Double.parseDouble(((String) value).replace(Main.decimalChar, '.'));
+				rowData.setMultiplier(newMult);
+				controller.setIsSecDirty(true);
+			} catch (NumberFormatException e) {
+				JOptionPane.showMessageDialog(Main.frame, "Invalid multiplier format");
+			}
+			break;
+		/*
 		 * Source
 		 */
-		case 5:
+		case 6:
 
 			for (int i = 0; i < secSources.length; i++) {
 				if (((String) value).contentEquals(secSources[i])) {
@@ -393,11 +421,13 @@ public class SecTableModel extends DefaultTableModel {
 			controller.setIsSecDirty(true);
 			rowData.setInError(false);
 			this.fireTableCellUpdated(row, 2);
+			this.fireTableCellUpdated(row, 3);
+			this.fireTableCellUpdated(row, 4);
 			break;
 		/*
 		 * new price
 		 */
-		case 8: 
+		case 9: 
 			String newValue = ((String) value).replace(Main.decimalChar, '.');
 			rowData.setNewPrice(Double.parseDouble(newValue));
 			rowData.setAmtChg(rowData.getNewPrice()-rowData.getLastPrice());
@@ -423,7 +453,7 @@ public class SecTableModel extends DefaultTableModel {
 		/*
 		 * Trade Date
 		 */
-		case 11: 
+		case 12: 
 			int date = Main.cdate.parseInt((String) value);
 			rowData.setTradeDate(date);
 			rowData.setInError(false);
