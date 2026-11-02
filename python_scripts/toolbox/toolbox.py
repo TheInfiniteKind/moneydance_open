@@ -123,7 +123,11 @@
 # build: 2000 - added toolbox_show_data_mode_in_viewer.py - new menu to toggle the data export show in viewer option/flag
 # build: 2001 - Kotlin'isation of Moneydance's Main class (12th August 2026) - MD2026.0(5505)
 # build: 2001 - MD2026.0(5509) alpha became / jumped to MD2027.0(5510) alpha (5th Sept 2026) - 2025/2026 were never released
-# build: 2001 - ???
+# build: 2001 - BUGFIX Common: backwards text search now finds every match, and popup height uses the height limit (previously could skip a match, and used the width limit)
+# build: 2001 - BUGFIX: no NameError at launch when run without the precompiled $py.class (previously the extra code loader deleted the bootstrap's _pyi)
+# build: 2002 - NEW: FIX: Prune Price History's Volume / High / Low data - clears the chosen data from Security price history older than a number of days (dry run or update)
+# build: 2002 - BUGFIX: merge_duplicate_securities() - merged price history now copies a High / Low only when one is stored, in the base currency (previously copied the price as a made-up High / Low, and read and wrote them in different currencies)
+# build: 2002 - ???
 
 # NOTE: 'The domain/default pair of (kCFPreferencesAnyApplication, AppleInterfaceStyle) does not exist' means that Dark mode is NOT in force
 
@@ -155,7 +159,7 @@
 
 # SET THESE LINES
 myModuleID = u"toolbox"
-version_build = "2001"
+version_build = "2002"
 MIN_BUILD_REQD = 1915                   # Min build for Toolbox 2020.0(1915)
 _I_CAN_RUN_AS_DEVELOPER_CONSOLE_SCRIPT = True
 
@@ -1329,7 +1333,7 @@ Visit: %s (Author's site)
                         maxDimension = Dimension(maxDialogWidth,maxDialogHeight)
                     else:
                         maxDialogWidth = min(screenSize.width-20, max(GetFirstMainFrame.DEFAULT_MAX_WIDTH, int(round(GetFirstMainFrame.getSize().width *.9,0))))
-                        maxDialogHeight = min(screenSize.height-40, max(GetFirstMainFrame.DEFAULT_MAX_WIDTH, int(round(GetFirstMainFrame.getSize().height *.9,0))))
+                        maxDialogHeight = min(screenSize.height-40, max(GetFirstMainFrame.DEFAULT_MAX_HEIGHT, int(round(GetFirstMainFrame.getSize().height *.9,0))))
                         maxDimension = Dimension(maxDialogWidth,maxDialogHeight)
 
                     # noinspection PyUnresolvedReferences
@@ -2166,10 +2170,10 @@ Visit: %s (Author's site)
 
             else:
                 direction = "[backwards]"
-                endPos = len(theText)-1
+                endPos = len(theText)      # rfind()'s end is exclusive, so use the full length to find a match at the very end
 
                 if searchWhat == self.lastSearch:
-                    if self.previousEndPosn < 0: self.previousEndPosn = len(theText)-1
+                    if self.previousEndPosn < 0: self.previousEndPosn = len(theText)
                     endPos = max(0,self.previousEndPosn)
                     if lSwitch: endPos = max(0,self.lastPosn-1)
 
@@ -2185,13 +2189,13 @@ Visit: %s (Author's site)
                 except: pass
                 if response == 0:
                     self.lastPosn = pos+len(searchWhat)
-                    self.previousEndPosn = len(theText)-1
+                    self.previousEndPosn = len(theText)
                 else:
                     self.lastPosn = pos-len(searchWhat)
-                    self.previousEndPosn = pos-1
+                    self.previousEndPosn = pos+len(searchWhat)-1     # next backwards search finds any match starting before this one
             else:
                 self.lastPosn = 0
-                self.previousEndPosn = len(theText)-1
+                self.previousEndPosn = len(theText)
                 myPopupInformationBox(self.theFrame,"Searching %s text not found" %direction)
 
             return
@@ -3480,13 +3484,13 @@ Visit: %s (Author's site)
         _extraCodeString = myModuleID + "_extra_code" + ".py"
         if MD_EXTENSION_LOADER is not None:
             # Try launching the extra code from within the MXT...
-            _pyi = getFieldByReflection(MD_REF.getModuleForID(myModuleID), "python")
+            _pyiExtra = getFieldByReflection(MD_REF.getModuleForID(myModuleID), "python")
             extraCodeScriptStream = MD_EXTENSION_LOADER.getResourceAsStream("/%s" %(_extraCodeString))
             if extraCodeScriptStream is not None:
                 myPrint("DB", "About to launch extra code initialiser (via mxt)....")
-                _pyi.execfile(extraCodeScriptStream)
+                _pyiExtra.execfile(extraCodeScriptStream)
                 extraCodeScriptStream.close()
-            del _pyi, extraCodeScriptStream
+            del _pyiExtra, extraCodeScriptStream
 
         if not GlobalVars.EXTRA_CODE_INITIALISED and "__file__" in globals():
             # OK, so try launching the extra code from disk if running as a script....
@@ -14552,6 +14556,7 @@ Visit: %s (Author's site)
                                         if iCountSnapsPrinted > 10: break
                                     del dummySyncR
                                 del snaps
+                                output += "\nNOTE: Moneydance should ideally be restarted after this function (to reduce memory consumption from changing data en-mass)\n"
                                 output += "<END>\n"
                             except:
                                 output += dump_sys_error_to_md_console_and_errorlog( True )
@@ -17013,6 +17018,156 @@ after saving the file, restart Moneydance
         play_the_money_sound()
         jif = QuickJFrame("FIX - DELETE INVALID PRICE HISTORY WITH 'WILD' RATES",output,copyToClipboard=GlobalVars.lCopyAllToClipBoard_TB).show_the_frame()
         myPopupInformationBox(jif,txt,theMessageType=JOptionPane.WARNING_MESSAGE)
+
+    def prune_price_history_vol_hi_lo():
+        if MD_REF.getCurrentAccountBook() is None: return
+
+        _THIS_METHOD_NAME = "FIX: Prune Price History's Volume / High / Low data"
+        if not perform_qer_quote_loader_check(toolbox_frame_, _THIS_METHOD_NAME): return
+
+        daysField = JTextField("365", 6)
+        volBox = JCheckBox("Volume", False)
+        highBox = JCheckBox("High", False)
+        lowBox = JCheckBox("Low", False)
+        updateBox = JCheckBox("Update (purge) data - leave unticked for a dry run (read only)", False)
+        panel = JPanel(GridLayout(0, 1))
+        panel.add(JLabel("Days of price history to keep untouched (older records are pruned):"))
+        panel.add(daysField)
+        panel.add(JLabel("Data to clear:"))
+        panel.add(volBox)
+        panel.add(highBox)
+        panel.add(lowBox)
+        panel.add(updateBox)
+
+        if JOptionPane.showConfirmDialog(toolbox_frame_, panel, _THIS_METHOD_NAME, JOptionPane.OK_CANCEL_OPTION, JOptionPane.QUESTION_MESSAGE) != JOptionPane.OK_OPTION:
+            txt = "%s - cancelled - no changes made" %(_THIS_METHOD_NAME)
+            setDisplayStatus(txt, "B")
+            return
+
+        try: daysToKeep = int(daysField.getText().strip())
+        except: daysToKeep = -1
+        if daysToKeep < 0 or daysToKeep > Integer.MAX_VALUE:
+            txt = "%s - days to keep must be a whole number, 0 or more - no changes made" %(_THIS_METHOD_NAME)
+            setDisplayStatus(txt, "R")
+            myPopupInformationBox(toolbox_frame_, txt, theMessageType=JOptionPane.WARNING_MESSAGE)
+            return
+
+        lVol, lHigh, lLow, lUpdate = volBox.isSelected(), highBox.isSelected(), lowBox.isSelected(), updateBox.isSelected()
+        if not (lVol or lHigh or lLow):
+            txt = "%s - no data type ticked - no changes made" %(_THIS_METHOD_NAME)
+            setDisplayStatus(txt, "R")
+            myPopupInformationBox(toolbox_frame_, txt, theMessageType=JOptionPane.WARNING_MESSAGE)
+            return
+
+        cutOffDateInt = DateUtil.incrementDate(DateUtil.getStrippedDateInt(), 0, 0, -daysToKeep)
+        whatTxt = ", ".join([n for n, l in (("Volume", lVol), ("High", lHigh), ("Low", lLow)) if l])
+
+        book = MD_REF.getCurrentAccountBook()
+        securities = sorted([s for s in book.getCurrencies().getAllCurrencies() if s.getCurrencyType() is CurrencyType.Type.SECURITY],
+                            key=lambda sort_x: sort_x.getName().upper())
+
+        # Volume / high / low are held in hidden fields after load (their keys are removed); itemWillSync() puts the stored values back
+        scratch = SyncRecord()
+        snapsToPrune = []
+        countsBySecurity = []
+        for sec in securities:
+            counts = [0, 0, 0, 0]
+            for snap in sec.getSnapshots():
+                if snap.getDateInt() >= cutOffDateInt: continue
+                snap.itemWillSync(scratch)
+                pruneVol = lVol and scratch.getLong("vol", 0) != 0
+                pruneHigh = lHigh and (scratch.getDouble("hi", 0.0) > 0 or scratch.getDouble("rhi", 0.0) > 0)
+                pruneLow = lLow and (scratch.getDouble("lo", 0.0) > 0 or scratch.getDouble("rlo", 0.0) > 0)
+                scratch.clear()
+                if not (pruneVol or pruneHigh or pruneLow): continue
+                snapsToPrune.append([snap, pruneVol, pruneHigh, pruneLow])
+                counts[0] += 1
+                if pruneVol: counts[1] += 1
+                if pruneHigh: counts[2] += 1
+                if pruneLow: counts[3] += 1
+            if counts[0]: countsBySecurity.append([sec, counts])
+
+        output = "%s\n" \
+                 " ==================================================\n\n" %(_THIS_METHOD_NAME.upper())
+        output += "Mode:                   %s\n" %("UPDATE (purge)" if lUpdate else "DRY RUN (read only)")
+        output += "Data to clear:          %s\n" %(whatTxt)
+        output += "Days kept:              %s (records dated before %s are pruned)\n\n" %(daysToKeep, convertStrippedIntDateFormattedText(cutOffDateInt))
+        output += "%s %s %s %s %s\n" %(pad("Security", 60), rpad("Records", 10), rpad("Volume", 10), rpad("High", 10), rpad("Low", 10))
+        totals = [0, 0, 0, 0]
+        for sec, counts in countsBySecurity:
+            output += "%s %s %s %s %s\n" %(padTruncateWithDots("%s (%s)" %(sec.getName(), sec.getIDString()), 60),
+                                           rpad(counts[0], 10), rpad(counts[1], 10), rpad(counts[2], 10), rpad(counts[3], 10))
+            for i in range(0, 4): totals[i] += counts[i]
+        output += "\n%s %s %s %s %s\n" %(pad("TOTALS (%s securities):" %(len(countsBySecurity)), 60),
+                                         rpad(totals[0], 10), rpad(totals[1], 10), rpad(totals[2], 10), rpad(totals[3], 10))
+
+        if len(snapsToPrune) < 1:
+            txt = "%s - no price history records hold %s data before %s - no changes made" %(_THIS_METHOD_NAME, whatTxt, convertStrippedIntDateFormattedText(cutOffDateInt))
+            setDisplayStatus(txt, "B"); myPrint("B", txt)
+            myPopupInformationBox(toolbox_frame_, txt)
+            return
+
+        restartNote = "NOTE: Moneydance should ideally be restarted after this function (to reduce memory consumption from changing data en-mass)\n"
+        jif = QuickJFrame(_THIS_METHOD_NAME, output + "\n" + restartNote + "<END>", copyToClipboard=GlobalVars.lCopyAllToClipBoard_TB).show_the_frame()
+
+        if not lUpdate:
+            txt = "DRY RUN: %s price history records would be pruned (%s) - no changes made" %(len(snapsToPrune), whatTxt)
+            setDisplayStatus(txt, "B"); myPrint("B", txt)
+            myPopupInformationBox(jif, txt)
+            return
+
+        ask = MyPopUpDialogBox(jif,
+                               theStatus="Are you sure you want to clear %s data from %s price history records?" %(whatTxt, len(snapsToPrune)),
+                               theTitle=_THIS_METHOD_NAME,
+                               theMessage="Do not proceed unless you know you want to do this....!\n"
+                                          "The prices themselves are not changed. There is no undo.",
+                               lCancelButton=True,
+                               OKButtonText="I AGREE - PRUNE",
+                               lAlertLevel=2)
+        if not ask.go():
+            txt = "User did not say yes to prune %s price history records - no changes made" %(len(snapsToPrune))
+            setDisplayStatus(txt, "R")
+            myPopupInformationBox(jif, txt, theMessageType=JOptionPane.WARNING_MESSAGE)
+            return
+        del ask
+
+        if not confirm_backup_confirm_disclaimer(jif, _THIS_METHOD_NAME.upper(), "PRUNE %s DATA FROM %s PRICE HISTORY RECORDS" %(whatTxt.upper(), len(snapsToPrune))):
+            return
+        jif.dispose()       # already within the EDT
+
+        txt = "@@ User requested to prune %s data from %s price history records - PRUNING NOW...." %(whatTxt, len(snapsToPrune))
+        myPrint("B", txt); output += "\n%s\n" %(txt)
+
+        MD_REF.saveCurrentAccount()           # Flush any current txns in memory and start a new sync record for the changes..
+        SyncerDebug.changeState(debug)
+
+        for snap, pruneVol, pruneHigh, pruneLow in snapsToPrune:
+            snap.setEditingMode()
+            if pruneVol: snap.setDailyVolume(0)
+            if pruneHigh:
+                snap.setDailyHigh(0.0, None)
+                snap.removeParameter("rehi")        # stray key written by setDailyHigh() and never read back
+            if pruneLow:
+                snap.setDailyLow(0.0, None)
+                snap.removeParameter("relo")        # stray key written by setDailyLow() and never read back
+            snap.syncItem()
+
+        SyncerDebug.resetState()
+        MD_REF.saveCurrentAccount()           # Flush any current txns in memory and start a new sync record for the changes..
+
+        output += "Flushing dataset changes in memory back to disk....\n"
+        book.saveTrunkFile()
+
+        txt = "%s data cleared from %s price history records (older than %s)" %(whatTxt, len(snapsToPrune), convertStrippedIntDateFormattedText(cutOffDateInt))
+        myPrint("B", txt); output += "%s\n" %(txt)
+        logToolboxUpdates("prune_price_history_vol_hi_lo", txt)
+
+        output += "\n" + restartNote + "<END>"
+
+        setDisplayStatus(txt, "R")
+        play_the_money_sound()
+        jif = QuickJFrame(_THIS_METHOD_NAME, output, copyToClipboard=GlobalVars.lCopyAllToClipBoard_TB).show_the_frame()
+        myPopupInformationBox(jif, txt, theMessageType=JOptionPane.WARNING_MESSAGE)
 
     def reverse_txn_amounts():
         # reverse_txn_amounts.py
@@ -24971,6 +25126,9 @@ after saving the file, restart Moneydance
                     user_thin_price_history = MenuJRadioButton("FIX: Thin/Purge Price History (price_history_thinner.py)", False, updateMenu=True)
                     user_thin_price_history.setToolTipText("This will allow you to Thin / Prune your Price History based on user parameters. THIS CHANGES DATA! (price_history_thinner.py)")
 
+                    user_prune_price_history_vol_hi_lo = MenuJRadioButton("FIX: Prune Price History's Volume / High / Low data", False, updateMenu=True)
+                    user_prune_price_history_vol_hi_lo.setToolTipText("Clears the Volume / High / Low data from Security price history older than a number of days you choose (dry run or update). THIS CHANGES DATA!")
+
                     user_fix_nonlinked_security_records = MenuJRadioButton("FIX: Detect and fix Investment Security records not properly linked to Security Master records", False, updateMenu=True)
                     user_fix_nonlinked_security_records.setToolTipText("This will scan your Investment Security record and check that it's properly linked to a security master record... Allows you to fix this too")
 
@@ -25073,7 +25231,7 @@ after saving the file, restart Moneydance
                     userFilters.add(user_diag_price_date)
 
                     if GlobalVars.globalShowDisabledMenuItems or ToolboxMode.isUpdateMode():
-                        rows += 20
+                        rows += 21
                         userFilters.add(JLabel(" "))
                         userFilters.add(ToolboxMode.DEFAULT_MENU_UPDATE_TXT_LBL)
 
@@ -25099,6 +25257,7 @@ after saving the file, restart Moneydance
                         userFilters.add(user_convert_stock_avg_cst_control)
                         userFilters.add(user_fix_nonlinked_security_records)
                         userFilters.add(user_thin_price_history)
+                        userFilters.add(user_prune_price_history_vol_hi_lo)
                         userFilters.add(user_fix_invalid_curr_sec)
                         userFilters.add(user_fix_invalid_price_history)
                         userFilters.add(user_force_change_accounts_currency)
@@ -25120,6 +25279,7 @@ after saving the file, restart Moneydance
                         user_merge_duplicate_securities.setEnabled(ToolboxMode.isUpdateMode() and isRRateCurrencyIssueFixedBuild())
                         user_autofix_price_date.setEnabled(ToolboxMode.isUpdateMode() and isRRateCurrencyIssueFixedBuild())
                         user_thin_price_history.setEnabled(ToolboxMode.isUpdateMode() and isRRateCurrencyIssueFixedBuild())
+                        user_prune_price_history_vol_hi_lo.setEnabled(ToolboxMode.isUpdateMode() and isRRateCurrencyIssueFixedBuild())
                         user_fix_invalid_curr_sec.setEnabled(ToolboxMode.isUpdateMode())
                         user_fix_invalid_price_history.setEnabled(ToolboxMode.isUpdateMode())
 
@@ -25152,6 +25312,7 @@ after saving the file, restart Moneydance
 
                             user_autofix_price_date.setEnabled(False)
                             user_thin_price_history.setEnabled(False)
+                            user_prune_price_history_vol_hi_lo.setEnabled(False)
                             user_fix_invalid_curr_sec.setEnabled(False)
                             user_fix_invalid_price_history.setEnabled(False)
 
@@ -25199,6 +25360,7 @@ after saving the file, restart Moneydance
                         if user_fix_invalid_price_history.isSelected():                                 fix_invalid_price_history()
                         if user_fix_nonlinked_security_records.isSelected():                            detect_fix_nonlinked_investment_security_records()
                         if user_thin_price_history.isSelected():                                        thin_price_history()
+                        if user_prune_price_history_vol_hi_lo.isSelected():                             prune_price_history_vol_hi_lo()
                         if user_show_open_share_lots.isSelected():                                      show_open_share_lots()
                         if user_diagnose_matched_lot_data.isSelected():                                 diagnose_matched_lot_data()
                         if user_fix_invalidLotRecords.isSelected():                                     fix_invalidLotRecords()

@@ -258,6 +258,7 @@ ALT-M - Update Mode (** NOTE: Some menu items will disable if currency / securit
         - FIX - Convert Stock to Average Cost Control (and wipe any LOT control records)
         - FIX - Detect and fix Investment Security records not properly linked to Security Master records
         - FIX - Thin/Purge Price History (allows you to thin/prune your price history based on parameters you input; also fix 'orphans') (price_history_thinner.py)
+        - FIX - Prune Price History's Volume / High / Low data (clears the chosen data from Security price history older than a number of days you enter; dry run or update)
         - FIX - Fix invalid relative currency (& security) rates >> fixes relative rates where <= (1.0/9999999999) or >= 9999999999) (fix_invalid_currency_rates.py)
         - FIX - Delete invalid price history records where rate <= (1.0/9999999999) or >= 9999999999.
         - FIX - FORCE change an Account's / Category's Currency (use with care). (Does not update any transactions) (force_change_account_currency.py)

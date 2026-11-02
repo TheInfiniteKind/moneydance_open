@@ -50,7 +50,7 @@ global DateUtil, AccountBookUtil, AccountUtil, AcctFilter, ParentTxn, CurrencySn
 global TxnSearch, ReportSpec, MoneydanceSyncableItem, CurrencyType, CurrencySplit
 global CostCalculation, CustomURLStreamHandlerFactory, OnlineTxnMerger, OnlineUpdateTxnsWindow, MoneybotURLStreamHandlerFactory
 global OFXConnection, PlaidConnection, StreamTable, Syncer, DownloadedTxnsView, SplitTxn
-global Util, InvestUtil
+global Util, InvestUtil, SyncRecord
 
 # Java definitions
 global SwingUtilities, JButton, JComboBox, JRadioButton, ButtonGroup
@@ -3553,17 +3553,23 @@ MD2021.2(3088): Adds capability to set the encryption passphrase into an environ
                         getSnaps = security.getSnapshots()
                         txt = "Merging %s potential price history records from %s into %s" %(getSnaps.size(), getSecurityNameAndID(security), getSecurityNameAndID(primary))
                         myPrint("B",txt); output += "%s\n" %(txt)
+                        scratchSyncR = SyncRecord()
                         for snap in getSnaps:
                             foundSnap = primary.getSnapshotForDate(snap.getDateInt())
                             if foundSnap is not None and foundSnap.getDateInt() == snap.getDateInt():
                                 # Found a match - skip
                                 pass
                             else:
+                                # getDailyHigh/Low() return the price when none is stored; itemWillSync() restores the stored values
+                                snap.itemWillSync(scratchSyncR)
+                                lHasLow = (scratchSyncR.getDouble("lo", 0.0) > 0 or scratchSyncR.getDouble("rlo", 0.0) > 0)
+                                lHasHigh = (scratchSyncR.getDouble("hi", 0.0) > 0 or scratchSyncR.getDouble("rhi", 0.0) > 0)
+                                scratchSyncR.clear()
                                 newSnap = primary.addSnapshotInt(snap.getDateInt(), snap.getRate(), rCurr)
                                 newSnap.setEditingMode()
                                 newSnap.setDailyVolume(snap.getDailyVolume())
-                                newSnap.setUserDailyLow(snap.getDailyLow())
-                                newSnap.setUserDailyHigh(snap.getDailyHigh())
+                                if lHasLow: newSnap.setDailyLow(snap.getDailyLow(None), None)
+                                if lHasHigh: newSnap.setDailyHigh(snap.getDailyHigh(None), None)
                                 newSnap.syncItem()
 
                 if lSnapsKeepMasterOnly: pass
