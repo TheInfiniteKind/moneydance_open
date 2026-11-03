@@ -43,6 +43,21 @@ fun UndoableChange.setNameCompat(name:String) {
 }
 
 /**
+ * macOS (on Java without the JetBrains JBR-5762 fix): after a drag-select past the field's edge the mouse release
+ * can miss the field, leaving Swing's autoscroll re-selecting the text so each key typed replaces the last.
+ * Ends any such autoscroll when a key is pressed in this field. Returns the field, so it can be chained.
+ * Oracle Java bugs: JDK-8325052, JDK-8370002, JDK-8311949, JDK-8319880
+ */
+fun <T : JTextComponent> T.fixStuckDragSelection(): T {
+  addKeyListener(object : KeyAdapter() {
+    override fun keyPressed(e: KeyEvent) {
+      if (autoscrolls) { autoscrolls = false; autoscrolls = true }  // setAutoscrolls(false) stops the autoscroll
+    }
+  })
+  return this
+}
+
+/**
  * @author Stuart Beesley - February-August 2026
  */
 object Util {

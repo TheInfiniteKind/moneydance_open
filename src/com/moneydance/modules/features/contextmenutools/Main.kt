@@ -13,6 +13,7 @@ import com.moneydance.awt.GridC
 import com.moneydance.modules.features.contextmenutools.util.TextViewerDialog
 import com.moneydance.modules.features.contextmenutools.util.Util
 import com.moneydance.modules.features.contextmenutools.util.Util.logConsole
+import com.moneydance.modules.features.contextmenutools.util.fixStuckDragSelection
 import com.moneydance.modules.features.contextmenutools.util.isInactiveOrExpired
 import java.awt.BorderLayout
 import java.awt.Dimension
@@ -437,6 +438,7 @@ class Main : FeatureModule(), PreferencesListener {
     
     private val templateNameFilterField = JTextField(getMenuStringSetting(menuSettingsOnOpen, SETTING_TEMPLATE_NAME_FILTER, ""), 20).apply {
       isEnabled = enableMenuTemplateCheckbox.isSelected
+      fixStuckDragSelection()
     }
     
     private val alwaysConfirmTotalCheckbox = JCheckBox(STRING_ALWAYS_CONFIRM_TOTAL).apply {
