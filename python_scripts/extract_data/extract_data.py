@@ -127,7 +127,8 @@
 # build: 1051 - BUGFIX Investment Transactions: share rows show the amount as entered and dividend transfers show the dividend; currency filter, hidden securities, attachments, lot shares, opening balance date and split-price crash fixed
 # build: 1051 - Security Balances: carries on with a zero cost basis (and a warning) when it cannot be calculated (previously the extract stopped)
 # build: 1051 - BUGFIX Account Registers: hidden accounts, foreign currency totals and decimals, split ID and index, opening balance date, attachment links with a dot in the name, tag filter, auto extract single account, sub accounts box and first-use date choice fixed
-# build: 1051 - ???
+# build: 1052 - Reminders now use deferred reminders on MD2027: future list shows each one's own date, amount and account, NextDue shows the moved date, new SavedOneOffInstances column (previously showed the scheduled date and master amount)
+# build: 1052 - ???
 
 # todo - EAR: Switch to 'proper' usage of DateRangeChooser() (rather than my own 'copy')
 
@@ -148,7 +149,7 @@
 
 # SET THESE LINES
 myModuleID = u"extract_data"
-version_build = "1051"
+version_build = "1052"
 MIN_BUILD_REQD = 1904                                               # Check for builds less than 1904 / version < 2019.4
 _I_CAN_RUN_AS_DEVELOPER_CONSOLE_SCRIPT = True
 
@@ -3190,6 +3191,9 @@ Visit: %s (Author's site)
     def isMDPlusEnabledBuild(): return (float(MD_REF.getBuild()) >= GlobalVars.MD_MDPLUS_BUILD)                         # 2022.0
 
     def isAlertControllerEnabledBuild(): return (float(MD_REF.getBuild()) >= GlobalVars.MD_ALERTCONTROLLER_BUILD)       # 2022.3
+
+    GlobalVars.MD_DEFERRED_REMINDERS_BUILD = 5512                                                                        # MD2027(5512)
+    def isDeferredRemindersBuild(): return (MD_REF.getBuild() >= GlobalVars.MD_DEFERRED_REMINDERS_BUILD and hasattr(Reminder, "getDeferredDates"))
 
     def genericSwingEDTRunner(ifOffEDTThenRunNowAndWait, ifOnEDTThenRunNowAndWait, codeblock, *args):
         """Will detect and then run the codeblock on the EDT"""
@@ -7734,8 +7738,11 @@ Visit: %s (Author's site)
             self.dateInt        = dateInt
             self.dateFormat     = dateFormat
             self.expired        = False
+            self.originalTxt    = None
 
         def setExpired(self, lExpired): self.expired = lExpired
+        def setOriginalTxt(self, txt):  self.originalTxt = txt
+        def getOriginalTxt(self):       return self.originalTxt
         def getDateInt(self):           return self.dateInt
 
         def getDateIntFormatted(self):
@@ -7745,7 +7752,7 @@ Visit: %s (Author's site)
             dateasdate = datetime.datetime.strptime(str(self.getDateInt()), "%Y%m%d")  # Convert to Date field
             return dateasdate.strftime(self.dateFormat)
 
-        def __str__(self):      return self.getDateIntFormatted()
+        def __str__(self):      return self.getDateIntFormatted() + ("*" if self.originalTxt else "")
         def __repr__(self):     return self.__str__()                                                                   # noqa
         def toString(self):     return self.__str__()                                                                   # noqa
 
@@ -10053,6 +10060,55 @@ Visit: %s (Author's site)
                                                 return DateUtil.convertCalToInt(cal)
                                             cal.add(Calendar.DAY_OF_MONTH, 1)
 
+                                    def getNextDueStoreDateInt(rem, maximumDate):
+                                        dateFormat = GlobalVars.saved_extractDateFormat_SWSS
+                                        scheduledDate = rem.getNextOccurance(maximumDate)
+                                        deferredTxn = rem.getDeferredTxnInfo(scheduledDate) if isDeferredRemindersBuild() else None
+                                        if deferredTxn is None: return StoreDateInt(scheduledDate, dateFormat)
+
+                                        baseTxn = rem.getTransaction()
+                                        baseAmount = baseTxn.getAccount().getCurrencyType().formatFancy(abs(baseTxn.getValue()), GlobalVars.decimalCharSep, True)
+                                        remdate = StoreDateInt(deferredTxn.getDateInt(), dateFormat)
+                                        if GlobalVars.DISPLAY_DATA:
+                                            remdate.setOriginalTxt("Originally %s %s" %(StoreDateInt(scheduledDate, dateFormat).getDateIntFormatted(), baseAmount))
+                                        return remdate
+
+                                    def getOneOffInstancesText(rem):
+                                        parts = []
+                                        for scheduledDate in rem.getDeferredDates():
+                                            txn = rem.getDeferredTxnInfo(scheduledDate)
+                                            if txn is None: continue
+                                            curr = txn.getAccount().getCurrencyType()
+                                            if GlobalVars.DISPLAY_DATA:
+                                                parts.append("%s %s" %(StoreDateInt(txn.getDateInt(), GlobalVars.saved_extractDateFormat_SWSS).getDateIntFormatted(),
+                                                                       curr.formatFancy(abs(txn.getValue()), GlobalVars.decimalCharSep, True)))
+                                            else:
+                                                parts.append("%s|%s" %(txn.getDateInt(), curr.getDoubleValue(txn.getValue())))
+                                        return (", " if GlobalVars.DISPLAY_DATA else "|").join(parts)
+
+                                    def addFutureTxnRow(txnparent, remdate, desc, memo):
+                                        if isinstance(txnparent, ParentTxn): pass
+
+                                        acctCurr = txnparent.getAccount().getCurrencyType()
+                                        amount = acctCurr.getDoubleValue(txnparent.getValue())
+                                        stripacct = txnparent.getAccount().getFullAccountName().strip()     # noqa
+
+                                        catsAmounts = ""
+                                        for iRemSplit in range(0, txnparent.getOtherTxnCount()):
+                                            remSplit = txnparent.getOtherTxn(iRemSplit)
+                                            stripCat = remSplit.getAccount().getFullAccountName().strip()   # noqa
+                                            splitValue = remSplit.getAccount().getCurrencyType().getDoubleValue(-remSplit.getValue())
+                                            catsAmounts += "{%s;%s}" %(stripCat, splitValue)
+
+                                        csvline = []
+                                        csvline.append(remdate)
+                                        csvline.append(stripacct)
+                                        csvline.append(desc)
+                                        csvline.append(memo)
+                                        csvline.append((amount))
+                                        csvline.append(catsAmounts)
+                                        GlobalVars.csvlines_reminders_future.append(csvline)
+
                                     # Copied from list_future_reminders.py script....
                                     def build_future_reminders_table(reminderTable):
 
@@ -10087,12 +10143,16 @@ Visit: %s (Author's site)
                                             else:
                                                 stopDate = min(DateUtil.incrementDate(todayInt, 0, 0, GlobalVars.saved_daysToLookForward_LFR), lastdate)
 
+                                            deferredDates = []
+                                            if isDeferredRemindersBuild():
+                                                deferredDates = [dateInt for dateInt in rem.getDeferredDates() if rem.getDeferredTxnInfo(dateInt) is not None]
+
                                             nextDate = rem.getNextOccurance(stopDate)
-                                            if nextDate < 1: continue
+                                            if nextDate < 1 and len(deferredDates) < 1: continue
 
                                             loopDetector = 0
 
-                                            while True:
+                                            while nextDate >= 1:
 
                                                 loopDetector += 1
                                                 if loopDetector > 10000:
@@ -10105,6 +10165,8 @@ Visit: %s (Author's site)
                                                 remdate = calcNext
 
                                                 nextDate = DateUtil.incrementDate(calcNext, 0, 0, 1)
+
+                                                if calcNext in deferredDates: continue
 
                                                 lastack = rem.getDateAcknowledgedInt()
                                                 if lastack == 0 or lastack == 19700101: lastack = ''					# noqa
@@ -10123,28 +10185,13 @@ Visit: %s (Author's site)
                                                     GlobalVars.csvlines_reminders_future.append(csvline)
 
                                                 elif str(remtype) == 'TRANSACTION':
-                                                    txnparent = rem.getTransaction()
-                                                    if isinstance(txnparent, ParentTxn): pass
+                                                    addFutureTxnRow(rem.getTransaction(), remdate, desc, memo)
 
-                                                    acctCurr = txnparent.getAccount().getCurrencyType()
-                                                    amount = acctCurr.getDoubleValue(txnparent.getValue())
-                                                    stripacct = txnparent.getAccount().getFullAccountName().strip()     # noqa
-
-                                                    catsAmounts = ""
-                                                    for iRemSplit in range(0, txnparent.getOtherTxnCount()):
-                                                        remSplit = txnparent.getOtherTxn(iRemSplit)
-                                                        stripCat = remSplit.getAccount().getFullAccountName().strip()   # noqa
-                                                        splitValue = remSplit.getAccount().getCurrencyType().getDoubleValue(-remSplit.getValue())
-                                                        catsAmounts += "{%s;%s}" %(stripCat, splitValue)
-
-                                                    csvline = []
-                                                    csvline.append(remdate)
-                                                    csvline.append(stripacct)
-                                                    csvline.append(desc)
-                                                    csvline.append(memo)
-                                                    csvline.append((amount))
-                                                    csvline.append(catsAmounts)
-                                                    GlobalVars.csvlines_reminders_future.append(csvline)
+                                            lookForwardCutoff = min(DateUtil.incrementDate(todayInt, 0, 0, GlobalVars.saved_daysToLookForward_LFR), FUTURE_MAX_END_DATE)
+                                            for dateInt in deferredDates:
+                                                deferredTxn = rem.getDeferredTxnInfo(dateInt)
+                                                if deferredTxn.getDateInt() <= lookForwardCutoff:
+                                                    addFutureTxnRow(deferredTxn, deferredTxn.getDateInt(), desc, memo)
 
                                             index += 1
 
@@ -10213,6 +10260,11 @@ Visit: %s (Author's site)
                                                          [String,JLabel.LEFT],
                                                          [String,JLabel.LEFT]
                                                          ]
+
+                                        # Added last, as the sorter, renderers and CSV writer use fixed column positions
+                                        if isDeferredRemindersBuild():
+                                            GlobalVars.csvheaderline_ERTC.append("SavedOneOffInstances")
+                                            GlobalVars.headerFormats_ERTC.append([String,JLabel.LEFT])
 
                                         # Read each reminder and create a csv line for each in the GlobalVars.csvlines_reminders array
                                         GlobalVars.csvlines_reminders = []
@@ -10296,10 +10348,10 @@ Visit: %s (Author's site)
                                             lastdate = rem.getLastDateInt()
                                             if lastdate < 1:  # Detect if an enddate is set
                                                 # remdate = rem.getNextOccurance(20991231)                                              # Use cutoff  far into the future
-                                                remdate = StoreDateInt(rem.getNextOccurance(20991231), GlobalVars.saved_extractDateFormat_SWSS)                  # Use cutoff  far into the future
+                                                remdate = getNextDueStoreDateInt(rem, 20991231)                  # Use cutoff  far into the future
                                             else:
                                                 # remdate = rem.getNextOccurance(rem.getLastDateInt())                                  # Stop at enddate
-                                                remdate = StoreDateInt(rem.getNextOccurance(rem.getLastDateInt()), GlobalVars.saved_extractDateFormat_SWSS)      # Stop at enddate
+                                                remdate = getNextDueStoreDateInt(rem, rem.getLastDateInt())      # Stop at enddate
 
                                             if remdate.getDateInt() == 0: remdate.setExpired(True)
 
@@ -10328,6 +10380,7 @@ Visit: %s (Author's site)
                                                 csvline.append('')  # Description
                                                 csvline.append(memo)  # Memo
                                                 csvline.append('')  # tags
+                                                if isDeferredRemindersBuild(): csvline.append('')  # SavedOneOffInstances
                                                 GlobalVars.csvlines_reminders.append(csvline)
                                                 GlobalVars.reminderSplitCurrencies_ERTC.append(None)
 
@@ -10380,6 +10433,7 @@ Visit: %s (Author's site)
                                                     csvline.append(splitdesc)
                                                     csvline.append(splitmemo)
                                                     csvline.append(splitTagsAsStr)
+                                                    if isDeferredRemindersBuild(): csvline.append(getOneOffInstancesText(rem) if index2 == 0 else '')
                                                     GlobalVars.csvlines_reminders.append(csvline)
                                                     GlobalVars.reminderSplitCurrencies_ERTC.append(splitCurr)
 
@@ -10820,6 +10874,8 @@ Visit: %s (Author's site)
                                             label = super(self.__class__, self).getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column)
                                             label.setBorder(BorderFactory.createCompoundBorder(label.getBorder(), self.padding))
 
+                                            if isinstance(value, StoreDateInt): label.setToolTipText(value.getOriginalTxt())
+
                                             if (not self.lPlainNumber and not self.lNumber) or isSelected: return label
 
                                             showNegColor = False
@@ -10842,6 +10898,11 @@ Visit: %s (Author's site)
                                         myPrint("D", _THIS_EXTRACT_NAME + "In ", inspect.currentframe().f_code.co_name, "()", ind, "  - On iteration/call: ", GlobalVars.reminderTableCount_ERTC)
 
                                         myDefaultWidths = [70,95,110,150,150,95,95,95,120,100,80,100,150,50,100,150,150,150,150]
+
+                                        if isDeferredRemindersBuild():
+                                            if isinstance(GlobalVars.saved_columnWidths_ERTC, list) and len(GlobalVars.saved_columnWidths_ERTC) == len(myDefaultWidths):
+                                                GlobalVars.saved_columnWidths_ERTC.append(200)      # keeps the user's saved widths
+                                            myDefaultWidths.append(200)
 
                                         validCount=0
                                         lInvalidate=True
@@ -11153,8 +11214,9 @@ Visit: %s (Author's site)
                                                                     fixFormatsStr(GlobalVars.csvlines_reminders[_iii][15], False),
                                                                     fixFormatsStr(GlobalVars.csvlines_reminders[_iii][16], False),
                                                                     fixFormatsStr(GlobalVars.csvlines_reminders[_iii][17], False),
-                                                                    fixFormatsStr(GlobalVars.csvlines_reminders[_iii][18], False),
-                                                                    ""])
+                                                                    fixFormatsStr(GlobalVars.csvlines_reminders[_iii][18], False)]
+                                                                    + ([fixFormatsStr(GlobalVars.csvlines_reminders[_iii][19], False)] if isDeferredRemindersBuild() else [])
+                                                                    + [""])
                                                             except:
                                                                 _msgTxt = _THIS_EXTRACT_NAME + "@@ ERROR writing to CSV on row %s. Please review console" %(_iii)
                                                                 GlobalVars.AUTO_MESSAGES.append(_msgTxt)

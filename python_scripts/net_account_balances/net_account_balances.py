@@ -111,7 +111,9 @@ assert isinstance(0/1, float), "LOGIC ERROR: Custom Balances extension assumes t
 # build: 2000 - fixes to leverage the two invalid cost basis states (current and future). Maintain parallel flags.
 # build: 2001 - tweaked cost calculation section to pre-sweep txns and cache calculations...; updated MyCC (v15 and fixes/tax dates) and added MyCapitalGainResult
 # build: 2001 - BUGFIX shutdown deadlock: cleanupAsBookClosing() and unload() no longer wait for HPV_LOCK - if busy, the work is pushed to the EDT via .invokeLater()
-# build: 2001 - ???
+# build: 2001 - BUGFIX Common: backwards text search now finds every match, and popup height uses the height limit (previously could skip a match, and used the width limit)
+# build: 2002 - Include reminders now uses each deferred reminder's own date and amount on MD2027 (previously used the scheduled date and master amount)
+# build: 2002 - ???
 
 # todo - tweak getConvertXBalanceRecursive() and getXBalance() to also exclude inactives from recursive balances (like apply networth rules)
 # todo - bug. Ref: https://github.com/yogi1967/MoneydancePythonScripts/issues/31 - magic @tags for securities don't handle tickers with dots - e.g. @shop.to
@@ -127,7 +129,7 @@ assert isinstance(0/1, float), "LOGIC ERROR: Custom Balances extension assumes t
 
 # SET THESE LINES
 myModuleID = u"net_account_balances"
-version_build = "2001"
+version_build = "2002"
 MIN_BUILD_REQD = 5100  # 2024(5100) - AppDebug didn't exist before this build, and too many other CC, NW, AcctFilter changes to deal with...
 _I_CAN_RUN_AS_DEVELOPER_CONSOLE_SCRIPT = False
 
@@ -1323,7 +1325,7 @@ Visit: %s (Author's site)
                         maxDimension = Dimension(maxDialogWidth,maxDialogHeight)
                     else:
                         maxDialogWidth = min(screenSize.width-20, max(GetFirstMainFrame.DEFAULT_MAX_WIDTH, int(round(GetFirstMainFrame.getSize().width *.9,0))))
-                        maxDialogHeight = min(screenSize.height-40, max(GetFirstMainFrame.DEFAULT_MAX_WIDTH, int(round(GetFirstMainFrame.getSize().height *.9,0))))
+                        maxDialogHeight = min(screenSize.height-40, max(GetFirstMainFrame.DEFAULT_MAX_HEIGHT, int(round(GetFirstMainFrame.getSize().height *.9,0))))
                         maxDimension = Dimension(maxDialogWidth,maxDialogHeight)
 
                     # noinspection PyUnresolvedReferences
@@ -2159,10 +2161,10 @@ Visit: %s (Author's site)
 
             else:
                 direction = "[backwards]"
-                endPos = len(theText)-1
+                endPos = len(theText)      # rfind()'s end is exclusive, so use the full length to find a match at the very end
 
                 if searchWhat == self.lastSearch:
-                    if self.previousEndPosn < 0: self.previousEndPosn = len(theText)-1
+                    if self.previousEndPosn < 0: self.previousEndPosn = len(theText)
                     endPos = max(0,self.previousEndPosn)
                     if lSwitch: endPos = max(0,self.lastPosn-1)
 
@@ -2178,13 +2180,13 @@ Visit: %s (Author's site)
                 except: pass
                 if response == 0:
                     self.lastPosn = pos+len(searchWhat)
-                    self.previousEndPosn = len(theText)-1
+                    self.previousEndPosn = len(theText)
                 else:
                     self.lastPosn = pos-len(searchWhat)
-                    self.previousEndPosn = pos-1
+                    self.previousEndPosn = pos+len(searchWhat)-1     # next backwards search finds any match starting before this one
             else:
                 self.lastPosn = 0
-                self.previousEndPosn = len(theText)-1
+                self.previousEndPosn = len(theText)
                 myPopupInformationBox(self.theFrame,"Searching %s text not found" %direction)
 
             return
@@ -3117,6 +3119,9 @@ Visit: %s (Author's site)
                 return fm
         return None
 
+    GlobalVars.MD_DEFERRED_REMINDERS_BUILD = 5512                                                                        # MD2027(5512)
+    def isDeferredRemindersBuild(): return (MD_REF.getBuild() >= GlobalVars.MD_DEFERRED_REMINDERS_BUILD and hasattr(Reminder, "getDeferredDates"))
+
     # NOTE: Two bugs were later fixed in the MD CC class from MD2024(5119); and then again from MD2026(5500)
     GlobalVars.MD_COSTCALCULATION_UPGRADED_BUILD = 5512;                                                                 # MD2026(5500)
     def isCostCalculationUpgradedBuild(): return (MD_REF.getBuild() >= GlobalVars.MD_COSTCALCULATION_UPGRADED_BUILD)
@@ -3463,13 +3468,13 @@ Visit: %s (Author's site)
         _extraCodeString = myModuleID + "_extra_code" + ".py"
         if MD_EXTENSION_LOADER is not None:
             # Try launching the extra code from within the MXT...
-            _pyi = getFieldByReflection(MD_REF.getModuleForID(myModuleID), "python")
+            _pyiExtra = getFieldByReflection(MD_REF.getModuleForID(myModuleID), "python")
             extraCodeScriptStream = MD_EXTENSION_LOADER.getResourceAsStream("/%s" %(_extraCodeString))
             if extraCodeScriptStream is not None:
                 myPrint("DB", "About to launch extra code initialiser (via mxt)....")
-                _pyi.execfile(extraCodeScriptStream)
+                _pyiExtra.execfile(extraCodeScriptStream)
                 extraCodeScriptStream.close()
-            del _pyi, extraCodeScriptStream
+            del _pyiExtra, extraCodeScriptStream
 
         if not GlobalVars.EXTRA_CODE_INITIALISED and "__file__" in globals():
             # OK, so try launching the extra code from disk if running as a script....
@@ -4474,6 +4479,23 @@ Visit: %s (Author's site)
         def keyPressed(self, evt):
             if (evt.getKeyCode() == KeyEvent.VK_ENTER):
                 evt.getSource().transferFocus()
+
+    class FixStuckDragSelectionKeyAdapter(KeyAdapter):
+        """macOS (on Java without the JetBrains JBR-5762 fix): after a drag-select past the field's edge the mouse
+        release can miss the field, leaving Swing's autoscroll re-selecting the text so each key typed replaces the
+        last. Ends any such autoscroll when a key is pressed in the field.
+        Oracle Java bugs: JDK-8325052, JDK-8370002, JDK-8311949, JDK-8319880"""
+        def keyPressed(self, evt):
+            theComponent = evt.getSource()
+            if theComponent.getAutoscrolls():
+                theComponent.setAutoscrolls(False)      # setAutoscrolls(False) stops the autoscroll
+                theComponent.setAutoscrolls(True)
+
+    def fixStuckDragSelection(*theComponents):
+        """Applies FixStuckDragSelectionKeyAdapter to each JTextComponent given; returns the component (or all of them)"""
+        for theComponent in theComponents:
+            theComponent.addKeyListener(FixStuckDragSelectionKeyAdapter())
+        return theComponents[0] if len(theComponents) == 1 else theComponents
 
     class MyJTextField(JTextField):
 
@@ -6063,19 +6085,25 @@ Visit: %s (Author's site)
             if (ancestor.isAccountNetWorthEligible() and not ancestor.getIncludeInNetWorth()): return False
         return True
 
+    def getDeferredTxns(rem):
+        # type: (Reminder) -> [ParentTxn]
+        if not isDeferredRemindersBuild(): return []
+        deferredTxns = [rem.getDeferredTxnInfo(dateInt) for dateInt in rem.getDeferredDates()]
+        return [txn for txn in deferredTxns if txn is not None]
+
     def buildRemindersByAccountDict(_reminders):            # One massive sweep....
         # type: ([Reminder]) -> {Account: [Reminder]}
         _remindersByAccount = {}                                                                                        # type: {Account: [Reminder]}
         for rem in _reminders:
-            remParentTxn = rem.getTransaction()                                                                         # type: ParentTxn
-            remParentAcct = remParentTxn.getAccount()
-            if _remindersByAccount.get(remParentAcct, None) is None: _remindersByAccount[remParentAcct] = []
-            if rem not in _remindersByAccount[remParentAcct]: _remindersByAccount[remParentAcct].append(rem)
-            for iRemSplit in range(0, remParentTxn.getOtherTxnCount()):
-                remSplit = remParentTxn.getOtherTxn(iRemSplit)                                                          # type: SplitTxn
-                remSplitAcct = remSplit.getAccount()
-                if _remindersByAccount.get(remSplitAcct, None) is None: _remindersByAccount[remSplitAcct] = []
-                if rem not in _remindersByAccount[remSplitAcct]: _remindersByAccount[remSplitAcct].append(rem)
+            for remParentTxn in [rem.getTransaction()] + getDeferredTxns(rem):                                          # type: ParentTxn
+                remParentAcct = remParentTxn.getAccount()
+                if _remindersByAccount.get(remParentAcct, None) is None: _remindersByAccount[remParentAcct] = []
+                if rem not in _remindersByAccount[remParentAcct]: _remindersByAccount[remParentAcct].append(rem)
+                for iRemSplit in range(0, remParentTxn.getOtherTxnCount()):
+                    remSplit = remParentTxn.getOtherTxn(iRemSplit)                                                      # type: SplitTxn
+                    remSplitAcct = remSplit.getAccount()
+                    if _remindersByAccount.get(remSplitAcct, None) is None: _remindersByAccount[remSplitAcct] = []
+                    if rem not in _remindersByAccount[remSplitAcct]: _remindersByAccount[remSplitAcct].append(rem)
         return _remindersByAccount
 
     def getNextReminderOccurrence(theRem, startDate, maximumDate):
@@ -6092,6 +6120,24 @@ Visit: %s (Author's site)
                 return DateUtil.convertCalToInt(cal)
             cal.add(Calendar.DAY_OF_MONTH, 1)
 
+    def getReminderOccurrencesUpTo(rem, cutOffDateInt):
+        # type: (Reminder, int) -> [(int, ParentTxn)]
+        deferredDates = list(rem.getDeferredDates()) if isDeferredRemindersBuild() else []
+        occurrences = []
+
+        nextStart = rem.getNextOccurance(cutOffDateInt)
+        while nextStart >= 1:
+            dateInt = getNextReminderOccurrence(rem, nextStart, cutOffDateInt)
+            if dateInt < 1: break
+            nextStart = DateUtil.incrementDate(dateInt, 0, 0, 1)
+            if dateInt not in deferredDates: occurrences.append((dateInt, rem.getTransaction()))
+
+        for deferredTxn in getDeferredTxns(rem):
+            if deferredTxn.getDateInt() <= cutOffDateInt:
+                occurrences.append((deferredTxn.getDateInt(), deferredTxn))
+
+        return occurrences
+
     def updateBalancesWithHarvestedReminders(_parallelBalanceTable, swClass):
         # type: ([{Account: HoldBalance}], SwingWorker) -> None
 
@@ -6101,6 +6147,7 @@ Visit: %s (Author's site)
         todayInt = DateUtil.getStrippedDateInt()
 
         remindersByAccount = None
+        occurrencesCache = {}
         _remindersTxnTable = buildEmptyTxnOrBalanceArray()
 
         for iRowIdx in range(0, len(_remindersTxnTable)):
@@ -6116,7 +6163,8 @@ Visit: %s (Author's site)
             if remindersByAccount is None:  # Here we go... grab and index reminders by account....
                 if debug: myPrint("B", "updateBalancesWithHarvestedReminders() >> Harvesting Reminders triggered....")
                 allReminders = [rem for rem in (NAB.moneydanceContext.getCurrentAccountBook().getReminders().getAllReminders())
-                                if (rem.getReminderType() is Reminder.Type.TRANSACTION and rem.getNextOccurance(FUTURE_MAX_END_DATE) != 0)]  # noqa
+                                if (rem.getReminderType() is Reminder.Type.TRANSACTION
+                                    and (rem.getNextOccurance(FUTURE_MAX_END_DATE) != 0 or len(getDeferredTxns(rem)) > 0))]  # noqa
 
                 if len(allReminders) < 1:
                     if debug: myPrint("B", "@@ updateBalancesWithHarvestedReminders() no reminders found...")
@@ -6147,31 +6195,22 @@ Visit: %s (Author's site)
 
                     if debug: myPrint("B", "@@ updateBalancesWithHarvestedReminders() Reminder: %s" %(rem))
 
-                    nextRemStartCalcDateInt = rem.getNextOccurance(remCutOffDateInt)
-                    if nextRemStartCalcDateInt < 1: continue
+                    occKey = (rem.getUUID(), remCutOffDateInt)
+                    if occKey not in occurrencesCache:
+                        occurrencesCache[occKey] = getReminderOccurrencesUpTo(rem, remCutOffDateInt)
 
-                    loopDetector = 0
-                    while True:
-                        loopDetector += 1
-                        if loopDetector > 10000: raise Exception("LOGIC ERROR: .updateBalancesWithHarvestedReminders() Loop detected iterating Reminders..? Aborting.... (Acct: %s rowIdx: %s, Row: %s) Reminder:" %(acct, iRowIdx, iRowIdx+1), rem)
+                    for remTxnDate, remParentTxn in occurrencesCache[occKey]:                                           # type: (int, ParentTxn)
 
-                        calcNextRemDateInt = getNextReminderOccurrence(rem, nextRemStartCalcDateInt, remCutOffDateInt)
-                        if calcNextRemDateInt < 1: break
-
-                        nextRemStartCalcDateInt = DateUtil.incrementDate(calcNextRemDateInt, 0, 0, 1)
-
-                        if debug: myPrint("B", "@@ updateBalancesWithHarvestedReminders() DATE:     %s" %(calcNextRemDateInt))
+                        if debug: myPrint("B", "@@ updateBalancesWithHarvestedReminders() DATE:     %s" %(remTxnDate))
 
                         thisVal = 0
-                        remParentTxn = rem.getTransaction()                                                             # type: ParentTxn
-                        if remParentTxn.getAccount() is acct: thisVal += remParentTxn.getValue()
+                        if remParentTxn.getAccount() == acct: thisVal += remParentTxn.getValue()
                         for iRemSplit in range(0, remParentTxn.getOtherTxnCount()):
                             remSplit = remParentTxn.getOtherTxn(iRemSplit)                                              # type: SplitTxn
-                            if remSplit.getAccount() is acct: thisVal += remSplit.getValue()
+                            if remSplit.getAccount() == acct: thisVal += remSplit.getValue()
 
                         # NOTE: Impossible to know an uncommitted Reminder's tax date (sorry)!!
                         # remTxnDate = remParentTxn.getDateInt() if not NAB.savedUseTaxDates else remParentTxn.getTaxDateInt()
-                        remTxnDate = calcNextRemDateInt
 
                         remTxnStatus = remParentTxn.getClearedStatus()
 
@@ -15396,6 +15435,9 @@ Visit: %s (Author's site)
                     dimFrame.height = frameOuterHeightMax
                     # NAB.theFrame.setPreferredSize(dimFrame)
                     splitPane.setPreferredSize(dimFrame)
+
+                    # apply fix to prevent mouse dragged, left, select all, over-typing bug...
+                    fixStuckDragSelection(NAB.quickSearchField, NAB.filterByGroupID_JTF, NAB.widgetNameField_JTF, NAB.tagName_JTF, NAB.groupIDField_JTF, NAB.formula_JTF)
 
                     dumpScreenSizes(NAB, NAB.theFrame, "PRE-PACK", splitPane, ctrlPnlScrollpane, controlPnl, acctJListScrollpane, NAB.jlst)
                     NAB.theFrame.pack()

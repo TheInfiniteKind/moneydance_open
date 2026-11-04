@@ -85,7 +85,9 @@
 # build: 1034 - fix comparator if/elif bug
 # build: 1035 - ???
 # build: 1035 - BUGFIX: amounts now in the reminder account's currency (previously base currency); fixed errors when clicking below the rows or after dragging columns; list now empties when the last reminder is deleted; first row now remembered when selected
-# build: 1035 - ???
+# build: 1035 - BUGFIX Common: backwards text search now finds every match, and popup height uses the height limit (previously could skip a match, and used the width limit)
+# build: 1036 - List now shows each deferred reminder's own date, amount and account on MD2027, and Skip clears it (previously showed the scheduled date and master amount, and Skip left it behind)
+# build: 1036 - ???
 
 # todo - @he "Include subtotals / totals. Would be nice if user could select what to subtotal (by date / by account for sure)"
 # todo - Add the fields from extract_data:extract_reminders, with options future on/off, hide / select columns etc
@@ -96,7 +98,7 @@
 
 # SET THESE LINES
 myModuleID = u"list_future_reminders"
-version_build = "1035"
+version_build = "1036"
 MIN_BUILD_REQD = 1904                                               # Check for builds less than 1904 / version < 2019.4
 _I_CAN_RUN_AS_DEVELOPER_CONSOLE_SCRIPT = True
 
@@ -539,6 +541,7 @@ Visit: %s (Author's site)
         GlobalVars.baseCurrency = None
         GlobalVars.mySearchField = None
         GlobalVars.reminderDataList = None
+        GlobalVars.deferredRows_LFR = {}
         GlobalVars.reminderListener = None
         GlobalVars.saveJTable = None
         GlobalVars.saveLastReminderObj = None
@@ -1204,7 +1207,7 @@ Visit: %s (Author's site)
                         maxDimension = Dimension(maxDialogWidth,maxDialogHeight)
                     else:
                         maxDialogWidth = min(screenSize.width-20, max(GetFirstMainFrame.DEFAULT_MAX_WIDTH, int(round(GetFirstMainFrame.getSize().width *.9,0))))
-                        maxDialogHeight = min(screenSize.height-40, max(GetFirstMainFrame.DEFAULT_MAX_WIDTH, int(round(GetFirstMainFrame.getSize().height *.9,0))))
+                        maxDialogHeight = min(screenSize.height-40, max(GetFirstMainFrame.DEFAULT_MAX_HEIGHT, int(round(GetFirstMainFrame.getSize().height *.9,0))))
                         maxDimension = Dimension(maxDialogWidth,maxDialogHeight)
 
                     # noinspection PyUnresolvedReferences
@@ -2040,10 +2043,10 @@ Visit: %s (Author's site)
 
             else:
                 direction = "[backwards]"
-                endPos = len(theText)-1
+                endPos = len(theText)      # rfind()'s end is exclusive, so use the full length to find a match at the very end
 
                 if searchWhat == self.lastSearch:
-                    if self.previousEndPosn < 0: self.previousEndPosn = len(theText)-1
+                    if self.previousEndPosn < 0: self.previousEndPosn = len(theText)
                     endPos = max(0,self.previousEndPosn)
                     if lSwitch: endPos = max(0,self.lastPosn-1)
 
@@ -2059,13 +2062,13 @@ Visit: %s (Author's site)
                 except: pass
                 if response == 0:
                     self.lastPosn = pos+len(searchWhat)
-                    self.previousEndPosn = len(theText)-1
+                    self.previousEndPosn = len(theText)
                 else:
                     self.lastPosn = pos-len(searchWhat)
-                    self.previousEndPosn = pos-1
+                    self.previousEndPosn = pos+len(searchWhat)-1     # next backwards search finds any match starting before this one
             else:
                 self.lastPosn = 0
-                self.previousEndPosn = len(theText)-1
+                self.previousEndPosn = len(theText)
                 myPopupInformationBox(self.theFrame,"Searching %s text not found" %direction)
 
             return
@@ -3004,6 +3007,9 @@ Visit: %s (Author's site)
     def isMDPlusEnabledBuild(): return (float(MD_REF.getBuild()) >= GlobalVars.MD_MDPLUS_BUILD)                         # 2022.0
 
     def isAlertControllerEnabledBuild(): return (float(MD_REF.getBuild()) >= GlobalVars.MD_ALERTCONTROLLER_BUILD)       # 2022.3
+
+    GlobalVars.MD_DEFERRED_REMINDERS_BUILD = 5512                                                                        # MD2027(5512)
+    def isDeferredRemindersBuild(): return (MD_REF.getBuild() >= GlobalVars.MD_DEFERRED_REMINDERS_BUILD and hasattr(Reminder, "getDeferredDates"))
 
     def genericSwingEDTRunner(ifOffEDTThenRunNowAndWait, ifOnEDTThenRunNowAndWait, codeblock, *args):
         """Will detect and then run the codeblock on the EDT"""
@@ -4062,6 +4068,17 @@ Visit: %s (Author's site)
         convertSelectedRowToModelIndex = jt.convertRowIndexToModel(GlobalVars.saveSelectedRowIndex)
         return jt.getModel().getValueAt(convertSelectedRowToModelIndex, GlobalVars.tableHeaderRowList.index("Next Due"))
 
+    def getSelectedScheduledDateInt():
+        modelRow = GlobalVars.saveJTable.convertRowIndexToModel(GlobalVars.saveSelectedRowIndex)
+        if modelRow in GlobalVars.deferredRows_LFR: return GlobalVars.deferredRows_LFR[modelRow][0]
+        return getCurrentSelectedDateInt()
+
+    def getDateForAction(_reminder, cutoffDate):
+        scheduledDate = getSelectedScheduledDateInt()
+        if isDeferredRemindersBuild() and _reminder.getDeferredTxnInfo(scheduledDate) is not None and not _reminder.hasEarlierOutstanding(scheduledDate):
+            return scheduledDate
+        return getReminderNextDate(_reminder, cutoffDate)
+
     def getAsOfCutoffDateSelected(limitEndNextYear=True):
         newCutoffDateInt = GlobalVars.lookForwardAsOfDateCutoff_AODC.getAsOfDateIntFromSelectedOption()
         if not limitEndNextYear: return newCutoffDateInt
@@ -4080,7 +4097,7 @@ Visit: %s (Author's site)
 
         saveSelectedRowAndObject()
 
-        currentSelectedDate = getCurrentSelectedDateInt()
+        currentSelectedDate = getSelectedScheduledDateInt()
         r = GlobalVars.saveLastReminderObj
         firstDateToUse = lastDateToUse = nextDateToUseInt = getReminderNextDate(r, newCutoffDateInt)                    # noqa
 
@@ -4177,8 +4194,8 @@ Visit: %s (Author's site)
 
         book = MD_REF.getCurrentAccountBook()
 
-        currentSelectedDate = getCurrentSelectedDateInt()
-        rdate = getReminderNextDate(GlobalVars.saveLastReminderObj, newCutoffDateInt)
+        currentSelectedDate = getSelectedScheduledDateInt()
+        rdate = getDateForAction(GlobalVars.saveLastReminderObj, newCutoffDateInt)
 
         if rdate <= 0:
             myPopupInformationBox(list_future_reminders_frame_,
@@ -4217,7 +4234,7 @@ Visit: %s (Author's site)
 
         newCutoffDateInt = getAsOfCutoffDateSelected()
 
-        currentSelectedDate = getCurrentSelectedDateInt()
+        currentSelectedDate = getSelectedScheduledDateInt()
         rdate = getReminderNextDate(GlobalVars.saveLastReminderObj, newCutoffDateInt)
 
         if rdate <= 0:
@@ -4316,10 +4333,12 @@ Visit: %s (Author's site)
                 newRem = r.duplicate()
                 newRem.setEditingMode()
                 newRem.setAcknowledgedInt(nextDate)
+                if isDeferredRemindersBuild(): newRem.setDeferredTxnInfo(nextDate, None)
                 remsToModify.append(newRem)
             else:
                 r.setEditingMode()
                 r.setAcknowledgedInt(nextDate)
+                if isDeferredRemindersBuild(): r.setDeferredTxnInfo(nextDate, None)
                 remsToModify.append(r)
             skippedReminders += 1
 
@@ -4344,8 +4363,8 @@ Visit: %s (Author's site)
 
         saveSelectedRowAndObject()
         newCutoffDateInt = getAsOfCutoffDateSelected()
-        currentSelectedDate = getCurrentSelectedDateInt()
-        rdate = getReminderNextDate(GlobalVars.saveLastReminderObj, newCutoffDateInt)
+        currentSelectedDate = getSelectedScheduledDateInt()
+        rdate = getDateForAction(GlobalVars.saveLastReminderObj, newCutoffDateInt)
 
         if rdate <= 0:
             myPopupInformationBox(list_future_reminders_frame_,
@@ -4364,7 +4383,8 @@ Visit: %s (Author's site)
             myPrint("B", "Updating Reminder (%s) skipping next occurrence of reminder. Setting setAcknowledgedInt() to: %s" %(GlobalVars.saveLastReminderObj, rdate))
             r = GlobalVars.saveLastReminderObj
             r.setEditingMode()
-            r.setAcknowledgedInt(rdate)
+            r.setAcknowledgedInt(max(r.getDateAcknowledgedInt(), rdate))
+            if isDeferredRemindersBuild(): r.setDeferredTxnInfo(rdate, None)
             r.syncItem()
 
     class ExtractReminders(AbstractAction, Runnable):
@@ -4943,6 +4963,7 @@ Visit: %s (Author's site)
 
             # Read each reminder and create a csv line for each in the GlobalVars.reminderDataList array
             GlobalVars.reminderDataList = []  # Set up an empty array
+            deferredRows = {}
 
             # veryStartTime = thisSectionStartTime = System.currentTimeMillis();
 
@@ -5047,12 +5068,16 @@ Visit: %s (Author's site)
                 else:
                     stopDate = min(newCutoffDateInt, lastdate)
 
+                deferredDates = []
+                if isDeferredRemindersBuild():
+                    deferredDates = [dateInt for dateInt in rem.getDeferredDates() if rem.getDeferredTxnInfo(dateInt) is not None]
+
                 nextDate = rem.getNextOccurance(stopDate)
-                if nextDate < 1: continue
+                if nextDate < 1 and len(deferredDates) < 1: continue
 
                 loopDetector = 0
 
-                while True:
+                while nextDate >= 1:
 
                     loopDetector += 1
                     if loopDetector > 10000:
@@ -5068,6 +5093,8 @@ Visit: %s (Author's site)
 
                     # nextDate = DateUtil.incrementDate(calcNext, 0, 0, 1)
                     nextDate = DateUtil.incrementDate(calcNext, 0, 0, 1)
+
+                    if calcNext in deferredDates: continue
 
                     lastack = rem.getDateAcknowledgedInt()
                     if lastack == 0 or lastack == 19700101: lastack = ''											# noqa
@@ -5105,6 +5132,17 @@ Visit: %s (Author's site)
                             csvline.append((amount))
                             GlobalVars.reminderDataList.append(csvline)
 
+                for scheduledDate in deferredDates:
+                    txnparent = rem.getDeferredTxnInfo(scheduledDate)
+                    if txnparent.getDateInt() > newCutoffDateInt: continue
+                    baseTxn = rem.getTransaction()
+                    baseCurr = baseTxn.getAccount().getCurrencyType()
+                    originalTxt = "Originally %s %s" %(convertStrippedIntDateFormattedText(scheduledDate, GlobalVars.md_dateFormat),
+                                                       baseCurr.formatFancy(abs(baseTxn.getValue()), GlobalVars.decimalCharSep, True))
+                    deferredRows[len(GlobalVars.reminderDataList)] = [scheduledDate, txnparent.getAccount().getCurrencyType(), originalTxt]
+                    amount = txnparent.getAccount().getCurrencyType().getDoubleValue(txnparent.getValue())
+                    GlobalVars.reminderDataList.append([rem, txnparent.getDateInt(), txnparent.getAccount().getAccountName(), desc, amount])
+
                 index += 1
 
             # if len(GlobalVars.reminderDataList) < 1:
@@ -5118,6 +5156,7 @@ Visit: %s (Author's site)
             #     myPrint("B", "(OVERALLTOOK: %s milliseconds (%s seconds))" %(overallTookTime, overallTookTime / 1000.0))
             # thisSectionStartTime = System.currentTimeMillis();
 
+            GlobalVars.deferredRows_LFR = deferredRows
             genericSwingEDTRunner(True, True, reminderTable, GlobalVars.reminderDataList, ind)
 
             # tookTime = System.currentTimeMillis() - thisSectionStartTime
@@ -5561,13 +5600,19 @@ Visit: %s (Author's site)
                 if convertColIdx == 0:
                     renderer = MyClunkyRenderer()
                 elif convertColIdx == 1:
-                    renderer = MyClunkyRenderer(lDate=True)
+                    originalTxt = None
+                    if 0 <= row < self.getRowCount():
+                        deferredRow = GlobalVars.deferredRows_LFR.get(self.convertRowIndexToModel(row))
+                        if deferredRow is not None: originalTxt = deferredRow[2]
+                    renderer = MyClunkyRenderer(lDate=True, originalTxt=originalTxt)
                 elif GlobalVars.tableHeaderRowFormats[convertColIdx][0] == Number:
                     # Amounts are in the reminder account's currency
                     curr = None
                     if 0 <= row < self.getRowCount():
                         rem = self.getModel().getValueAt(self.convertRowIndexToModel(row), GlobalVars.tableHeaderRowList.index("THE_REMINDER_OBJECT"))
                         if str(rem.getReminderType()) == 'TRANSACTION': curr = rem.getTransaction().getAccount().getCurrencyType()
+                        deferredRow = GlobalVars.deferredRows_LFR.get(self.convertRowIndexToModel(row))
+                        if deferredRow is not None: curr = deferredRow[1]
                     renderer = MyClunkyRenderer(lNumber=True, curr=curr)
                 else:
                     renderer = MyClunkyRenderer()
@@ -5689,11 +5734,12 @@ Visit: %s (Author's site)
 
         class MyClunkyRenderer(DefaultTableCellRenderer):
 
-            def __init__(self, lDate=False, lNumber=False, curr=None):
+            def __init__(self, lDate=False, lNumber=False, curr=None, originalTxt=None):
                 self.padding = BorderFactory.createEmptyBorder(0, 10, 0, 0)
                 self.lDate = lDate
                 self.lNumber = lNumber
                 self.curr = curr
+                self.originalTxt = originalTxt
                 super(self.__class__, self).__init__()                                                                  # noqa
 
             def setValue(self, value):
@@ -5707,7 +5753,8 @@ Visit: %s (Author's site)
                         self.setText(str(value))
                     return
                 elif self.lDate:
-                    self.setText(convertStrippedIntDateFormattedText(value, GlobalVars.md_dateFormat))
+                    self.setText(convertStrippedIntDateFormattedText(value, GlobalVars.md_dateFormat) + ("*" if self.originalTxt else ""))
+                    self.setToolTipText(self.originalTxt)
                     return
 
                 super(self.__class__, self).setValue(value)
