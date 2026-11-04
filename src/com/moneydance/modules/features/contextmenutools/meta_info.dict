@@ -5,6 +5,6 @@
   "module_name.en-GB" = "Context Menu Tools"
   "module_desc" = "Additional context menu (right click) tools (transactions: value, duplicate, copy/paste/apply/rebalance splits, reminder tools, show other side, edit date entered, show share balance, jump, show/copy raw details)"
   "id" = "contextmenutools"
-  "module_build" = "18"
+  "module_build" = "19"
   "minbuild" = "5253"
 }

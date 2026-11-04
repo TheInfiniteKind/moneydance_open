@@ -197,8 +197,8 @@ UPDATE REMINDER VALUE
 -------------------------
 Right-click a single transaction in a Bank or Credit Card account and, depending on what's
 found, one of two options appears - only ever one of the two, never both. Only Reminders set up
-as transaction-type reminders are ever considered - plain note-style reminders are always
-excluded.
+as transaction-type reminders are ever considered - plain note-style reminders and loan payment
+reminders are always excluded.
 
   - Update Reminder and transaction's value - shown when the transaction has a single split, and
     exactly one active Reminder in the same account has a single split with the exact same
@@ -228,6 +228,16 @@ option, the transaction you right-clicked) - it never touches any other transact
 register, and a downloaded/matched transaction is never modified by this feature regardless of
 which option you use.
 
+Saved one-off instances (Moneydance build 5512 onwards): an occurrence of a reminder saved with
+its own date or amount (Save and Defer).
+  - Update Reminder and transaction's value leaves them unchanged, and then tells you how many
+    there are.
+  - Update Reminder from selected transaction deletes them, as Moneydance's own Edit Reminder
+    does; the confirmation shows how many will be deleted, and Undo brings them back.
+  - In the "Upcoming reminder dates" lists, a date marked * is a one-off instance's own date.
+  - A reminder with no scheduled occurrences left but a one-off instance still waiting is still
+    offered.
+
 
 EDIT ORIGINATING REMINDER
 -----------------------------
@@ -237,12 +247,13 @@ bring the Reminder in line, starting from the transaction it already produced.
 
 This only appears when a link back to a specific Reminder can be found, checked two ways:
   - Moneydance's own internal identifier, which it creates itself whenever a Reminder
-    auto-commits a transaction
+    auto-commits a transaction, and (Moneydance build 5512 onwards) whenever you Record one,
+    including a one-off instance moved to another date
   - failing that, this extension's own record of having applied a Splits Template (single or to
     multiple selected transactions) from that Reminder to this transaction
 
 Neither is a guess based on matching description or value - both are exact identity links. If
-the transaction wasn't auto-committed from a Reminder, and never had a Splits Template applied
+the transaction wasn't committed from a Reminder, and never had a Splits Template applied
 to it by this extension either, this option simply doesn't appear.
 
 

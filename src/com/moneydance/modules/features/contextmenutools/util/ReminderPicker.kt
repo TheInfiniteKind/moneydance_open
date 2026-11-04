@@ -103,14 +103,14 @@ private fun valueBand(candidateValue:Long, referenceValue:Long):Int {
 }
 
 /**
- * 0 if referenceTxn's own ID matches Moneydance's auto-commit convention for this candidate
- * ("{reminderUUID}.{referenceTxn's date}" - see ReminderSet.autoCommitReminder), else 1. An
+ * 0 if referenceTxn's own ID matches Moneydance's reminder ID convention for this candidate
+ * ("{reminderUUID}.{scheduled date}" - see RemUtility.isFromReminder), else 1. An
  * identity match always outranks every other relevance signal below, regardless of value/split
  * count/category - it's proof the transaction really was committed from this reminder, not a
  * heuristic guess.
  */
 private fun uuidDatePenalty(referenceTxn:ParentTxn, candidate:Reminder):Int =
-  if (isUUIDDateMatch(referenceTxn, candidate)) 0 else 1
+  if (RemUtility.isFromReminder(referenceTxn, candidate)) 0 else 1
 
 /** Same idea as uuidDatePenalty, second tier - our own rem_id marker match (see
  *  TxnEligibility.kt), the fallback identity signal for manually-applied templates that never
@@ -126,13 +126,15 @@ private fun categoryOverlap(a:ParentTxn, b:ParentTxn):Int {
   return aAccounts.intersect(bAccounts).size
 }
 
-/** Next 3 scheduled dates (or fewer), formatted for display. Bound is 1 year + 1 day forward,
- *  same as Moneydance's own reminder detail panel. */
+/** Next 3 upcoming dates (or fewer), formatted for display, a one-off instance's moved date marked
+ *  with "*" (as Reminder Details does). Bound is 1 year + 1 day forward, same as Moneydance's own
+ *  reminder detail panel. */
 fun upcomingDatesStr(mdGUI:MoneydanceGUI, reminder:Reminder):String {
   val dateFmt = mdGUI.preferences.shortDateFormatter
   val searchBound = DateUtil.incrementDate(today, 1, 0, 1)
-  val nextDates = reminder.getNextOccurrences(searchBound).take(3)
-  return if (nextDates.isEmpty()) "None scheduled" else nextDates.joinToString(", ") { dateFmt.format(it) }
+  val nextDates = RemUtility.upcomingOccurrences(reminder, searchBound).take(3)
+  return if (nextDates.isEmpty()) "None scheduled"
+         else nextDates.joinToString(", ") { (date, isOneOff) -> dateFmt.format(date) + if (isOneOff) "*" else "" }
 }
 
 /**

@@ -24,6 +24,7 @@ import javax.swing.JButton
 import javax.swing.JCheckBox
 import javax.swing.JLabel
 import javax.swing.JPanel
+import javax.swing.SwingUtilities
 import javax.swing.border.EmptyBorder
 
 @Suppress("DuplicatedCode", "PrivatePropertyName")
@@ -35,12 +36,15 @@ import javax.swing.border.EmptyBorder
  * - "Update Reminder and transaction's value" (Scenario A) - offered when exactly one eligible
  *   reminder's single-split value exactly matches the selected transaction's single-split value.
  *   Opens a value-edit dialog that can optionally also update the selected transaction's own
- *   split to the same new value, in the same undo/redo batch.
+ *   split to the same new value, in the same undo/redo batch. Saved one-off instances keep their
+ *   own values; the user is told how many were not changed.
  *
  * - "Update Reminder from selected transaction" (Scenario B) - offered otherwise, whenever at
  *   least one structurally-eligible reminder exists in the same account. Opens a picker over
  *   every eligible reminder; the chosen reminder's entire transaction is wholesale-replaced with
  *   a duplicate of the selected transaction. One-way only (txn -> reminder), no value-edit step.
+ *   Saved one-off instances are deleted, as Moneydance's own Edit Reminder does; the confirm
+ *   dialog says how many.
  *
  * WHY TWO SCENARIOS: a Reminder's auto-recorded transaction and an unmatched downloaded bank
  * transaction can end up sitting side by side in the register with different values, because the
@@ -50,8 +54,8 @@ import javax.swing.border.EmptyBorder
  * all - Scenario B's picker exists because automated matching can't be trusted there.
  *
  * ELIGIBILITY: both scenarios require the selected transaction's account, and every candidate
- * reminder's own account, to be BANK or CREDIT_CARD, and require the reminder to be unexpired
- * and share the exact same account as the selected transaction. Scenario A additionally requires
+ * reminder's own account, to be BANK or CREDIT_CARD, and require the reminder to be unexpired,
+ * not a loan reminder, and share the exact same account as the selected transaction. Scenario A additionally requires
  * both sides to have exactly one split, with that split's currency matching its own account's
  * currency. Scenario B has no split-count or per-split-currency restriction on either side -
  * duplicateAsNew() copies whatever structure the selected transaction actually has.
@@ -102,6 +106,9 @@ class UpdateReminderValue(
   private val string_reset_tooltip = "Reset to the selected transaction's value"
   private val string_rewind_tooltip = "Rewind to the reminder's current value"
 
+  private val string_one_offs_not_changed = "This change does not affect {num} saved one-off instance(s) of this reminder"
+  private val string_one_offs_will_be_deleted = "Saved one-off instances of this reminder to be deleted: {num}"
+
   private val ICON_RESET_PATH = "com/moneydance/apps/md/view/gui/glyphs/reset.png"
   private val ICON_REWIND_PATH = "com/moneydance/apps/md/view/gui/glyphs/horizontal-left.png"
 
@@ -137,6 +144,7 @@ class UpdateReminderValue(
 
     return reminders.filter { reminder ->
       reminder.getReminderType() == Reminder.Type.TRANSACTION &&
+      !reminder.isLoanReminder &&     // loan auto-commit relies on the loan reminder's own split structure
       !reminder.isInactiveOrExpired() &&
       reminder.transaction.account == txn.account
     }
@@ -169,14 +177,13 @@ class UpdateReminderValue(
   }
 
   /**
-   * Identity match, not a heuristic: txn's own UUID equals "{reminderUUID}.{txn's date}" -
-   * Moneydance's own auto-commit convention (ReminderSet.autoCommitReminder sets a committed
-   * transaction's ID to exactly this). Only confirmed for auto-committed occurrences - a
-   * manually-entered transaction may not follow this convention, in which case it simply won't
-   * match here and falls through to the value tier below.
+   * Identity match, not a heuristic: txn's own UUID starts with "{reminderUUID}." - Moneydance's
+   * own reminder ID convention (see RemUtility.isFromReminder), written by auto-commit and by
+   * Record. A manually-entered transaction has no such ID, so it simply won't match here and
+   * falls through to the value tier below.
    */
   private fun uuidDateMatchCandidates(txn:ParentTxn, eligiblePool:List<Reminder>):List<Reminder> =
-    eligiblePool.filter { reminder -> isUUIDDateMatch(txn, reminder) }
+    eligiblePool.filter { reminder -> RemUtility.isFromReminder(txn, reminder) }
 
   /** Exact value match (raw, signed) within the structurally-eligible pool. */
   private fun valueMatchCandidates(txn:ParentTxn, eligiblePool:List<Reminder>):List<Reminder> {
@@ -365,6 +372,9 @@ class UpdateReminderValue(
     change.setNameCompat(if (alsoUpdateTxn) string_undo_redo_update_both else string_undo_redo_update_reminder_only)
     mdGUI.undoManager?.recordChange(change)
 
+    val oneOffCount = RemUtility.deferredDates(reminder).size
+    if (oneOffCount > 0) mdGUI.showInfoMessage(string_one_offs_not_changed.replace("{num}", oneOffCount.toString()))
+
     if (extensionContext?.debugMenuEnabled == true || DEBUG) {
       Util.logConsole(
         "UpdateReminderValue: updated reminder '${reminder.description}' to $newValue" +
@@ -416,6 +426,11 @@ class UpdateReminderValue(
     panel.add(JLabel("$string_account_label: ${reminderTxn.account.fullAccountName}"), GridC.getc().xy(0, y++).colspan(2).wx(1f).west().insets(0, 0, 4, 0))
     panel.add(JLabel("$string_next_scheduled_label: ${upcomingDatesStr(mdGUI, reminder)}"), GridC.getc().xy(0, y++).colspan(2).wx(1f).west().insets(0, 0, 12, 0))
 
+    val oneOffCount = RemUtility.deferredDates(reminder).size
+    if (oneOffCount > 0) {
+      panel.add(JLabel(string_one_offs_will_be_deleted.replace("{num}", oneOffCount.toString())), GridC.getc().xy(0, y++).colspan(2).wx(1f).west().insets(0, 0, 4, 0))
+    }
+
     panel.add(buildTxnSummaryBlock(string_current_txn_heading, reminderTxn, currency, dec), GridC.getc().xy(0, y++).colspan(2).wx(1f).west().insets(0, 0, 10, 0))
     panel.add(buildTxnSummaryBlock(string_replacement_txn_heading, txn, currency, dec), GridC.getc().xy(0, y++).colspan(2).wx(1f).west())
 
@@ -453,10 +468,14 @@ class UpdateReminderValue(
     change.beginModification(reminder)
     reminder.setEditingMode()
     reminder.transaction = duplicate   // setter also calls duplicate.setEditingMode() internally
+    RemUtility.clearAllOneOffs(reminder)
     change.finishModification(reminder)
 
     change.setNameCompat(string_undo_redo_update_reminder_from_txn)
     mdGUI.undoManager?.recordChange(change)
+
+    // as Moneydance's Edit Reminder does: an occurrence whose one-off was cleared may now be due
+    SwingUtilities.invokeLater { mdGUI.autocommitReminders() }
 
     if (extensionContext?.debugMenuEnabled == true || DEBUG) {
       Util.logConsole(

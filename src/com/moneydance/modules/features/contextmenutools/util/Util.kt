@@ -8,6 +8,9 @@ import com.moneydance.modules.features.contextmenutools.Main.Companion.extension
 import java.awt.Color
 import java.awt.Component
 import java.awt.Dialog
+import java.awt.event.KeyAdapter
+import java.awt.event.KeyEvent
+import javax.swing.text.JTextComponent
 
 fun String.prefixExtnID(): String { return "${Main.EXTN_ID}: $this"}
 

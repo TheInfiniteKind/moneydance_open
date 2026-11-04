@@ -33,7 +33,7 @@ fun isAllUnreconciled(txn:ParentTxn):Boolean =
  * True if this reminder is inactive/expired - either deliberately (lastDateInt set before
  * initialDateInt, a known convention for marking a reminder permanently inert) or because it
  * genuinely has no future occurrences left (per Moneydance's real calculation, not a
- * re-derivation of the date rules).
+ * re-derivation of the date rules) and no one-off instance still waiting.
  */
 fun Reminder.isInactiveOrExpired():Boolean {
   // deliberate inert marker
@@ -42,22 +42,14 @@ fun Reminder.isInactiveOrExpired():Boolean {
   // real check: any occurrences within the relevant window?
   val searchWindow = if (lastDateInt > 0) lastDateInt else 20991231
   
-  return getNextOccurrences(searchWindow).isEmpty()
+  return getNextOccurrences(searchWindow).isEmpty() && !RemUtility.hasOneOffs(this)
 }
-
-/**
- * True if txn's own ID matches Moneydance's auto-commit convention for this reminder
- * ("{reminderUUID}.{txn's date}" - see ReminderSet.autoCommitReminder). Identity match, not a
- * heuristic - only confirmed for auto-committed occurrences.
- */
-fun isUUIDDateMatch(txn:ParentTxn, reminder:Reminder):Boolean =
-  txn.UUID == "${reminder.UUID}.${txn.dateInt}"
 
 /**
  * Our own fallback identity link, written by this extension whenever it applies a Splits
  * Template (single or batch) to a transaction - separate from, and a fallback for, Moneydance's
- * own uuid.date auto-commit convention above, which only ever exists for AUTO-committed
- * occurrences. Since Apply Splits Template is applied manually by the user, transactions it
+ * own uuid.date link (see RemUtility.isFromReminder), which only exists on transactions
+ * Moneydance committed from a reminder. Since Apply Splits Template is applied manually by the user, transactions it
  * touches would otherwise never carry any link back to their source reminder at all. Prefixed
  * with Main.EXTN_ID, matching every other preference/parameter key this extension writes, to
  * avoid colliding with Moneydance's own fields or another extension's.

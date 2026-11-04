@@ -10,7 +10,7 @@ import com.moneydance.apps.md.view.gui.MDAction
 import com.moneydance.awt.AwtUtil
 import com.moneydance.modules.features.contextmenutools.Main.Companion.mdGUI
 import com.moneydance.modules.features.contextmenutools.util.isRemIdMarkerMatch
-import com.moneydance.modules.features.contextmenutools.util.isUUIDDateMatch
+import com.moneydance.modules.features.contextmenutools.util.RemUtility
 import java.awt.event.ActionListener
 import javax.swing.Action
 
@@ -18,8 +18,8 @@ import javax.swing.Action
 
 /**
  * Adds a context-menu action to open the reminder editor directly on whichever Reminder
- * auto-committed the selected transaction, identified via Moneydance's own auto-commit ID
- * convention ("{reminderUUID}.{txn's date}" - see ReminderSet.autoCommitReminder).
+ * committed the selected transaction, identified via Moneydance's own reminder ID convention
+ * ("{reminderUUID}.{scheduled date}" - see RemUtility.isFromReminder).
  *
  * Only offered when exactly 1 match is found. No other eligibility rules currently - the search
  * itself is same-account, transaction-type reminders, no expiry filter (unlike
@@ -55,10 +55,10 @@ class EditOriginatingReminder(
 
   /**
    * Same-account, transaction-type reminders only, no expiry filter - see class kdoc.
-   * Two lookup tiers: Moneydance's own uuid.date auto-commit convention first (proof, not a
-   * heuristic), then our own rem_id marker (written whenever Apply Splits Template applies a
-   * template to a transaction - the fallback for manually-applied templates, which never get a
-   * uuid.date link since that's only ever set by Moneydance's own auto-commit).
+   * Two lookup tiers: Moneydance's own uuid.date link first (proof, not a heuristic - written by
+   * auto-commit and by Record), then our own rem_id marker (written whenever Apply Splits Template
+   * applies a template to a transaction - the fallback for transactions with no uuid.date link,
+   * such as manually entered ones).
    * @param cachedReminders When provided (menu-build time only), used instead of a fresh
    * book.reminders.allReminders fetch. Click-time re-validation omits this.
    */
@@ -68,13 +68,14 @@ class EditOriginatingReminder(
       reminder.getReminderType() == Reminder.Type.TRANSACTION &&
       reminder.transaction.account == txn.account
     }
-    sameAccountTxnReminders.firstOrNull { isUUIDDateMatch(txn, it) }?.let { return it }
+    sameAccountTxnReminders.firstOrNull { RemUtility.isFromReminder(txn, it) }?.let { return it }
     return sameAccountTxnReminders.firstOrNull { isRemIdMarkerMatch(txn, it) }
   }
 
   private fun editReminder(menuContext:MDActionContext, txn:ParentTxn) {
     // re-validate at click time
     val reminder = findOriginatingReminder(txn) ?: return
-    EditRemindersWindow.editReminder(AwtUtil.getFrame(menuContext.component), mdGUI, reminder)
+    val frame = AwtUtil.getFrame(menuContext.component) ?: mdGUI.firstMainFrame ?: return
+    EditRemindersWindow.editReminder(frame, mdGUI, reminder)
   }
 }
