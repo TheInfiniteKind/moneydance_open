@@ -352,7 +352,7 @@ else:
 
     from java.awt.datatransfer import StringSelection
     from javax.swing.text import DefaultHighlighter
-    from javax.swing.event import AncestorListener
+    from javax.swing.event import AncestorListener, MenuListener
 
     from java.awt import Color, Dimension, FileDialog, FlowLayout, Toolkit, Font, GridBagLayout, GridLayout
     from java.awt import BorderLayout, Dialog, Insets, Point
@@ -885,6 +885,18 @@ Visit: %s (Author's site)
             if "flat dark" in currentTheme.toString().lower(): return True
         except: pass
         return False
+
+    class MenuTitleHighlighter(MenuListener):
+        # VAqua draws an open menu's title in white with no highlight behind it (in-window menu bars), so add one
+        def menuSelected(self, e):
+            m = e.getSource()
+            c = UIManager.getColor("Menu.selectionBackground")
+            m.setBackground(Color(c.getRed(), c.getGreen(), c.getBlue()) if c else Color(0, 99, 225))
+            m.setOpaque(True); m.repaint()
+        def menuDeselected(self, e):
+            m = e.getSource()
+            m.setOpaque(False); m.repaint()
+        def menuCanceled(self, e): self.menuDeselected(e)
 
     def isMDThemeVAQua():
         if Platform.isOSX():
@@ -5994,7 +6006,9 @@ Visit: %s (Author's site)
 
                 mb = JMenuBar()
 
-                menuO = JMenu("<html><B>MENU</b></html>")
+                menuO = JMenu("MENU")        # plain text: VAqua 14 cannot size HTML menu titles
+                menuO.setFont(menuO.getFont().deriveFont(Font.BOLD))
+                menuO.addMenuListener(MenuTitleHighlighter())
                 menuO.setForeground(SetupMDColors.FOREGROUND_REVERSED); menuO.setBackground(SetupMDColors.BACKGROUND_REVERSED)
 
                 menuItem = JMenuItem("About")

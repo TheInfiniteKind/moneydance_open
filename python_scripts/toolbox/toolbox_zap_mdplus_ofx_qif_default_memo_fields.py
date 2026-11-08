@@ -38,6 +38,7 @@
 # build: 1005 - MyJFrame(v5)
 # build: 1006 - MD2024.2(5142) - moneydance_extension_loader was nuked and moneydance_this_fm with getResourceAsStream() was provided.
 # build: 1007 - added "script:" fiid support for manual import_fidelity.py from csv extension...
+# build: 1008 - vaqua14 fixes...
 
 # Iterates previous x month's md+/ofx/qif transactions across Bank, Credit Card, Investment accounts and zaps the Memo field
 # where it matches certain rules...
@@ -754,6 +755,17 @@ Visit: %s (Author's site)
             if "flat dark" in currentTheme.toString().lower(): return True
         except: pass
         return False
+
+    def holdButtonsLeftInGrid(panel):
+        # VAqua 14 centres radio buttons / checkboxes stretched by GridLayout (alignment ignored), so hold each one left in its own panel
+        if not isinstance(panel, JPanel) or not isinstance(panel.getLayout(), GridLayout): return
+        for idx, comp in enumerate(list(panel.getComponents())):
+            if isinstance(comp, (JCheckBox, JRadioButton)):
+                panel.remove(idx)
+                holder = JPanel(BorderLayout())
+                holder.setOpaque(False)
+                holder.add(comp, BorderLayout.WEST)
+                panel.add(holder, idx)
 
     def isMDThemeVAQua():
         if Platform.isOSX():
@@ -3671,6 +3683,7 @@ Visit: %s (Author's site)
 
             pane = JOptionPane()
             pane.setIcon(None)
+            holdButtonsLeftInGrid(userFilters)
             pane.setMessage(userFilters)
             pane.setMessageType(JOptionPane.QUESTION_MESSAGE)
             pane.setOptionType(JOptionPane.OK_CANCEL_OPTION)

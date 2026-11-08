@@ -3,6 +3,7 @@ package com.moneydance.modules.features.contextmenutools.util
 import com.infinitekind.moneydance.model.UndoableChange
 import com.infinitekind.util.AppDebug
 import com.infinitekind.util.DateUtil.today
+import com.moneydance.apps.md.view.gui.MDColors
 import com.moneydance.modules.features.contextmenutools.Main
 import com.moneydance.modules.features.contextmenutools.Main.Companion.extensionContext
 import java.awt.Color
@@ -10,6 +11,7 @@ import java.awt.Component
 import java.awt.Dialog
 import java.awt.event.KeyAdapter
 import java.awt.event.KeyEvent
+import javax.swing.JSeparator
 import javax.swing.text.JTextComponent
 
 fun String.prefixExtnID(): String { return "${Main.EXTN_ID}: $this"}
@@ -59,6 +61,9 @@ fun <T : JTextComponent> T.fixStuckDragSelection(): T {
   })
   return this
 }
+
+/** A separator in Moneydance's light divider colour (VAqua 14's default separator colour is much darker). */
+fun lightSeparator(): JSeparator = JSeparator().apply { foreground = MDColors.getSingleton().headerBorder }
 
 /**
  * @author Stuart Beesley - February-August 2026

@@ -44,6 +44,7 @@
 # build: 1011 - Common code - FileFilter fix...
 # build: 1012 - MyJFrame(v5)
 # build: 1013 - MD2024.2(5142) - moneydance_extension_loader was nuked and moneydance_this_fm with getResourceAsStream() was provided.
+# build: 1014 - vaqua14 fixes...
 
 # Allows the user to select investment transactions and then move them between accounts:
 # Can be called from the Extensions Menu (with/without txns selected); or from Toolbox menu
@@ -767,6 +768,17 @@ Visit: %s (Author's site)
             if "flat dark" in currentTheme.toString().lower(): return True
         except: pass
         return False
+
+    def holdButtonsLeftInGrid(panel):
+        # VAqua 14 centres radio buttons / checkboxes stretched by GridLayout (alignment ignored), so hold each one left in its own panel
+        if not isinstance(panel, JPanel) or not isinstance(panel.getLayout(), GridLayout): return
+        for idx, comp in enumerate(list(panel.getComponents())):
+            if isinstance(comp, (JCheckBox, JRadioButton)):
+                panel.remove(idx)
+                holder = JPanel(BorderLayout())
+                holder.setOpaque(False)
+                holder.add(comp, BorderLayout.WEST)
+                panel.add(holder, idx)
 
     def isMDThemeVAQua():
         if Platform.isOSX():
@@ -3552,6 +3564,7 @@ Visit: %s (Author's site)
                         self.maxHeight = _max_h
                         self.borders = 90
                         self.setOpaque(False)
+                        self.setBackground(Color(0, 0, 0, 0))     # VAqua 14 paints a scroll pane's background even when not opaque; transparent = paint nothing
                         self.setViewportBorder(EmptyBorder(5, 5, 5, 5))
                         self.addHierarchyListener(self)
 
@@ -3823,6 +3836,7 @@ Visit: %s (Author's site)
                     _options = ["Cancel", "PROCEED"]
                     if GlobalVars.helpFileData: _options.append("HELP/GUIDE")
 
+                    holdButtonsLeftInGrid(filterPanel)
                     while True:
                         jsp = MyJScrollPaneForJOptionPane(filterPanel,850, 700 if (lRunningFromToolbox) else 450)
                         userAction = JOptionPane.showOptionDialog(toolbox_move_merge_investment_txns_frame_,

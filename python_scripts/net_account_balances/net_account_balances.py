@@ -113,6 +113,7 @@ assert isinstance(0/1, float), "LOGIC ERROR: Custom Balances extension assumes t
 # build: 2001 - BUGFIX shutdown deadlock: cleanupAsBookClosing() and unload() no longer wait for HPV_LOCK - if busy, the work is pushed to the EDT via .invokeLater()
 # build: 2001 - BUGFIX Common: backwards text search now finds every match, and popup height uses the height limit (previously could skip a match, and used the width limit)
 # build: 2002 - Include reminders now uses each deferred reminder's own date and amount on MD2027 (previously used the scheduled date and master amount)
+# build: 2002 - vaqua14 fixes
 # build: 2002 - ???
 
 # todo - tweak getConvertXBalanceRecursive() and getXBalance() to also exclude inactives from recursive balances (like apply networth rules)
@@ -388,7 +389,7 @@ else:
 
     from java.awt.datatransfer import StringSelection
     from javax.swing.text import DefaultHighlighter
-    from javax.swing.event import AncestorListener
+    from javax.swing.event import AncestorListener, MenuListener
 
     from java.awt import Color, Dimension, FileDialog, FlowLayout, Toolkit, Font, GridBagLayout, GridLayout
     from java.awt import BorderLayout, Dialog, Insets, Point
@@ -1003,6 +1004,43 @@ Visit: %s (Author's site)
             if "flat dark" in currentTheme.toString().lower(): return True
         except: pass
         return False
+
+    def getVAquaReleaseNumber():
+        # VAqua release as an int (eg 14) when VAqua is the current look and feel, else None; never raises (reflection, any theme / platform / VAqua version)
+        try:
+            from java.lang import Class as JClass
+            laf = UIManager.getLookAndFeel()
+            # Jython turns getClass() into the Python class, whose getName() is LookAndFeel.getName(), so use java.lang.Class directly
+            if laf is None or JClass.getName(laf.getClass()) != "org.violetlib.aqua.AquaLookAndFeel": return None
+            releaseName = JClass.getMethod(laf.getClass(), "getReleaseName", []).invoke(None, [])
+            digits = ""
+            for ch in unicode(releaseName).strip():
+                if not ch.isdigit(): break
+                digits += ch
+            return int(digits) if digits else None
+        except: return None
+
+    def addVAqua14FieldBorders(container):
+        # VAqua 14 text fields have no visible outline (invisible on a matching background, eg dark mode): give them NAB's thin header-border line
+        for comp in container.getComponents():
+            if isinstance(comp, JTextField) and not isinstance(comp, QuickSearchField):
+                comp.setBorder(BorderFactory.createCompoundBorder(
+                    BorderFactory.createLineBorder(GlobalVars.CONTEXT.getUI().getColors().headerBorder),
+                    EmptyBorder(1, 3, 1, 3)))
+            elif isinstance(comp, JComponent) and not isinstance(comp, JComboBox):
+                addVAqua14FieldBorders(comp)
+
+    class MenuTitleHighlighter(MenuListener):
+        # VAqua draws an open menu's title in white with no highlight behind it (in-window menu bars), so add one
+        def menuSelected(self, e):
+            m = e.getSource()
+            c = UIManager.getColor("Menu.selectionBackground")
+            m.setBackground(Color(c.getRed(), c.getGreen(), c.getBlue()) if c else Color(0, 99, 225))
+            m.setOpaque(True); m.repaint()
+        def menuDeselected(self, e):
+            m = e.getSource()
+            m.setOpaque(False); m.repaint()
+        def menuCanceled(self, e): self.menuDeselected(e)
 
     def isMDThemeVAQua():
         if Platform.isOSX():
@@ -4905,7 +4943,18 @@ Visit: %s (Author's site)
             super(self.__class__, self).__init__(*args, **kwargs)
 
         def updateUI(self):
-            super(self.__class__, self).updateUI()
+            # With the screen menu bar on, a menu bar gets Apple's AquaMenuBarUI (always light, even in dark mode); install the UI with it off
+            saveScreenMenuBar = System.getProperty("apple.laf.useScreenMenuBar")
+            if Platform.isOSX():
+                System.setProperty("apple.laf.useScreenMenuBar", "false")
+                System.setProperty("com.apple.macos.useScreenMenuBar", "false")
+            try:
+                super(self.__class__, self).updateUI()
+            finally:
+                if Platform.isOSX():
+                    restoreScreenMenuBar = saveScreenMenuBar if saveScreenMenuBar else "true"
+                    System.setProperty("apple.laf.useScreenMenuBar", restoreScreenMenuBar)
+                    System.setProperty("com.apple.macos.useScreenMenuBar", restoreScreenMenuBar)
             # setJComponentStandardUIDefaults(self)
 
     class MyJCheckBoxMenuItem(JCheckBoxMenuItem):
@@ -4934,6 +4983,7 @@ Visit: %s (Author's site)
         def updateUI(self):
             super(self.__class__, self).updateUI()
             setJComponentStandardUIDefaults(self, border=True, background=False)
+            if isMDThemeVAQua(): self.setForeground(GlobalVars.CONTEXT.getUI().getColors().headerBorder)   # VAqua 14 default separator colour is much darker
 
     class MyQuickSearchField(QuickSearchField):
 
@@ -7409,6 +7459,26 @@ Visit: %s (Author's site)
             output += "\n\n<END>\n"
             QuickJFrame("NETWORTH", output, lAlertLevel=0, lWrapText=False, lAutoSize=True).show_the_frame()
 
+    def labelledMenuItem(_action, font=None):
+        # VAqua 14 ignores a menu item's font and cannot draw HTML item text, so a JLabel child draws the action's text
+        mi = JMenuItem(_action)
+        lbl = JLabel(mi.getText())
+        mi.setText("")
+        mi.setLayout(BorderLayout())
+        lbl.setBorder(EmptyBorder(0, 18, 0, 18))
+        if font is not None: lbl.setFont(font)
+        mi.add(lbl, BorderLayout.WEST)
+        ps = lbl.getPreferredSize()
+        mi.setPreferredSize(Dimension(ps.width + 10, ps.height))
+        return mi
+
+    def labelHeldLeft(_label):
+        # VAqua 14 centres a bare label in a popup menu, so hold it left in its own panel
+        holder = JPanel(BorderLayout())
+        holder.setOpaque(False)
+        holder.add(_label, BorderLayout.WEST)
+        return holder
+
     def setFontAllElements(_comp, _font):
         for _menuComp in _comp.getSubElements():
             _menuComp.setFont(_font)
@@ -7451,11 +7521,11 @@ Visit: %s (Author's site)
             formatCodePickerMenu = JPopupMenu()
             for formatCode, formatCodeName in TextDisplayForSwingConfig.ALL_FORMAT_CODE_NAMES_LIST:
                 if formatCode == TextDisplayForSwingConfig.WIDGET_ROW_BLANKROWNAME:
-                    formatCodePickerMenu.add(MyJLabel(wrap_HTML_bold("  FORMATTING CODES:")))
+                    formatCodePickerMenu.add(labelHeldLeft(MyJLabel(wrap_HTML_bold("  FORMATTING CODES:"))))
                 elif formatCode == TextDisplayForSwingConfig.WIDGET_VAR_ROW_NUMBER:
                     formatCodePickerMenu.addSeparator()
-                    formatCodePickerMenu.add(MyJLabel(wrap_HTML_bold("  VARIABLE CODES:")))
-                formatCodePickerMenu.add(FormatCodePickerAction(formatCode, formatCodeName, NAB))
+                    formatCodePickerMenu.add(labelHeldLeft(MyJLabel(wrap_HTML_bold("  VARIABLE CODES:"))))
+                formatCodePickerMenu.add(labelledMenuItem(FormatCodePickerAction(formatCode, formatCodeName, NAB), font=monoFont))
             for menuComp in formatCodePickerMenu.getSubElements(): menuComp.setFont(monoFont)
             myPrint("DB", "... about to show the formatCodePicker popup...")
             formatCodePickerMenu.show(comp, 0, comp.getHeight())
@@ -7497,12 +7567,12 @@ Visit: %s (Author's site)
             monoFont = NAB.moneydanceContext.getUI().getFonts().code
             tagPickerMenu = JPopupMenu()
 
-            tagPickerMenu.add(MyJLabel(wrap_HTML_bold("  MAGIC TAGS:")))
+            tagPickerMenu.add(labelHeldLeft(MyJLabel(wrap_HTML_bold("  MAGIC TAGS:"))))
             for tag in NAB.FILTER_FORMULA_EXPR_DEFAULT_TAGS:
-                tagPickerMenu.add(TagPickerAction(tag, "", NAB))
+                tagPickerMenu.add(labelledMenuItem(TagPickerAction(tag, "", NAB), font=monoFont))
 
             tagPickerMenu.addSeparator()
-            tagSubMenu = JMenu(wrap_HTML_bold("ROW TAGS:"))
+            tagSubMenu = JMenu("ROW TAGS:")
 
             validTags = []
             for i in range(0, NAB.getNumberOfRows()):
@@ -7510,22 +7580,22 @@ Visit: %s (Author's site)
                 if tag is not None: validTags.append([tag, "(row: %s)" %(i + 1)])
             validTags = sorted(validTags, key=lambda sort_x: (sort_x[0].lower()))
             for tag, tagName in validTags:
-                tagSubMenu.add(TagPickerAction(tag, tagName, NAB))
+                tagSubMenu.add(labelledMenuItem(TagPickerAction(tag, tagName, NAB), font=monoFont))
             tagPickerMenu.add(tagSubMenu)
 
             tagPickerMenu.addSeparator()
-            formulaSubMenu = JMenu(wrap_HTML_bold("FORMULAS:"))
+            formulaSubMenu = JMenu("FORMULAS:")
 
             for i in range(0, len(NAB.FILTER_FORMULA_EXPR_ALLOWED_WORDS)):
                 tag = NAB.FILTER_FORMULA_EXPR_ALLOWED_WORDS[i]
                 tagName = NAB.FILTER_FORMULA_EXPR_FORMULA_DESCRIBED[i]
-                formulaSubMenu.add(TagPickerAction(tag + "()", tagName, NAB))
+                formulaSubMenu.add(labelledMenuItem(TagPickerAction(tag + "()", tagName, NAB), font=monoFont))
             tagPickerMenu.add(formulaSubMenu)
 
             allCurrencies = [c for c in NAB.moneydanceContext.getCurrentAccountBook().getCurrencies().getAllCurrencies() if not c.getHideInUI()]
 
             tagPickerMenu.addSeparator()
-            currencySubMenu = JMenu(wrap_HTML_bold("CURRENCY TAGS:"))
+            currencySubMenu = JMenu("CURRENCY TAGS:")
 
             # allCurrencies = sorted(allCurrencies, key=lambda sort_x: (sort_x.getIDString().lower()))
             allCurrencies = sorted(allCurrencies, key=lambda sort_x: (sort_x.getName().lower()))
@@ -7533,22 +7603,22 @@ Visit: %s (Author's site)
                 if c.getCurrencyType() == CurrencyType.Type.CURRENCY:                                                   # noqa
                     currID = c.getIDString().strip().lower()
                     if currID and isGoodRate(c.getRate(None)):
-                        currencySubMenu.add(TagPickerAction("@%s" %(currID), c.getName() + " (%s)" %(round(1.0 / c.getRate(None), 4)), NAB))
+                        currencySubMenu.add(labelledMenuItem(TagPickerAction("@%s" %(currID), c.getName() + " (%s)" %(round(1.0 / c.getRate(None), 4)), NAB), font=monoFont))
             tagPickerMenu.add(currencySubMenu)
 
             tagPickerMenu.addSeparator()
-            securitySubMenu = JMenu(wrap_HTML_bold("SECURITY TICKER TAGS:"))
+            securitySubMenu = JMenu("SECURITY TICKER TAGS:")
 
             # allCurrencies = sorted(allCurrencies, key=lambda sort_x: (sort_x.getTickerSymbol().lower()))
             for c in allCurrencies:
                 if c.getCurrencyType() == CurrencyType.Type.SECURITY:                                                   # noqa
                     ticker = c.getTickerSymbol().strip().lower()
                     if ticker and isGoodRate(c.getRate(None)):
-                        securitySubMenu.add(TagPickerAction("@%s" %(ticker), c.getName() + " (%s)" %(round(1.0 / c.getRate(None), 4)), NAB))
+                        securitySubMenu.add(labelledMenuItem(TagPickerAction("@%s" %(ticker), c.getName() + " (%s)" %(round(1.0 / c.getRate(None), 4)), NAB), font=monoFont))
             tagPickerMenu.add(securitySubMenu)
 
             tagPickerMenu.addSeparator()
-            currencyIDSubMenu = JMenu(wrap_HTML_bold("CURRENCY LITERAL TAGS:"))
+            currencyIDSubMenu = JMenu("CURRENCY LITERAL TAGS:")
 
             # allCurrencies = sorted(allCurrencies, key=lambda sort_x: (sort_x.getIDString().lower()))
             allCurrencies = sorted(allCurrencies, key=lambda sort_x: (sort_x.getName().lower()))
@@ -7556,18 +7626,18 @@ Visit: %s (Author's site)
                 if c.getCurrencyType() == CurrencyType.Type.CURRENCY:                                                   # noqa
                     currID = c.getIDString().strip().lower()
                     if currID:
-                        currencyIDSubMenu.add(TagPickerAction("@@%s" %(currID), c.getName() + " (%s)" %(c.getUUID() if debug else "<currency id>"), NAB))
+                        currencyIDSubMenu.add(labelledMenuItem(TagPickerAction("@@%s" %(currID), c.getName() + " (%s)" %(c.getUUID() if debug else "<currency id>"), NAB), font=monoFont))
             tagPickerMenu.add(currencyIDSubMenu)
 
             tagPickerMenu.addSeparator()
-            securityIDSubMenu = JMenu(wrap_HTML_bold("SECURITY TICKER LITERAL TAGS:"))
+            securityIDSubMenu = JMenu("SECURITY TICKER LITERAL TAGS:")
 
             # allCurrencies = sorted(allCurrencies, key=lambda sort_x: (sort_x.getTickerSymbol().lower()))
             for c in allCurrencies:
                 if c.getCurrencyType() == CurrencyType.Type.SECURITY:                                                   # noqa
                     ticker = c.getTickerSymbol().strip().lower()
                     if ticker:
-                        securityIDSubMenu.add(TagPickerAction("@@%s" %(ticker), c.getName() + " (%s)" %(c.getUUID() if debug else "<security id>"), NAB))
+                        securityIDSubMenu.add(labelledMenuItem(TagPickerAction("@@%s" %(ticker), c.getName() + " (%s)" %(c.getUUID() if debug else "<security id>"), NAB), font=monoFont))
             tagPickerMenu.add(securityIDSubMenu)
 
             setFontAllElements(tagPickerMenu, monoFont)
@@ -7616,7 +7686,7 @@ Visit: %s (Author's site)
             monoFont = NAB.moneydanceContext.getUI().getFonts().code
 
             #######################################
-            rowNameScrollerSubMenu = JMenu(wrap_HTML_bold("All rows by row number / name:"))
+            rowNameScrollerSubMenu = JMenu("All rows by row number / name:")
 
             HAS_TAGNAME_TXT = "<tag: {}>"
             HAS_GROUPID_TXT = "<groupid: {}>"
@@ -7648,34 +7718,34 @@ Visit: %s (Author's site)
                                                   stripSmallChars=False,
                                                   maxLenRowText=75)
 
-                rowNameScrollerSubMenu.add(RowScrollerAction(i, onRow, tdfsc.getSwingComponentText(), NAB))
+                rowNameScrollerSubMenu.add(labelledMenuItem(RowScrollerAction(i, onRow, tdfsc.getSwingComponentText(), NAB)))
             rowScrollerMenu.add(rowNameScrollerSubMenu)
             #######################################
 
             rowScrollerMenu.addSeparator()
 
-            tagScrollerSubMenu = JMenu(wrap_HTML_bold("Rows (filtered) by tag:"))
+            tagScrollerSubMenu = JMenu("Rows (filtered) by tag:")
             validTags = []
             for i in range(0, NAB.getNumberOfRows()):
                 tag = NAB.getTagVariableNameForRowIdx(i, returnOriginalCase=True)
                 if tag: validTags.append([i, tag, "row: %s" %(i + 1), "name: %s" %(NAB.savedWidgetName[i])])
             validTags = sorted(validTags, key=lambda sort_x: (sort_x[1].lower()))
             for idx, tag, displayTxt, rowTxt in validTags:
-                tagScrollerSubMenu.add(RowScrollerAction(idx, idx+1, rowTxt, NAB, _tag=tag, _tagName=displayTxt))
+                tagScrollerSubMenu.add(labelledMenuItem(RowScrollerAction(idx, idx+1, rowTxt, NAB, _tag=tag, _tagName=displayTxt), font=monoFont))
             setFontAllElements(tagScrollerSubMenu, monoFont)
             rowScrollerMenu.add(tagScrollerSubMenu)
             #######################################
 
             rowScrollerMenu.addSeparator()
 
-            groupScrollerSubMenu = JMenu(wrap_HTML_bold("Rows (filtered) by group id:"))
+            groupScrollerSubMenu = JMenu("Rows (filtered) by group id:")
             validGroupIDs = []
             for i in range(0, NAB.getNumberOfRows()):
                 groupID = NAB.savedGroupIDTable[i].strip().lower()
                 if groupID: validGroupIDs.append([i, groupID, "row: %s" %(i + 1), "name: %s" %(NAB.savedWidgetName[i])])
             validGroupIDs = sorted(validGroupIDs, key=lambda sort_x: (sort_x[1].lower()))
             for idx, groupID, displayTxt, rowTxt in validGroupIDs:
-                groupScrollerSubMenu.add(RowScrollerAction(idx, idx+1, rowTxt, NAB, _groupID=groupID, _groupName=displayTxt))
+                groupScrollerSubMenu.add(labelledMenuItem(RowScrollerAction(idx, idx+1, rowTxt, NAB, _groupID=groupID, _groupName=displayTxt), font=monoFont))
             setFontAllElements(groupScrollerSubMenu, monoFont)
             rowScrollerMenu.add(groupScrollerSubMenu)
 
@@ -7692,6 +7762,7 @@ Visit: %s (Author's site)
             self.borders = 90
             self.screenSize = Toolkit.getDefaultToolkit().getScreenSize()
             self.setOpaque(False)
+            self.setBackground(Color(0, 0, 0, 0))     # VAqua 14 paints a scroll pane's background even when not opaque; transparent = paint nothing
             self.setViewportBorder(EmptyBorder(5, 5, 5, 5))
             self.addHierarchyListener(self)
 
@@ -13540,10 +13611,9 @@ Visit: %s (Author's site)
             # Recreate the Menu system each time - Damn Mac!!
             NAB.mainMenuBar = MyJMenuBar()
 
-            if Platform.isMac():
-                menuO = MyJMenu("<html><B>Options</b></html>")
-            else:
-                menuO = MyJMenu("<html><B><u>O</u>ptions</b></html>")
+            menuO = MyJMenu("Options")        # plain text: VAqua 14 cannot size HTML menu titles
+            menuO.setFont(menuO.getFont().deriveFont(Font.BOLD))
+            menuO.addMenuListener(MenuTitleHighlighter())
             menuO.setMnemonic(KeyEvent.VK_O)
             menuO.setForeground(SetupMDColors.FOREGROUND_REVERSED)
             menuO.setBackground(SetupMDColors.BACKGROUND_REVERSED)
@@ -13674,10 +13744,9 @@ Visit: %s (Author's site)
 
             NAB.mainMenuBar.add(menuO)
 
-            if Platform.isMac():
-                menuA = MyJMenu("<html><B>Information</b></html>")
-            else:
-                menuA = MyJMenu("<html><B><u>I</u>nformation</b></html>")
+            menuA = MyJMenu("Information")        # plain text: VAqua 14 cannot size HTML menu titles
+            menuA.setFont(menuA.getFont().deriveFont(Font.BOLD))
+            menuA.addMenuListener(MenuTitleHighlighter())
             menuA.setMnemonic(KeyEvent.VK_I)
             menuA.setForeground(SetupMDColors.FOREGROUND_REVERSED)
             menuA.setBackground(SetupMDColors.BACKGROUND_REVERSED)
@@ -15349,10 +15418,12 @@ Visit: %s (Author's site)
 
                     ##-
 
+                    if (getVAquaReleaseNumber() or 0) >= 14: addVAqua14FieldBorders(controlPnl)
                     ctrlPnlScrollpane = MyJScrollPane(controlPnl, JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED, JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED)
                     ctrlPnlScrollpane.putClientProperty("%s.id" %(NAB.myModuleID), "ctrlPnlScrollpane")
                     ctrlPnlScrollpane.setViewportBorder(EmptyBorder(5, colLeftInset, 5, colRightInset))
                     ctrlPnlScrollpane.setOpaque(False)
+                    ctrlPnlScrollpane.setBackground(None)      # VAqua 14 paints a scroll pane's own background even when not opaque
                     ctrlPnlScrollpane.setMinimumSize(Dimension(0, 160))                   # JSplitPane will respect this (just enough to show when hide controls selected)
 
                     # NAB.jlst.setVisibleRowCount(7);
@@ -15371,6 +15442,7 @@ Visit: %s (Author's site)
                     splitPane.setOneTouchExpandable(False)
                     splitPane.putClientProperty("JSplitPane.style", "thick")     # can be 'thin', 'thick, 'paneSplitter'
                     splitPane.setContinuousLayout(True)
+                    if not isAnyDarkDetected(): splitPane.setBackground(None)   # let the scroll pane inherit the content pane's grey (VAqua 14 ignores the theme default)
 
                     # -----------------------------------------------------------------------------------
                     masterPnl = MyJPanel(BorderLayout())
@@ -17338,6 +17410,7 @@ Visit: %s (Author's site)
                         countConsecutive += 1
                 if countConsecutive >= 2: return
                 js = JSeparator()
+                if isMDThemeVAQua(): js.setForeground(GlobalVars.CONTEXT.getUI().getColors().headerBorder)   # VAqua 14 default separator colour is much darker
                 if Platform.isWindows(): js.setBorder(BorderFactory.createMatteBorder(1, 0, 0, 0, js.getForeground()))  # fix for Windows and 'invisible' separators
                 theView.listPanel.add(js, GridC.getc().xy(0, self.widgetOnPnlRow).wx(1.0).fillx().pady(2).leftInset(15).rightInset(15).colspan(2))
                 self.widgetSeparatorsUsed.append(self.widgetOnPnlRow)

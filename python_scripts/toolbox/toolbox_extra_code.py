@@ -15,6 +15,7 @@
 # build: 1005 - Upgraded merge duplicate securities with MD2026 (now MD2027) hidden security Identifier data schemes / api calls
 # build: 1005 - Added merge_security_identifier_stores(), and relocated / upgraded all the fiscal Identifier management code
 # build: 1006 - Renamed MD2026 references to MD2027...
+# build: 1007 - vaqua14 fixes...
 ###############################################################################
 # MIT License
 #
@@ -985,6 +986,22 @@ try:
 
         ManuallyCloseAndReloadDataset.moneydanceExitOrRestart(lRestart=True)
 
+    def holdButtonsLeftInGrid(panel):
+        # VAqua 14 centres radio buttons / checkboxes stretched by GridLayout (alignment ignored), so hold each one left in its own panel
+        if not isinstance(panel, JPanel) or not isinstance(panel.getLayout(), GridLayout): return
+        for idx, comp in enumerate(list(panel.getComponents())):
+            if isinstance(comp, (JCheckBox, JRadioButton)):
+                panel.remove(idx)
+                holder = JPanel(BorderLayout())
+                holder.setOpaque(False)
+                holder.putClientProperty("buttonHeldLeft", True)
+                holder.add(comp, BorderLayout.WEST)
+                panel.add(holder, idx)
+
+    def componentsInGrid(panel):
+        # the panel's components, looking through any holder added by holdButtonsLeftInGrid()
+        return [c.getComponent(0) if (isinstance(c, JPanel) and c.getClientProperty("buttonHeldLeft")) else c for c in panel.getComponents()]
+
     def advanced_clone_dataset():
         """This feature clones the open dataset. It takes a backup, restores the backup, wipes sync, removes transactional data.
         It deletes txns, price history, attachments from the clone (rather than recreating a new structure. The next evolution
@@ -1038,6 +1055,7 @@ try:
         filterPanel.add(user_purgeSnapHistory)
 
         _options = ["Cancel", "CLONE"]
+        holdButtonsLeftInGrid(filterPanel)
 
         while True:
             jsp_acd = MyJScrollPaneForJOptionPane(filterPanel,850, 175)
@@ -4163,7 +4181,7 @@ MD2021.2(3088): Adds capability to set the encryption passphrase into an environ
                 the_VERBOSE = None
                 saveDropDownStateToo = None
 
-                _components = self.thePanel.getComponents()
+                _components = componentsInGrid(self.thePanel)
                 for _theComponent in _components:
 
                     if isinstance(_theComponent, (JComboBox, JTextField, JCheckBox, JButton)):
@@ -4292,6 +4310,7 @@ MD2021.2(3088): Adds capability to set the encryption passphrase into an environ
         for theComponent in components:
             if isinstance(theComponent, (JComboBox,JTextField,JCheckBox)):
                 theComponent.addActionListener(PanelAction( userFilters, orphanSnaps))
+        holdButtonsLeftInGrid(userFilters)
 
         while True:
             options = ["EXIT", "PROCEED"]
@@ -4434,7 +4453,7 @@ MD2021.2(3088): Adds capability to set the encryption passphrase into an environ
 
             break
 
-        components = userFilters.getComponents()
+        components = componentsInGrid(userFilters)
         for theComponent in components:
             if isinstance(theComponent, (JComboBox,JTextField, JCheckBox)):
                 for al in theComponent.getActionListeners():
@@ -4922,6 +4941,7 @@ MD2021.2(3088): Adds capability to set the encryption passphrase into an environ
             userFilters.add(user_fixBothCurrenciesAndSecurities)
             userFilters.add(JLabel("-------------"))
             userFilters.add(user_VERBOSE)
+            holdButtonsLeftInGrid(userFilters)
 
             while True:
                 options = ["EXIT", "PROCEED"]

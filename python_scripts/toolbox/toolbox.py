@@ -127,6 +127,7 @@
 # build: 2001 - BUGFIX: no NameError at launch when run without the precompiled $py.class (previously the extra code loader deleted the bootstrap's _pyi)
 # build: 2002 - NEW: FIX: Prune Price History's Volume / High / Low data - clears the chosen data from Security price history older than a number of days (dry run or update)
 # build: 2002 - BUGFIX: merge_duplicate_securities() - merged price history now copies a High / Low only when one is stored, in the base currency (previously copied the price as a made-up High / Low, and read and wrote them in different currencies)
+# build: 2002 - Vaqua14 bug fixes
 # build: 2002 - ???
 
 # NOTE: 'The domain/default pair of (kCFPreferencesAnyApplication, AppleInterfaceStyle) does not exist' means that Dark mode is NOT in force
@@ -415,7 +416,7 @@ else:
 
     from java.awt.datatransfer import StringSelection
     from javax.swing.text import DefaultHighlighter
-    from javax.swing.event import AncestorListener
+    from javax.swing.event import AncestorListener, MenuListener
 
     from java.awt import Color, Dimension, FileDialog, FlowLayout, Toolkit, Font, GridBagLayout, GridLayout
     from java.awt import BorderLayout, Dialog, Insets, Point
@@ -1011,6 +1012,19 @@ Visit: %s (Author's site)
             if "flat dark" in currentTheme.toString().lower(): return True
         except: pass
         return False
+
+    def getVAquaReleaseNumber():
+        try:
+            from java.lang import Class as JClass
+            laf = UIManager.getLookAndFeel()
+            if laf is None or JClass.getName(laf.getClass()) != "org.violetlib.aqua.AquaLookAndFeel": return None
+            releaseName = JClass.getMethod(laf.getClass(), "getReleaseName", []).invoke(None, [])
+            digits = ""
+            for ch in unicode(releaseName).strip():
+                if not ch.isdigit(): break
+                digits += ch
+            return int(digits) if digits else None
+        except: return None
 
     def isMDThemeVAQua():
         if Platform.isOSX():
@@ -4319,6 +4333,7 @@ Visit: %s (Author's site)
             self.borders = 90
             self.screenSize = Toolkit.getDefaultToolkit().getScreenSize()
             self.setOpaque(False)
+            self.setBackground(Color(0, 0, 0, 0))     # VAqua 14 paints a scroll pane's background even when not opaque; transparent = paint nothing
             self.setViewportBorder(EmptyBorder(5, 5, 5, 5))
             self.addHierarchyListener(self)
 
@@ -17030,14 +17045,21 @@ after saving the file, restart Moneydance
         highBox = JCheckBox("High", False)
         lowBox = JCheckBox("Low", False)
         updateBox = JCheckBox("Update (purge) data - leave unticked for a dry run (read only)", False)
+        def heldLeft(component):
+            # VAqua 14 centres checkboxes stretched by GridLayout (alignment ignored), so hold each one left in its own panel
+            holder = JPanel(BorderLayout())
+            holder.setOpaque(False)
+            holder.add(component, BorderLayout.WEST)
+            return holder
+
         panel = JPanel(GridLayout(0, 1))
         panel.add(JLabel("Days of price history to keep untouched (older records are pruned):"))
         panel.add(daysField)
         panel.add(JLabel("Data to clear:"))
-        panel.add(volBox)
-        panel.add(highBox)
-        panel.add(lowBox)
-        panel.add(updateBox)
+        panel.add(heldLeft(volBox))
+        panel.add(heldLeft(highBox))
+        panel.add(heldLeft(lowBox))
+        panel.add(heldLeft(updateBox))
 
         if JOptionPane.showConfirmDialog(toolbox_frame_, panel, _THIS_METHOD_NAME, JOptionPane.OK_CANCEL_OPTION, JOptionPane.QUESTION_MESSAGE) != JOptionPane.OK_OPTION:
             txt = "%s - cancelled - no changes made" %(_THIS_METHOD_NAME)
@@ -23801,6 +23823,18 @@ after saving the file, restart Moneydance
         if not SwingUtilities.isEventDispatchThread(): SwingUtilities.invokeLater(DisableToolboxButtonsRunnable())
         else: DisableToolboxButtonsRunnable().run()
 
+    class VAquaMenuTitleHighlighter(MenuListener):
+        # VAqua draws an open menu's title in white with no highlight behind it (in-window menu bars), so add one
+        def menuSelected(self, e):
+            m = e.getSource()
+            c = UIManager.getColor("Menu.selectionBackground")
+            m.setBackground(Color(c.getRed(), c.getGreen(), c.getBlue()) if c else Color(0, 99, 225))
+            m.setOpaque(True); m.repaint()
+        def menuDeselected(self, e):
+            m = e.getSource()
+            m.setOpaque(False); m.repaint()
+        def menuCanceled(self, e): self.menuDeselected(e)
+
     class MenuJRadioButton(JRadioButton):
         def __init__(self, *args, **kwargs):
             self.updateMenuItem = kwargs.pop("updateMenu", False)
@@ -23826,7 +23860,16 @@ after saving the file, restart Moneydance
         dma = DisabledButtonMouseAdapter()
         _bg = ButtonGroup()
         for jrb in componentHoldingRBs.getComponents():
-            if isinstance(jrb, JRadioButton): _bg.add(jrb)
+            if isinstance(jrb, JRadioButton):
+                _bg.add(jrb)
+                # VAqua 14 centres radio buttons stretched by GridLayout (alignment ignored), so hold each one left in its own panel
+                if isinstance(componentHoldingRBs.getLayout(), GridLayout):
+                    idx = list(componentHoldingRBs.getComponents()).index(jrb)
+                    componentHoldingRBs.remove(idx)
+                    leftHolder = JPanel(BorderLayout())
+                    leftHolder.setOpaque(False)
+                    leftHolder.add(jrb, BorderLayout.WEST)
+                    componentHoldingRBs.add(leftHolder, idx)
             if isinstance(jrb, MenuJRadioButton):
                 jrb.addMouseListener(dma)
                 if jrb.isUpdateMenuItem():
@@ -26330,14 +26373,39 @@ after saving the file, restart Moneydance
                     self.adhocButton = kwargs.pop("adhocButton", False)
                     self.backupButton = kwargs.pop("backupButton", False)
                     self.registerMDButton = kwargs.pop("registerMDButton", False)
+                    self.htmlLabel = None
+
+                    # VAqua 14 does not paint HTML button text, so HTML goes in a JLabel inside the button
+                    htmlText = None
+                    if len(args) > 0 and isinstance(args[0], basestring) and args[0].lower().startswith("<html"):
+                        htmlText = args[0]
+                        args = ("",) + tuple(args[1:])
 
                     super(JButton, self).__init__(*args)
+                    if htmlText is not None:
+                        self.setLayout(BorderLayout())
+                        self.htmlLabel = JLabel(htmlText, JLabel.CENTER)
+                        self.htmlLabel.setForeground(self.getForeground())
+                        self.htmlLabel.setFont(self.getFont())
+                        self.add(self.htmlLabel, BorderLayout.CENTER)
                     self.setBorderPainted(False)
                     self.setOpaque(True)
                     self.setMinimumSize(self.btnSize)
                     # self.setMaximumSize(self.maxBtnSize)
                     self.setPreferredSize(self.btnSize)
                     self.setColorsAndVisibility()
+
+                def setForeground(self, color):
+                    super(MyJButton, self).setForeground(color)
+                    if getattr(self, "htmlLabel", None) is not None: self.htmlLabel.setForeground(color)
+
+                def setFont(self, font):
+                    super(MyJButton, self).setFont(font)
+                    if getattr(self, "htmlLabel", None) is not None: self.htmlLabel.setFont(font)
+
+                def setEnabled(self, enabled):
+                    super(MyJButton, self).setEnabled(enabled)
+                    if getattr(self, "htmlLabel", None) is not None: self.htmlLabel.setEnabled(enabled)
 
                 # def getPreferredSize(self):
                 #     return self.btnSize
@@ -26622,12 +26690,10 @@ after saving the file, restart Moneydance
             SetupMDColors.updateUI()
 
             mb = JMenuBar()
-            if Platform.isMac():
-                menu1 = JMenu("<html><b>TOOLBOX Options</b></html>")
-            else:
-                menu1 = JMenu("<html><b><u>T</u>OOLBOX Options</b></html>")     # html breaks the Mnemonic....
-            # menu1 = JMenu("TOOLBOX Options")
+            menu1 = JMenu("TOOLBOX Options")        # plain text: VAqua 14 cannot size HTML menu titles
+            menu1.setFont(menu1.getFont().deriveFont(Font.BOLD))
             menu1.setMnemonic(KeyEvent.VK_T)
+            if isMDThemeVAQua(): menu1.addMenuListener(VAquaMenuTitleHighlighter())
             menu1.setForeground(SetupMDColors.FOREGROUND_REVERSED); menu1.setBackground(SetupMDColors.BACKGROUND_REVERSED)
 
             menuItemD = JCheckBoxMenuItem("Toolbox Debug mode")
@@ -26701,12 +26767,10 @@ after saving the file, restart Moneydance
 
             mb.add(menu1)
 
-            if Platform.isMac():
-                menuH = JMenu("<html><B>Help/About/Info</b></html>")     # html breaks the Mnemonic....
-            else:
-                menuH = JMenu("<html><B>Help/About/<u>I</u>nfo</b></html>")     # html breaks the Mnemonic....
-            # menuH = JMenu("HELP")
+            menuH = JMenu("Help/About/Info")        # plain text: VAqua 14 cannot size HTML menu titles
+            menuH.setFont(menuH.getFont().deriveFont(Font.BOLD))
             menuH.setMnemonic(KeyEvent.VK_I)
+            if isMDThemeVAQua(): menuH.addMenuListener(VAquaMenuTitleHighlighter())
             menuH.setForeground(SetupMDColors.FOREGROUND_REVERSED); menuH.setBackground(SetupMDColors.BACKGROUND_REVERSED)
 
             menuItemH = JMenuItem("Help/Info")

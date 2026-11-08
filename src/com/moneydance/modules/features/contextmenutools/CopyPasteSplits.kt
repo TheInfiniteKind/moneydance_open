@@ -899,7 +899,7 @@ class CopyPasteSplits(
     
     val panel = JPanel(GridBagLayout())
     var y = 0
-    panel.add(JSeparator(), GridC.getc().xy(0, y++).colspan(2).wx(1f).fillboth().insets(10, 0, 10, 0))
+    panel.add(lightSeparator(), GridC.getc().xy(0, y++).colspan(2).wx(1f).fillboth().insets(10, 0, 10, 0))
     panel.add(
       JLabel(heading).also { it.font = it.font.deriveFont(java.awt.Font.BOLD) },
       GridC.getc().xy(0, y++).colspan(2).wx(1f).west().insets(0, 0, 8, 0)

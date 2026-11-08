@@ -403,7 +403,7 @@ else:
 
     from java.awt.datatransfer import StringSelection
     from javax.swing.text import DefaultHighlighter
-    from javax.swing.event import AncestorListener
+    from javax.swing.event import AncestorListener, MenuListener
 
     from java.awt import Color, Dimension, FileDialog, FlowLayout, Toolkit, Font, GridBagLayout, GridLayout
     from java.awt import BorderLayout, Dialog, Insets, Point
@@ -1069,6 +1069,18 @@ Visit: %s (Author's site)
             if "flat dark" in currentTheme.toString().lower(): return True
         except: pass
         return False
+
+    class MenuTitleHighlighter(MenuListener):
+        # VAqua draws an open menu's title in white with no highlight behind it (in-window menu bars), so add one
+        def menuSelected(self, e):
+            m = e.getSource()
+            c = UIManager.getColor("Menu.selectionBackground")
+            m.setBackground(Color(c.getRed(), c.getGreen(), c.getBlue()) if c else Color(0, 99, 225))
+            m.setOpaque(True); m.repaint()
+        def menuDeselected(self, e):
+            m = e.getSource()
+            m.setOpaque(False); m.repaint()
+        def menuCanceled(self, e): self.menuDeselected(e)
 
     def isMDThemeVAQua():
         if Platform.isOSX():
@@ -5334,8 +5346,20 @@ Visit: %s (Author's site)
 
         return
 
+    def holdButtonsLeftInGrid(panel):
+        # VAqua 14 centres radio buttons / checkboxes stretched by GridLayout (alignment ignored), so hold each one left in its own panel
+        if not isinstance(panel, JPanel) or not isinstance(panel.getLayout(), GridLayout): return
+        for idx, comp in enumerate(list(panel.getComponents())):
+            if isinstance(comp, (JCheckBox, JRadioButton)):
+                panel.remove(idx)
+                holder = JPanel(BorderLayout())
+                holder.setOpaque(False)
+                holder.add(comp, BorderLayout.WEST)
+                panel.add(holder, idx)
+
     class MyJScrollPaneForJOptionPane(JScrollPane, HierarchyListener):   # Allows a scrollable/resizeable menu in JOptionPane
         def __init__(self, _component, _frame, _max_w=800, _max_h=600):
+            holdButtonsLeftInGrid(_component)
             super(JScrollPane, self).__init__(_component)
             self.maxWidth = _max_w
             self.maxHeight = _max_h
@@ -5343,6 +5367,7 @@ Visit: %s (Author's site)
             self.borders = 90
             self.screenSize = Toolkit.getDefaultToolkit().getScreenSize()
             self.setOpaque(False)
+            self.setBackground(Color(0, 0, 0, 0))     # VAqua 14 paints a scroll pane's background even when not opaque; transparent = paint nothing
             self.setViewportBorder(EmptyBorder(5, 5, 5, 5))
             self.addHierarchyListener(self)
 
@@ -7611,6 +7636,7 @@ Visit: %s (Author's site)
         _exit = False
 
         options = ["ABORT", "DECRYPT & EXTRACT TRUNK"]
+        holdButtonsLeftInGrid(userFilters)
         userAction = (JOptionPane.showOptionDialog(extract_data_frame_, userFilters, "DECRYPT & EXTRACT raw Trunk file: Set Script Parameters....",
                                                    JOptionPane.OK_CANCEL_OPTION,
                                                    JOptionPane.QUESTION_MESSAGE,
@@ -7661,6 +7687,7 @@ Visit: %s (Author's site)
         _exit = False
 
         options = ["ABORT", "EXTRACT RAW JSON"]
+        holdButtonsLeftInGrid(userFilters)
         userAction = (JOptionPane.showOptionDialog(extract_data_frame_, userFilters, "EXTRACT raw data as JSON file: Set Script Parameters....",
                                                    JOptionPane.OK_CANCEL_OPTION,
                                                    JOptionPane.QUESTION_MESSAGE,
@@ -7711,6 +7738,7 @@ Visit: %s (Author's site)
         _exit = False
 
         options = ["ABORT", "EXTRACT ATTACHMENTS"]
+        holdButtonsLeftInGrid(userFilters)
         userAction = (JOptionPane.showOptionDialog(extract_data_frame_, userFilters, "Extract Attachments: Set Script Parameters....",
                                                    JOptionPane.OK_CANCEL_OPTION,
                                                    JOptionPane.QUESTION_MESSAGE,
@@ -9665,8 +9693,9 @@ Visit: %s (Author's site)
                                                 printButton.addActionListener(self.PrintJTable(extract_data_frame_, self.table, "StockGlance2020", self.footerTable))
 
                                                 mb = JMenuBar()
-                                                menuH = JMenu("<html><B>MENU</b></html>")
-                                                # menuH = JMenu("ABOUT")
+                                                menuH = JMenu("MENU")        # plain text: VAqua 14 cannot size HTML menu titles
+                                                menuH.setFont(menuH.getFont().deriveFont(Font.BOLD))
+                                                menuH.addMenuListener(MenuTitleHighlighter())
                                                 menuH.setForeground(SetupMDColors.FOREGROUND_REVERSED); menuH.setBackground(SetupMDColors.BACKGROUND_REVERSED)
 
                                                 menuItemA = JMenuItem("About")
@@ -11002,8 +11031,9 @@ Visit: %s (Author's site)
 
                                             mb = JMenuBar()
 
-                                            menuO = JMenu("<html><B>MENU</b></html>")
-                                            # menuO = JMenu("OPTIONS")
+                                            menuO = JMenu("MENU")        # plain text: VAqua 14 cannot size HTML menu titles
+                                            menuO.setFont(menuO.getFont().deriveFont(Font.BOLD))
+                                            menuO.addMenuListener(MenuTitleHighlighter())
                                             menuO.setForeground(SetupMDColors.FOREGROUND_REVERSED); menuO.setBackground(SetupMDColors.BACKGROUND_REVERSED)
 
                                             menuItemA = JMenuItem("About")

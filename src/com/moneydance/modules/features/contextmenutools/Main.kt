@@ -15,7 +15,9 @@ import com.moneydance.modules.features.contextmenutools.util.Util
 import com.moneydance.modules.features.contextmenutools.util.Util.logConsole
 import com.moneydance.modules.features.contextmenutools.util.fixStuckDragSelection
 import com.moneydance.modules.features.contextmenutools.util.isInactiveOrExpired
+import com.moneydance.modules.features.contextmenutools.util.lightSeparator
 import java.awt.BorderLayout
+import java.awt.Color
 import java.awt.Dimension
 import java.awt.GridBagLayout
 import javax.swing.*
@@ -561,7 +563,7 @@ class Main : FeatureModule(), PreferencesListener {
       form.border = EmptyBorder(16, 20, 12, 20)
       var y = 0
       
-      form.add(JSeparator(), GridC.getc(0, y++).west().wx(1f).fillboth().insets(6, 0, 6, 0))
+      form.add(lightSeparator(), GridC.getc(0, y++).west().wx(1f).fillboth().insets(6, 0, 6, 0))
       form.add(enableMenuVSTCheckbox, GridC.getc(0, y++).west().insets(4, 4, 2, 4))
       
       val currPanel = JPanel(GridBagLayout())
@@ -569,9 +571,9 @@ class Main : FeatureModule(), PreferencesListener {
       currPanel.add(vstBaseCurrChoice!!, GridC.getc(1, 0).west().insets(0, 0, 0, 0))
       
       form.add(currPanel, GridC.getc(0, y++).west().insets(0, 24, 4, 4))
-      form.add(JSeparator(), GridC.getc(0, y++).west().wx(1f).fillboth().insets(6, 0, 6, 0))
+      form.add(lightSeparator(), GridC.getc(0, y++).west().wx(1f).fillboth().insets(6, 0, 6, 0))
       form.add(enableMenuDupCheckbox, GridC.getc(0, y++).west().insets(4, 4, 4, 4))
-      form.add(JSeparator(), GridC.getc(0, y++).west().wx(1f).fillboth().insets(6, 0, 6, 0))
+      form.add(lightSeparator(), GridC.getc(0, y++).west().wx(1f).fillboth().insets(6, 0, 6, 0))
       form.add(enableMenuCopyPasteCheckbox, GridC.getc(0, y++).west().insets(4, 4, 4, 4))
       form.add(enableMenuTemplateCheckbox, GridC.getc(0, y++).west().insets(4, 4, 4, 4))
       form.add(includeSingleSplitCheckbox, GridC.getc(0, y++).west().insets(0, 24, 4, 4))
@@ -589,25 +591,25 @@ class Main : FeatureModule(), PreferencesListener {
       form.add(fillBlankParentMemoCheckbox, GridC.getc(0, y++).west().insets(0, 24, 4, 4))
       form.add(forceOverwriteParentDescriptionCheckbox, GridC.getc(0, y++).west().insets(0, 24, 4, 4))
       form.add(forceOverwriteParentMemoCheckbox, GridC.getc(0, y++).west().insets(0, 24, 4, 4))
-      form.add(JSeparator(), GridC.getc(0, y++).west().wx(1f).fillboth().insets(6, 0, 6, 0))
+      form.add(lightSeparator(), GridC.getc(0, y++).west().wx(1f).fillboth().insets(6, 0, 6, 0))
 
       form.add(enableMenuRebalanceCheckbox, GridC.getc(0, y++).west().insets(4, 4, 4, 4))
-      form.add(JSeparator(), GridC.getc(0, y++).west().wx(1f).fillboth().insets(6, 0, 6, 0))
+      form.add(lightSeparator(), GridC.getc(0, y++).west().wx(1f).fillboth().insets(6, 0, 6, 0))
       form.add(enableMenuUpdateReminderCheckbox, GridC.getc(0, y++).west().insets(4, 4, 4, 4))
       
-      form.add(JSeparator(), GridC.getc(0, y++).west().wx(1f).fillboth().insets(6, 0, 6, 0))
+      form.add(lightSeparator(), GridC.getc(0, y++).west().wx(1f).fillboth().insets(6, 0, 6, 0))
       
       form.add(enableMenuEditOriginatingReminderCheckbox, GridC.getc(0, y++).west().insets(4, 4, 4, 4))
-      form.add(JSeparator(), GridC.getc(0, y++).west().wx(1f).fillboth().insets(6, 0, 6, 0))
+      form.add(lightSeparator(), GridC.getc(0, y++).west().wx(1f).fillboth().insets(6, 0, 6, 0))
       
       form.add(enableMenuZapCleanMemoCheckbox, GridC.getc(0, y++).west().insets(4, 4, 4, 4))
-      form.add(JSeparator(), GridC.getc(0, y++).west().wx(1f).fillboth().insets(6, 0, 6, 0))
+      form.add(lightSeparator(), GridC.getc(0, y++).west().wx(1f).fillboth().insets(6, 0, 6, 0))
 
       form.add(enableMenuEditDateEnteredCheckbox, GridC.getc(0, y++).west().insets(4, 4, 4, 4))
-      form.add(JSeparator(), GridC.getc(0, y++).west().wx(1f).fillboth().insets(6, 0, 6, 0))
+      form.add(lightSeparator(), GridC.getc(0, y++).west().wx(1f).fillboth().insets(6, 0, 6, 0))
 
       form.add(enableMenuShareBalanceCheckbox, GridC.getc(0, y++).west().insets(4, 4, 4, 4))
-      form.add(JSeparator(), GridC.getc(0, y++).west().wx(1f).fillboth().insets(6, 0, 6, 0))
+      form.add(lightSeparator(), GridC.getc(0, y++).west().wx(1f).fillboth().insets(6, 0, 6, 0))
       
       form.add(enableMenuShowOtherSideCheckbox, GridC.getc(0, y++).west().insets(4, 4, 4, 4))
       
@@ -616,14 +618,14 @@ class Main : FeatureModule(), PreferencesListener {
       form.add(showFullAccountNamesCheckbox, GridC.getc(0, y++).west().insets(0, 24, 4, 4))
       
       form.add(includeSingleSplitTxnsCheckbox, GridC.getc(0, y++).west().insets(0, 24, 4, 4))
-      form.add(JSeparator(), GridC.getc(0, y++).west().wx(1f).fillboth().insets(6, 0, 6, 0))
+      form.add(lightSeparator(), GridC.getc(0, y++).west().wx(1f).fillboth().insets(6, 0, 6, 0))
       form.add(enableMenuJumpCheckbox, GridC.getc(0, y++).west().insets(4, 4, 4, 4))
-      form.add(JSeparator(), GridC.getc(0, y++).west().wx(1f).fillboth().insets(6, 0, 6, 0))
+      form.add(lightSeparator(), GridC.getc(0, y++).west().wx(1f).fillboth().insets(6, 0, 6, 0))
       form.add(enableMenuShowRawCheckbox, GridC.getc(0, y++).west().insets(4, 4, 4, 4))
       form.add(enableMenuCopyRawCheckbox, GridC.getc(0, y++).west().insets(4, 4, 4, 4))
-      form.add(JSeparator(), GridC.getc(0, y++).west().wx(1f).fillboth().insets(6, 0, 6, 0))
+      form.add(lightSeparator(), GridC.getc(0, y++).west().wx(1f).fillboth().insets(6, 0, 6, 0))
       form.add(enableMenuDebugCheckbox, GridC.getc(0, y++).west().insets(4, 4, 4, 4))
-      form.add(JSeparator(), GridC.getc(0, y++).west().wx(1f).fillboth().insets(6, 0, 6, 0))
+      form.add(lightSeparator(), GridC.getc(0, y++).west().wx(1f).fillboth().insets(6, 0, 6, 0))
       form.add(hamiltonLinkLabel, GridC.getc(0, y++).west().insets(8, 4, 4, 4))
       
       // wrap in a height-capped scrollpane rather than adding form directly - otherwise pack()
@@ -631,6 +633,9 @@ class Main : FeatureModule(), PreferencesListener {
       // many options would mean an excessively (near full-screen) tall window.
       val scrollPane = JScrollPane(form, JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED, JScrollPane.HORIZONTAL_SCROLLBAR_NEVER)
       scrollPane.border = BorderFactory.createEmptyBorder()
+      scrollPane.isOpaque = false
+      scrollPane.background = Color(0, 0, 0, 0)          // VAqua 14 paints a scroll pane's background even when not opaque
+      scrollPane.viewport.isOpaque = false
       val cappedHeight = minOf(form.preferredSize.height, 650)
       scrollPane.preferredSize = Dimension(form.preferredSize.width, cappedHeight)
       add(scrollPane, BorderLayout.CENTER)
