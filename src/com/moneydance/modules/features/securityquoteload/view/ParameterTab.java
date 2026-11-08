@@ -412,6 +412,7 @@ public class ParameterTab extends DisplayTab {
 		JSeparator sepLine = new JSeparator(JSeparator.HORIZONTAL);
 		sepLine.setPreferredSize(new Dimension(50, 4));
 		sepLine.setBackground(borderColour);
+		sepLine.setForeground(MDColors.getSingleton().headerBorder);	// VAqua 14 default separator colour is much darker
 		mainPanel.add(sepLine, GridC.getc(gridx, gridy).fillx().center().colspan(8).insets(5, 5, 5, 0));
 		/*
 		 * Parameter Fields
