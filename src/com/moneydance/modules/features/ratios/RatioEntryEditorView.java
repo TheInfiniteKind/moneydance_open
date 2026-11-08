@@ -11,6 +11,7 @@
 package com.moneydance.modules.features.ratios;
 
 import com.infinitekind.moneydance.model.AccountBook;
+import com.moneydance.apps.md.view.gui.MDColors;
 import com.moneydance.apps.md.view.gui.MoneydanceGUI;
 import com.moneydance.awt.GridC;
 import com.moneydance.modules.features.ratios.selector.AccountFilterSelectLabel;
@@ -92,7 +93,9 @@ class RatioEntryEditorView extends JPanel {
     _useTaxDate.setOpaque(false);
     optionPanel.add(_useTaxDate);
     add(optionPanel, GridC.getc(1, y++));
-    add(new JSeparator(), GridC.getc(1, y).fillx());
+    JSeparator separator = new JSeparator();
+    separator.setForeground(MDColors.getSingleton().headerBorder);  // VAqua 14 default separator colour is much darker
+    add(separator, GridC.getc(1, y).fillx());
     add(Box.createVerticalStrut(UiUtil.DLG_VGAP), GridC.getc(0, y++));
 
     // numerator and denominator - share 1/2 width with a gap in between
