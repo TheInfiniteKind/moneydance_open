@@ -312,7 +312,8 @@ public class FileDisplayWindow extends JFrame {
 		col= 0;
 		row = 0;
 		panButtons = new JPanel(new GridBagLayout());
-		copyright = new JButton("<html><a href=http://icons8.com>Icons couresy of icons8.com</a></html>");
+		copyright = new JButton("Icons courtesy of http://icons8.com.com");
+		    copyright.setForeground(Color.BLUE);
 		    copyright.setHorizontalAlignment(SwingConstants.LEFT);
 		    copyright.setBorderPainted(false);
 		    copyright.setOpaque(false);

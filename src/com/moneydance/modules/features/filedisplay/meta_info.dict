@@ -1,6 +1,6 @@
 {
   "vendor" = "Mike Bray, updated by Stuart Beesley"
-  "module_build" = "3208"
+  "module_build" = "3209"
   "minbuild" = "1820"
   "vendor.url" = "https://github.com/TheInfiniteKind/moneydance_open/wiki/Extensions"
   "module_name" = "File Display"
