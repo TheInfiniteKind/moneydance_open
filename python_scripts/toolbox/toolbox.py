@@ -129,6 +129,7 @@
 # build: 2002 - BUGFIX: merge_duplicate_securities() - merged price history now copies a High / Low only when one is stored, in the base currency (previously copied the price as a made-up High / Low, and read and wrote them in different currencies)
 # build: 2002 - Vaqua14 bug fixes
 # build: 2002 - Option windows now scroll at a normal speed with the mouse wheel (previously one pixel per step on Windows)
+# build: 2002 - REMOVED toolbox_show_data_mode_in_viewer.py - new menu to toggle the data export show in viewer option/flag (now click on column headings)
 # build: 2002 - ???
 
 # NOTE: 'The domain/default pair of (kCFPreferencesAnyApplication, AppleInterfaceStyle) does not exist' means that Dark mode is NOT in force
