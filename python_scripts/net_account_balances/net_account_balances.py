@@ -114,6 +114,7 @@ assert isinstance(0/1, float), "LOGIC ERROR: Custom Balances extension assumes t
 # build: 2001 - BUGFIX Common: backwards text search now finds every match, and popup height uses the height limit (previously could skip a match, and used the width limit)
 # build: 2002 - Include reminders now uses each deferred reminder's own date and amount on MD2027 (previously used the scheduled date and master amount)
 # build: 2002 - vaqua14 fixes
+# build: 2002 - Settings window now scrolls at a normal speed with the mouse wheel (previously one pixel per step on Windows)
 # build: 2002 - ???
 
 # todo - tweak getConvertXBalanceRecursive() and getXBalance() to also exclude inactives from recursive balances (like apply networth rules)
@@ -15424,6 +15425,7 @@ Visit: %s (Author's site)
                     ctrlPnlScrollpane.setViewportBorder(EmptyBorder(5, colLeftInset, 5, colRightInset))
                     ctrlPnlScrollpane.setOpaque(False)
                     ctrlPnlScrollpane.setBackground(None)      # VAqua 14 paints a scroll pane's own background even when not opaque
+                    ctrlPnlScrollpane.getVerticalScrollBar().setUnitIncrement(16)
                     ctrlPnlScrollpane.setMinimumSize(Dimension(0, 160))                   # JSplitPane will respect this (just enough to show when hide controls selected)
 
                     # NAB.jlst.setVisibleRowCount(7);

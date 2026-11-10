@@ -128,6 +128,7 @@
 # build: 2002 - NEW: FIX: Prune Price History's Volume / High / Low data - clears the chosen data from Security price history older than a number of days (dry run or update)
 # build: 2002 - BUGFIX: merge_duplicate_securities() - merged price history now copies a High / Low only when one is stored, in the base currency (previously copied the price as a made-up High / Low, and read and wrote them in different currencies)
 # build: 2002 - Vaqua14 bug fixes
+# build: 2002 - Option windows now scroll at a normal speed with the mouse wheel (previously one pixel per step on Windows)
 # build: 2002 - ???
 
 # NOTE: 'The domain/default pair of (kCFPreferencesAnyApplication, AppleInterfaceStyle) does not exist' means that Dark mode is NOT in force
@@ -501,7 +502,7 @@ else:
     from org.python.core import PySystemState
 
     from javax.swing import BorderFactory, JSeparator, DefaultComboBoxModel                                                 # noqa
-    from javax.swing import JList, ListSelectionModel, DefaultListCellRenderer, DefaultListSelectionModel
+    from javax.swing import JList, ListSelectionModel, DefaultListCellRenderer, DefaultListSelectionModel, Scrollable
 
     from java.io import ByteArrayInputStream, OutputStream, InputStream
     from java.net import URL, URLEncoder, URLDecoder                                                                        # noqa
@@ -4335,6 +4336,8 @@ Visit: %s (Author's site)
             self.setOpaque(False)
             self.setBackground(Color(0, 0, 0, 0))     # VAqua 14 paints a scroll pane's background even when not opaque; transparent = paint nothing
             self.setViewportBorder(EmptyBorder(5, 5, 5, 5))
+            if not isinstance(_component, Scrollable):
+                self.getVerticalScrollBar().setUnitIncrement(16)
             self.addHierarchyListener(self)
 
         def getPreferredSize(self):

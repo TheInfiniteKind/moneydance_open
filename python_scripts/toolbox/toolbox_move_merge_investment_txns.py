@@ -383,7 +383,7 @@ else:
     # END SET THESE VARIABLES FOR ALL SCRIPTS ##########################################################################
 
     # >>> THIS SCRIPT'S IMPORTS ########################################################################################
-    from javax.swing import JSplitPane
+    from javax.swing import JSplitPane, Scrollable
     from java.awt import CardLayout
     from com.moneydance.apps.md.view.gui.acctpanels import BankAcctPanel
     from com.moneydance.apps.md.view.gui import MainFrame, AccountDetailPanel, InvestAccountDetailPanel, LoanAccountDetailPanel, LiabilityAccountInfoPanel, TxnSearchWindow
@@ -3566,6 +3566,8 @@ Visit: %s (Author's site)
                         self.setOpaque(False)
                         self.setBackground(Color(0, 0, 0, 0))     # VAqua 14 paints a scroll pane's background even when not opaque; transparent = paint nothing
                         self.setViewportBorder(EmptyBorder(5, 5, 5, 5))
+                        if not isinstance(_component, Scrollable):
+                            self.getVerticalScrollBar().setUnitIncrement(16)
                         self.addHierarchyListener(self)
 
                     def getPreferredSize(self):

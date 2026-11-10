@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# security_performance_graph.py build: 1015 - July 2024 - Stuart Beesley StuWareSoftSystems
+# security_performance_graph.py build: 1016 - November 2026 - Stuart Beesley StuWareSoftSystems
 
 # requires: MD 2021.1(3069) due to NPE on SwingUtilities - something to do with 'theGenerator.setInfo(reportSpec)'
 
@@ -50,7 +50,9 @@
 # build: 1013 - MyJFrame(v5); tweaks to cope with MD2024.2(5141) RepGen changes that impact GrapReportGenerator protected fields
 # build: 1014 - MD2024.2(5142) - moneydance_extension_loader was nuked and moneydance_this_fm with getResourceAsStream() was provided.
 # build: 1014 - Switching to CurrencyUtil.convertValue()
-# build: 1015 - ???
+# build: 1015 - BUGFIX Common: backwards text search now finds every match, and popup height uses the height limit (previously could skip a match, and used the width limit)
+# build: 1016 - Security list now scrolls at a normal speed with the mouse wheel (previously one pixel per step on Windows)
+# build: 1016 - ???
 
 #######
 # NOTE: You cannot access protected fields on a subclassed class from python, only protected methods!
@@ -67,7 +69,7 @@
 
 # SET THESE LINES
 myModuleID = u"security_performance_graph"
-version_build = "1015"
+version_build = "1016"
 MIN_BUILD_REQD = 3069
 _I_CAN_RUN_AS_DEVELOPER_CONSOLE_SCRIPT = True
 
@@ -1170,7 +1172,7 @@ Visit: %s (Author's site)
                         maxDimension = Dimension(maxDialogWidth,maxDialogHeight)
                     else:
                         maxDialogWidth = min(screenSize.width-20, max(GetFirstMainFrame.DEFAULT_MAX_WIDTH, int(round(GetFirstMainFrame.getSize().width *.9,0))))
-                        maxDialogHeight = min(screenSize.height-40, max(GetFirstMainFrame.DEFAULT_MAX_WIDTH, int(round(GetFirstMainFrame.getSize().height *.9,0))))
+                        maxDialogHeight = min(screenSize.height-40, max(GetFirstMainFrame.DEFAULT_MAX_HEIGHT, int(round(GetFirstMainFrame.getSize().height *.9,0))))
                         maxDimension = Dimension(maxDialogWidth,maxDialogHeight)
 
                     # noinspection PyUnresolvedReferences
@@ -2006,10 +2008,10 @@ Visit: %s (Author's site)
 
             else:
                 direction = "[backwards]"
-                endPos = len(theText)-1
+                endPos = len(theText)      # rfind()'s end is exclusive, so use the full length to find a match at the very end
 
                 if searchWhat == self.lastSearch:
-                    if self.previousEndPosn < 0: self.previousEndPosn = len(theText)-1
+                    if self.previousEndPosn < 0: self.previousEndPosn = len(theText)
                     endPos = max(0,self.previousEndPosn)
                     if lSwitch: endPos = max(0,self.lastPosn-1)
 
@@ -2025,13 +2027,13 @@ Visit: %s (Author's site)
                 except: pass
                 if response == 0:
                     self.lastPosn = pos+len(searchWhat)
-                    self.previousEndPosn = len(theText)-1
+                    self.previousEndPosn = len(theText)
                 else:
                     self.lastPosn = pos-len(searchWhat)
-                    self.previousEndPosn = pos-1
+                    self.previousEndPosn = pos+len(searchWhat)-1     # next backwards search finds any match starting before this one
             else:
                 self.lastPosn = 0
-                self.previousEndPosn = len(theText)-1
+                self.previousEndPosn = len(theText)
                 myPopupInformationBox(self.theFrame,"Searching %s text not found" %direction)
 
             return
@@ -3646,6 +3648,7 @@ Visit: %s (Author's site)
 
             self.setViewportView(self.pnlJCheckBoxList)
             self.setViewportBorder(EmptyBorder(5, 5, 5, 5))
+            self.getVerticalScrollBar().setUnitIncrement(16)
 
         def recreateJCheckBoxListPnl(self):
             y = 1

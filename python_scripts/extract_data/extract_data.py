@@ -128,6 +128,7 @@
 # build: 1051 - Security Balances: carries on with a zero cost basis (and a warning) when it cannot be calculated (previously the extract stopped)
 # build: 1051 - BUGFIX Account Registers: hidden accounts, foreign currency totals and decimals, split ID and index, opening balance date, attachment links with a dot in the name, tag filter, auto extract single account, sub accounts box and first-use date choice fixed
 # build: 1052 - Reminders now use deferred reminders on MD2027: future list shows each one's own date, amount and account, NextDue shows the moved date, new SavedOneOffInstances column (previously showed the scheduled date and master amount)
+# build: 1052 - Option windows now scroll at a normal speed with the mouse wheel (previously one pixel per step on Windows)
 # build: 1052 - ???
 
 # todo - EAR: Switch to 'proper' usage of DateRangeChooser() (rather than my own 'copy')
@@ -509,7 +510,7 @@ else:
 
     from java.awt.event import MouseAdapter
     from java.util import Comparator, HashMap
-    from javax.swing import SortOrder, ListSelectionModel, JPopupMenu, BorderFactory
+    from javax.swing import SortOrder, ListSelectionModel, JPopupMenu, BorderFactory, Scrollable
     from javax.swing.table import DefaultTableCellRenderer, DefaultTableModel, TableRowSorter
     from javax.swing.border import CompoundBorder, MatteBorder
     from javax.swing.event import TableColumnModelListener
@@ -5369,6 +5370,8 @@ Visit: %s (Author's site)
             self.setOpaque(False)
             self.setBackground(Color(0, 0, 0, 0))     # VAqua 14 paints a scroll pane's background even when not opaque; transparent = paint nothing
             self.setViewportBorder(EmptyBorder(5, 5, 5, 5))
+            if not isinstance(_component, Scrollable):
+                self.getVerticalScrollBar().setUnitIncrement(16)
             self.addHierarchyListener(self)
 
         def getPreferredSize(self):
