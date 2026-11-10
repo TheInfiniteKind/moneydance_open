@@ -632,6 +632,7 @@ class Main : FeatureModule(), PreferencesListener {
       // below sizes the window to the form's full natural height, which now that there are this
       // many options would mean an excessively (near full-screen) tall window.
       val scrollPane = JScrollPane(form, JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED, JScrollPane.HORIZONTAL_SCROLLBAR_NEVER)
+      scrollPane.verticalScrollBar.unitIncrement = 16
       scrollPane.border = BorderFactory.createEmptyBorder()
       scrollPane.isOpaque = false
       scrollPane.background = Color(0, 0, 0, 0)          // VAqua 14 paints a scroll pane's background even when not opaque
