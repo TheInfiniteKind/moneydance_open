@@ -41,8 +41,8 @@ private fun isSelectableAccountType(txn:AbstractTxn):Boolean {
  * silently jumps to the next split, or the parent if there are no more) with an explicit choice,
  * since a transaction with more than 2 splits has more than one plausible "other side."
  *
- * Only offered when the parent transaction has 2 or more splits - with exactly 1 split there's
- * nothing to pick between, so no menu item is offered at all.
+ * Only offered when the parent transaction has 2 or more splits, unless the option to include
+ * single-split transactions is on.
  *
  * Candidate labelling: selecting the parent lists every split as 1, 2, 3... . Selecting a split
  * lists "Parent" plus every OTHER split, skipping the one currently selected but not renumbering
@@ -57,20 +57,25 @@ class ShowOtherSideSelectSplit(
   private val includeSingleSplitTxns:Boolean = false
 ):ContextMenuAction {
 
-  private val string_show_other_side = "Show other side: Select split"
+  private val string_show_other_side = "Show Other Side: Select Split"
+  private val string_menu_with_count = "Show Other Side: Select Split ({num} Splits)"
   private val string_parent_label = "Parent"
   private val string_split_label = "Split"
-  private val string_type_label = "Type"
-  private val string_account_label = "Account"
-  private val string_desc_label = "Transaction description"
-  private val string_date_label = "Date"
-  private val string_value_label = "Value"
-  private val string_category_warning = "This is a Category split ('{acct}'). Open anyway?"
+  private val string_fee = "Fee"
+  private val string_type_line = "Type: {value}"
+  private val string_account_line = "Account: {value}"
+  private val string_desc_line = "Transaction description: {value}"
+  private val string_date_line = "Date: {value}"
+  private val string_value_line = "Value: {value}"
+  private val string_row_title = "{label}:  {title}"
+  private val string_row_detail = "{acct} ({type}) — {amount}"
+  private val string_acct_type_with_invest = "{type}, {invest}"
+  private val string_category_warning = "This is a Category split ('{acct}'). Continue?"
 
-  private val dialog_size = ".gui.show_other_side.size"
-  private val dialog_locn = ".gui.show_other_side.loc"
+  private val dialog_show_other_side_size = ".gui.show_other_side.size"
+  private val dialog_show_other_side_locn = ".gui.show_other_side.loc"
 
-  private data class SplitCandidate(val label:String, val txn:AbstractTxn, val displayTitle:String, val investTypeSuffix:String)
+  private data class SplitCandidate(val label:String, val txn:AbstractTxn, val displayTitle:String, val investType:String)
 
   override fun getActions(menuContext:MDActionContext, listAccts:List<Account>, listTxns:List<AbstractTxn>):List<Action> {
     if (listTxns.size != 1) return emptyList()
@@ -78,7 +83,7 @@ class ShowOtherSideSelectSplit(
     val parent = selected.parentTxn
     if (parent.splitCount < 2 && !includeSingleSplitTxns) return emptyList()
 
-    val action = addAction(label = "$string_show_other_side (${parent.splitCount} splits)", cmd = "show_other_side_select_split")
+    val action = addAction(label = string_menu_with_count.replace("{num}", parent.splitCount.toString()), cmd = "show_other_side_select_split")
     { showPicker(menuContext, selected, parent) }
     return listOf(action)
   }
@@ -98,7 +103,7 @@ class ShowOtherSideSelectSplit(
     val acct = txn.account
     return when (acct) {
       fields.security -> fields.txnType.shortDescription
-      fields.feeAcct -> "Fee"
+      fields.feeAcct -> string_fee
       fields.category -> fields.txnType.shortDescription
       fields.xfrAcct -> fields.txnType.shortDescription
       else -> null
@@ -133,14 +138,14 @@ class ShowOtherSideSelectSplit(
     // shown alongside the parent row's own account type (e.g. "INVESTMENT") - split rows never
     // get this, only the parent, since the transaction TYPE (Buy/Sell/Dividend/...) is a
     // property of the whole transaction, not any individual split's account.
-    val parentInvestTypeSuffix = try {
-      if (fields != null) ", ${fields.txnType.shortDescription}" else ""
+    val parentInvestType = try {
+      fields?.txnType?.shortDescription ?: ""
     } catch (e:Exception) {
       ""
     }
 
     val candidates = mutableListOf<SplitCandidate>()
-    if (selected is SplitTxn) candidates.add(SplitCandidate(string_parent_label, parent, titleFor(parent, isParentRow = true), parentInvestTypeSuffix))
+    if (selected is SplitTxn) candidates.add(SplitCandidate(string_parent_label, parent, titleFor(parent, isParentRow = true), parentInvestType))
     for (i in 0 until parent.splitCount) {
       val split = parent.getSplit(i) ?: continue
       if (split === selected) continue
@@ -181,6 +186,7 @@ class ShowOtherSideSelectSplit(
     }
 
     val scrollPane = JScrollPane(list, JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED, JScrollPane.HORIZONTAL_SCROLLBAR_NEVER)
+    scrollPane.verticalScrollBar.unitIncrement = 16
 
     val dateFmt = mdGUI.preferences.shortDateFormatter
     val dec = mdGUI.preferences.decimalChar
@@ -190,11 +196,11 @@ class ShowOtherSideSelectSplit(
     val headerPanel = JPanel(GridBagLayout())
     var hy = 0
     val selectedTypeStr = if (selected is SplitTxn) string_split_label else string_parent_label
-    headerPanel.add(JLabel("$string_type_label: $selectedTypeStr"), GridC.getc().xy(0, hy++).colspan(2).wx(1f).west())
-    headerPanel.add(JLabel("$string_account_label: $acctNameStr"), GridC.getc().xy(0, hy++).colspan(2).wx(1f).west())
-    headerPanel.add(JLabel("$string_desc_label: ${selected.description}"), GridC.getc().xy(0, hy++).colspan(2).wx(1f).west())
-    headerPanel.add(JLabel("$string_date_label: ${dateFmt.format(selected.dateInt)}"), GridC.getc().xy(0, hy++).colspan(2).wx(1f).west())
-    headerPanel.add(JLabel("$string_value_label: $valueStr"), GridC.getc().xy(0, hy++).colspan(2).wx(1f).west())
+    headerPanel.add(JLabel(string_type_line.replace("{value}", selectedTypeStr)), GridC.getc().xy(0, hy++).colspan(2).wx(1f).west())
+    headerPanel.add(JLabel(string_account_line.replace("{value}", acctNameStr)), GridC.getc().xy(0, hy++).colspan(2).wx(1f).west())
+    headerPanel.add(JLabel(string_desc_line.replace("{value}", selected.description)), GridC.getc().xy(0, hy++).colspan(2).wx(1f).west())
+    headerPanel.add(JLabel(string_date_line.replace("{value}", dateFmt.format(selected.dateInt))), GridC.getc().xy(0, hy++).colspan(2).wx(1f).west())
+    headerPanel.add(JLabel(string_value_line.replace("{value}", valueStr)), GridC.getc().xy(0, hy++).colspan(2).wx(1f).west())
 
     val panel = JPanel(BorderLayout(0, 8))
     panel.border = EmptyBorder(16, 16, 16, 16)
@@ -204,8 +210,8 @@ class ShowOtherSideSelectSplit(
     val win = SizedOKButtonWindow(
       mdGUI, menuContext.component, string_show_other_side, OKButtonPanel.QUESTION_OK_CANCEL,
       focusComponent = list,
-      sizeKey = Main.EXTN_ID + dialog_size,
-      locationKey = Main.EXTN_ID + dialog_locn
+      sizeKey = Main.EXTN_ID + dialog_show_other_side_size,
+      locationKey = Main.EXTN_ID + dialog_show_other_side_locn
     )
     win.setEscapeKeyCancels(true)
 
@@ -230,7 +236,7 @@ class ShowOtherSideSelectSplit(
     mdGUI.showTxn(chosen.txn)
   }
 
-  private class SplitCandidateRenderer(private val mdGUI:MoneydanceGUI, private val showFullAccountNames:Boolean):JPanel(GridBagLayout()), ListCellRenderer<SplitCandidate> {
+  private inner class SplitCandidateRenderer(private val mdGUI:MoneydanceGUI, private val showFullAccountNames:Boolean):JPanel(GridBagLayout()), ListCellRenderer<SplitCandidate> {
     private val label = JLabel()
     private val subLabel = JLabel()
     private val colors = mdGUI.colors
@@ -249,9 +255,11 @@ class ShowOtherSideSelectSplit(
       val dec = mdGUI.preferences.decimalChar
       val txn = value.txn
       val amountStr = txn.account.currencyType.formatFancy(txn.value, dec)
-      val acctTypeStr = txn.account.getAccountType().toString() + value.investTypeSuffix
+      val acctType = txn.account.getAccountType().toString()
+      val acctTypeStr = if (value.investType.isEmpty()) acctType
+                        else string_acct_type_with_invest.replace("{type}", acctType).replace("{invest}", value.investType)
 
-      label.text = "${value.label}:  ${value.displayTitle}"
+      label.text = string_row_title.replace("{label}", value.label).replace("{title}", value.displayTitle)
       label.foreground = when {
         !selectable -> colors.secondaryTextFG
         isSelected -> colors.sidebarSelectedFG
@@ -259,7 +267,7 @@ class ShowOtherSideSelectSplit(
       }
 
       val acctNameStr = if (showFullAccountNames) txn.account.fullAccountName else txn.account.getAccountName()
-      subLabel.text = "$acctNameStr ($acctTypeStr) \u2014 $amountStr"
+      subLabel.text = string_row_detail.replace("{acct}", acctNameStr).replace("{type}", acctTypeStr).replace("{amount}", amountStr)
       subLabel.foreground = when {
         !selectable -> colors.secondaryTextFG
         isSelected -> colors.sidebarSelectedFG

@@ -10,10 +10,12 @@ import com.infinitekind.util.labelify
 import com.moneydance.apps.md.controller.*
 import com.moneydance.apps.md.view.gui.*
 import com.moneydance.awt.GridC
+import com.moneydance.modules.features.contextmenutools.util.RemUtility
 import com.moneydance.modules.features.contextmenutools.util.TextViewerDialog
 import com.moneydance.modules.features.contextmenutools.util.Util
 import com.moneydance.modules.features.contextmenutools.util.Util.logConsole
 import com.moneydance.modules.features.contextmenutools.util.fixStuckDragSelection
+import com.moneydance.modules.features.contextmenutools.util.isCmtDebug
 import com.moneydance.modules.features.contextmenutools.util.isInactiveOrExpired
 import com.moneydance.modules.features.contextmenutools.util.lightSeparator
 import java.awt.BorderLayout
@@ -99,7 +101,7 @@ class Main : FeatureModule(), PreferencesListener {
     val mdMain = mdMain ?: return
     val book = mdMain.currentAccountBook ?: return
     
-    val debug = extensionContext?.debugMenuEnabled == true || DEBUG
+    val debug = isCmtDebug
     if (debug) logConsole("Will precache reminders (waiting $delaySeconds seconds) (triggered by: $triggerSource)")
     
     Thread {
@@ -143,18 +145,19 @@ class Main : FeatureModule(), PreferencesListener {
     
     val prefs = mdMain?.preferences ?: return actions
     val menuSettings = prefs.getTableSetting(EXTN_ID + SETTING_MASTER_KEY, null) ?: StreamTable()
-    val dupMenuEnabled = getMenuBoolSetting(menuSettings, SETTING_MENU_DUP_ENABLED, true)
-    val vstMenuEnabled = getMenuBoolSetting(menuSettings, SETTING_MENU_VST_ENABLED, true)
-    val jumpMenuEnabled = getMenuBoolSetting(menuSettings, SETTING_MENU_JUMP_ENABLED, true)
-    val copyPasteMenuEnabled = getMenuBoolSetting(menuSettings, SETTING_MENU_COPYPASTE_ENABLED, true)
-    val templateMenuEnabled = getMenuBoolSetting(menuSettings, SETTING_MENU_TEMPLATE_ENABLED, true)
-    val rebalanceMenuEnabled = getMenuBoolSetting(menuSettings, SETTING_MENU_REBALANCE_ENABLED, true)
-    val updateReminderMenuEnabled = getMenuBoolSetting(menuSettings, SETTING_MENU_UPDATE_REMINDER_ENABLED, true)
-    val showOtherSideMenuEnabled = getMenuBoolSetting(menuSettings, SETTING_MENU_SHOW_OTHER_SIDE_ENABLED, true)
-    val editOriginatingReminderMenuEnabled = getMenuBoolSetting(menuSettings, SETTING_MENU_EDIT_ORIGINATING_REMINDER_ENABLED, true)
-    val zapCleanMemoMenuEnabled = getMenuBoolSetting(menuSettings, SETTING_MENU_ZAP_CLEAN_MEMO_ENABLED, false)
-    val editDateEnteredMenuEnabled = getMenuBoolSetting(menuSettings, SETTING_MENU_EDIT_DATE_ENTERED_ENABLED, false)
-    val shareBalanceMenuEnabled = getMenuBoolSetting(menuSettings, SETTING_MENU_SHARE_BALANCE_ENABLED, false)
+    val dupMenuEnabled = getMenuBoolSetting(menuSettings, SETTING_MENU_DUP_ENABLED, DEFAULT_MENU_DUP_ENABLED)
+    val vstMenuEnabled = getMenuBoolSetting(menuSettings, SETTING_MENU_VST_ENABLED, DEFAULT_MENU_VST_ENABLED)
+    val jumpMenuEnabled = getMenuBoolSetting(menuSettings, SETTING_MENU_JUMP_ENABLED, DEFAULT_MENU_JUMP_ENABLED)
+    val copyPasteMenuEnabled = getMenuBoolSetting(menuSettings, SETTING_MENU_COPYPASTE_ENABLED, DEFAULT_MENU_COPYPASTE_ENABLED)
+    val templateMenuEnabled = getMenuBoolSetting(menuSettings, SETTING_MENU_TEMPLATE_ENABLED, DEFAULT_MENU_TEMPLATE_ENABLED)
+    val rebalanceMenuEnabled = getMenuBoolSetting(menuSettings, SETTING_MENU_REBALANCE_ENABLED, DEFAULT_MENU_REBALANCE_ENABLED)
+    val updateReminderMenuEnabled = getMenuBoolSetting(menuSettings, SETTING_MENU_UPDATE_REMINDER_ENABLED, DEFAULT_MENU_UPDATE_REMINDER_ENABLED)
+    val showOtherSideMenuEnabled = getMenuBoolSetting(menuSettings, SETTING_MENU_SHOW_OTHER_SIDE_ENABLED, DEFAULT_MENU_SHOW_OTHER_SIDE_ENABLED)
+    val editOriginatingReminderMenuEnabled = getMenuBoolSetting(menuSettings, SETTING_MENU_EDIT_ORIGINATING_REMINDER_ENABLED, DEFAULT_MENU_EDIT_ORIGINATING_REMINDER_ENABLED)
+    val zapCleanMemoMenuEnabled = getMenuBoolSetting(menuSettings, SETTING_MENU_ZAP_CLEAN_MEMO_ENABLED, DEFAULT_MENU_ZAP_CLEAN_MEMO_ENABLED)
+    val editDateEnteredMenuEnabled = getMenuBoolSetting(menuSettings, SETTING_MENU_EDIT_DATE_ENTERED_ENABLED, DEFAULT_MENU_EDIT_DATE_ENTERED_ENABLED)
+    val shareBalanceMenuEnabled = getMenuBoolSetting(menuSettings, SETTING_MENU_SHARE_BALANCE_ENABLED, DEFAULT_MENU_SHARE_BALANCE_ENABLED)
+    val reminderOneOffsMenuEnabled = getMenuBoolSetting(menuSettings, SETTING_MENU_REMINDER_ONE_OFFS_ENABLED, DEFAULT_MENU_REMINDER_ONE_OFFS_ENABLED)
 
     // menu-build-time only reminder cache - avoids CopyPasteSplits/UpdateReminderValue/
     // EditOriginatingReminder each independently calling book.reminders.allReminders (which
@@ -167,24 +170,24 @@ class Main : FeatureModule(), PreferencesListener {
         listTxns.first().account.book.reminders.allReminders
       else null
 
-    val warnCategorySplit = getMenuBoolSetting(menuSettings, SETTING_WARN_CATEGORY_SPLIT, true)
+    val warnCategorySplit = getMenuBoolSetting(menuSettings, SETTING_WARN_CATEGORY_SPLIT, DEFAULT_WARN_CATEGORY_SPLIT)
     val defaultFullAcctPaths = mdGUI.preferences.getBoolSetting(UserPreferences.SHOW_FULL_ACCT_PATH, true)
     val showFullAcctNames = getMenuBoolSetting(menuSettings, SETTING_SHOW_FULL_ACCT_NAMES, defaultFullAcctPaths)
-    val includeSingleSplitTxns = getMenuBoolSetting(menuSettings, SETTING_INCLUDE_SINGLE_SPLIT_TXNS, false)
-    val templateIncludeSingleSplit = getMenuBoolSetting(menuSettings, SETTING_TEMPLATE_INCLUDE_SINGLE_SPLIT, false)
-    val templateNameFilter = getMenuStringSetting(menuSettings, SETTING_TEMPLATE_NAME_FILTER, "")
-    val templateMatchAccount = getMenuBoolSetting(menuSettings, SETTING_TEMPLATE_MATCH_ACCOUNT, false)
-    val excludeExpiredReminders = getMenuBoolSetting(menuSettings, SETTING_TEMPLATE_EXCLUDE_EXPIRED, false)
-    val copyRawMenuEnabled = getMenuBoolSetting(menuSettings, SETTING_MENU_COPY_RAW_ENABLED, false)
-    val showRawMenuEnabled = getMenuBoolSetting(menuSettings, SETTING_MENU_SHOW_RAW_ENABLED, false)
-    val alwaysConfirmTotal = getMenuBoolSetting(menuSettings, SETTING_ALWAYS_CONFIRM_TOTAL, false)
-    val defaultToPercentAllocation = getMenuBoolSetting(menuSettings, SETTING_DEFAULT_PERCENT_ALLOCATION, false)
-    val fillBlankParentDescription = getMenuBoolSetting(menuSettings, SETTING_FILL_BLANK_PARENT_DESCRIPTION, false)
-    val fillBlankParentMemo = getMenuBoolSetting(menuSettings, SETTING_FILL_BLANK_PARENT_MEMO, false)
-    val forceOverwriteParentDescription = getMenuBoolSetting(menuSettings, SETTING_FORCE_OVERWRITE_PARENT_DESCRIPTION, false)
-    val forceOverwriteParentMemo = getMenuBoolSetting(menuSettings, SETTING_FORCE_OVERWRITE_PARENT_MEMO, false)
-    
-    if (debugMenuEnabled || DEBUG) {
+    val includeSingleSplitTxns = getMenuBoolSetting(menuSettings, SETTING_INCLUDE_SINGLE_SPLIT_TXNS, DEFAULT_INCLUDE_SINGLE_SPLIT_TXNS)
+    val templateIncludeSingleSplit = getMenuBoolSetting(menuSettings, SETTING_TEMPLATE_INCLUDE_SINGLE_SPLIT, DEFAULT_TEMPLATE_INCLUDE_SINGLE_SPLIT)
+    val templateNameFilter = getMenuStringSetting(menuSettings, SETTING_TEMPLATE_NAME_FILTER, DEFAULT_TEMPLATE_NAME_FILTER)
+    val templateMatchAccount = getMenuBoolSetting(menuSettings, SETTING_TEMPLATE_MATCH_ACCOUNT, DEFAULT_TEMPLATE_MATCH_ACCOUNT)
+    val excludeExpiredReminders = getMenuBoolSetting(menuSettings, SETTING_TEMPLATE_EXCLUDE_EXPIRED, DEFAULT_TEMPLATE_EXCLUDE_EXPIRED)
+    val copyRawMenuEnabled = getMenuBoolSetting(menuSettings, SETTING_MENU_COPY_RAW_ENABLED, DEFAULT_MENU_COPY_RAW_ENABLED)
+    val showRawMenuEnabled = getMenuBoolSetting(menuSettings, SETTING_MENU_SHOW_RAW_ENABLED, DEFAULT_MENU_SHOW_RAW_ENABLED)
+    val alwaysConfirmTotal = getMenuBoolSetting(menuSettings, SETTING_ALWAYS_CONFIRM_TOTAL, DEFAULT_ALWAYS_CONFIRM_TOTAL)
+    val defaultToPercentAllocation = getMenuBoolSetting(menuSettings, SETTING_DEFAULT_PERCENT_ALLOCATION, DEFAULT_DEFAULT_PERCENT_ALLOCATION)
+    val fillBlankParentDescription = getMenuBoolSetting(menuSettings, SETTING_FILL_BLANK_PARENT_DESCRIPTION, DEFAULT_FILL_BLANK_PARENT_DESCRIPTION)
+    val fillBlankParentMemo = getMenuBoolSetting(menuSettings, SETTING_FILL_BLANK_PARENT_MEMO, DEFAULT_FILL_BLANK_PARENT_MEMO)
+    val forceOverwriteParentDescription = getMenuBoolSetting(menuSettings, SETTING_FORCE_OVERWRITE_PARENT_DESCRIPTION, DEFAULT_FORCE_OVERWRITE_PARENT_DESCRIPTION)
+    val forceOverwriteParentMemo = getMenuBoolSetting(menuSettings, SETTING_FORCE_OVERWRITE_PARENT_MEMO, DEFAULT_FORCE_OVERWRITE_PARENT_MEMO)
+
+    if (isCmtDebug) {
       val summary = "ContextMenuTools: type=${context.type.name} dateRange=${context.dateRange} " +
                     "accts=${listAccts.size} txns=${listTxns.size} items=${context.items.size} " +
                     "obj=${context.contextObject?.let { "${it::class.qualifiedName} ${if (it is Account) (it.getAccountType().toString() + " " + it.fullAccountName) else it}" }}"
@@ -215,8 +218,12 @@ class Main : FeatureModule(), PreferencesListener {
     val rawDetailsActions = CopyRawDetailsToClipboard(copyEnabled = copyRawMenuEnabled, showEnabled = showRawMenuEnabled)
       .getActions(menuContext = context, listAccts = listAccts, listTxns = listTxns)
     
+    if (context.type == ActionContextType.reminders) {
+      if (reminderOneOffsMenuEnabled) actions += EditReminderOneOffInstances().getActions(menuContext = context, listAccts = listAccts, listTxns = listTxns)
+    }
+
     // quick do-nothing exit if there are no items/accounts to process...
-    if (listTxns.isEmpty() && listAccts.isEmpty()) return rawDetailsActions
+    if (listTxns.isEmpty() && listAccts.isEmpty()) return actions + rawDetailsActions
 
     if (isDataEntryRegisterActionType(contextType = context.type, includeSecReg = true)) {
       if (shareBalanceMenuEnabled) actions += ShowShareBalance().getActions(menuContext = context, listAccts = listAccts, listTxns = listTxns)
@@ -319,7 +326,7 @@ class Main : FeatureModule(), PreferencesListener {
     copiedSplits?.let { copy ->
       if (System.currentTimeMillis() - copy.copiedAtMillis > CopyPasteSplits.COPY_EXPIRY_MILLIS) {
         copiedSplits = null
-        if (debugMenuEnabled || DEBUG) logConsole("CopyPasteSplits: cleared stale copy (>10min) on '$appEvent'")
+        if (isCmtDebug) logConsole("CopyPasteSplits: cleared stale copy (>10min) on '$appEvent'")
       }
     }
   }
@@ -351,45 +358,47 @@ class Main : FeatureModule(), PreferencesListener {
   
   private class MenuConfigDialog:SecondaryDialog(mdGUI, null, STRING_CONFIG, false), OKButtonListener {
     
-    private val dialogConfigSize = ".gui.config.size"
-    private val dialogConfigLocn = ".gui.config.loc"
-    
+    private val dialog_config_size = ".gui.config.size"
+    private val dialog_config_locn = ".gui.config.loc"
+    private val dialog_help_info_size = ".gui.help_info.size"
+    private val dialog_help_info_locn = ".gui.help_info.loc"
+
     private val menuSettingsOnOpen = prefs.getTableSetting(EXTN_ID + SETTING_MASTER_KEY, null) ?: StreamTable()
-    
+
     private val enableMenuDupCheckbox = JCheckBox(STRING_MENU_DUP_ENABLED).apply {
-      isSelected = getMenuBoolSetting(menuSettingsOnOpen, SETTING_MENU_DUP_ENABLED, true)
+      isSelected = getMenuBoolSetting(menuSettingsOnOpen, SETTING_MENU_DUP_ENABLED, DEFAULT_MENU_DUP_ENABLED)
     }
-    
+
     private val enableMenuVSTCheckbox = JCheckBox(STRING_MENU_VST_ENABLED).apply {
-      isSelected = getMenuBoolSetting(menuSettingsOnOpen, SETTING_MENU_VST_ENABLED, true)
+      isSelected = getMenuBoolSetting(menuSettingsOnOpen, SETTING_MENU_VST_ENABLED, DEFAULT_MENU_VST_ENABLED)
     }
-    
+
     private val enableMenuJumpCheckbox = JCheckBox(STRING_MENU_JUMP_ENABLED).apply {
-      isSelected = getMenuBoolSetting(menuSettingsOnOpen, SETTING_MENU_JUMP_ENABLED, true)
+      isSelected = getMenuBoolSetting(menuSettingsOnOpen, SETTING_MENU_JUMP_ENABLED, DEFAULT_MENU_JUMP_ENABLED)
     }
-    
+
     private val enableMenuCopyPasteCheckbox = JCheckBox(STRING_MENU_COPYPASTE_ENABLED).apply {
-      isSelected = getMenuBoolSetting(menuSettingsOnOpen, SETTING_MENU_COPYPASTE_ENABLED, true)
+      isSelected = getMenuBoolSetting(menuSettingsOnOpen, SETTING_MENU_COPYPASTE_ENABLED, DEFAULT_MENU_COPYPASTE_ENABLED)
     }
-    
+
     private val enableMenuTemplateCheckbox = JCheckBox(STRING_MENU_TEMPLATE_ENABLED).apply {
-      isSelected = getMenuBoolSetting(menuSettingsOnOpen, SETTING_MENU_TEMPLATE_ENABLED, true)
+      isSelected = getMenuBoolSetting(menuSettingsOnOpen, SETTING_MENU_TEMPLATE_ENABLED, DEFAULT_MENU_TEMPLATE_ENABLED)
     }
-    
+
     private val enableMenuRebalanceCheckbox = JCheckBox(STRING_MENU_REBALANCE_ENABLED).apply {
-      isSelected = getMenuBoolSetting(menuSettingsOnOpen, SETTING_MENU_REBALANCE_ENABLED, true)
+      isSelected = getMenuBoolSetting(menuSettingsOnOpen, SETTING_MENU_REBALANCE_ENABLED, DEFAULT_MENU_REBALANCE_ENABLED)
     }
-    
+
     private val enableMenuUpdateReminderCheckbox = JCheckBox(STRING_MENU_UPDATE_REMINDER_ENABLED).apply {
-      isSelected = getMenuBoolSetting(menuSettingsOnOpen, SETTING_MENU_UPDATE_REMINDER_ENABLED, true)
+      isSelected = getMenuBoolSetting(menuSettingsOnOpen, SETTING_MENU_UPDATE_REMINDER_ENABLED, DEFAULT_MENU_UPDATE_REMINDER_ENABLED)
     }
-    
+
     private val enableMenuShowOtherSideCheckbox = JCheckBox(STRING_MENU_SHOW_OTHER_SIDE_ENABLED).apply {
-      isSelected = getMenuBoolSetting(menuSettingsOnOpen, SETTING_MENU_SHOW_OTHER_SIDE_ENABLED, true)
+      isSelected = getMenuBoolSetting(menuSettingsOnOpen, SETTING_MENU_SHOW_OTHER_SIDE_ENABLED, DEFAULT_MENU_SHOW_OTHER_SIDE_ENABLED)
     }
-    
+
     private val warnCategorySplitCheckbox = JCheckBox(STRING_WARN_CATEGORY_SPLIT).apply {
-      isSelected = getMenuBoolSetting(menuSettingsOnOpen, SETTING_WARN_CATEGORY_SPLIT, true)
+      isSelected = getMenuBoolSetting(menuSettingsOnOpen, SETTING_WARN_CATEGORY_SPLIT, DEFAULT_WARN_CATEGORY_SPLIT)
       isEnabled = enableMenuShowOtherSideCheckbox.isSelected
     }
     
@@ -403,73 +412,81 @@ class Main : FeatureModule(), PreferencesListener {
     }
     
     private val includeSingleSplitTxnsCheckbox = JCheckBox(STRING_INCLUDE_SINGLE_SPLIT_TXNS).apply {
-      isSelected = getMenuBoolSetting(menuSettingsOnOpen, SETTING_INCLUDE_SINGLE_SPLIT_TXNS, false)
+      isSelected = getMenuBoolSetting(menuSettingsOnOpen, SETTING_INCLUDE_SINGLE_SPLIT_TXNS, DEFAULT_INCLUDE_SINGLE_SPLIT_TXNS)
       isEnabled = enableMenuShowOtherSideCheckbox.isSelected
     }
-    
+
     private val enableMenuEditOriginatingReminderCheckbox = JCheckBox(STRING_MENU_EDIT_ORIGINATING_REMINDER_ENABLED).apply {
-      isSelected = getMenuBoolSetting(menuSettingsOnOpen, SETTING_MENU_EDIT_ORIGINATING_REMINDER_ENABLED, true)
+      isSelected = getMenuBoolSetting(menuSettingsOnOpen, SETTING_MENU_EDIT_ORIGINATING_REMINDER_ENABLED, DEFAULT_MENU_EDIT_ORIGINATING_REMINDER_ENABLED)
     }
-    
+
+    // shown on every build, but only usable on builds with one-off instances; keeps its saved value either way
+    private val enableMenuReminderOneOffsCheckbox = JCheckBox(STRING_MENU_REMINDER_ONE_OFFS_ENABLED).apply {
+      isSelected = getMenuBoolSetting(menuSettingsOnOpen, SETTING_MENU_REMINDER_ONE_OFFS_ENABLED, DEFAULT_MENU_REMINDER_ONE_OFFS_ENABLED)
+      isEnabled = RemUtility.isDeferredRemindersBuild
+    }
+
     private val enableMenuZapCleanMemoCheckbox = JCheckBox(STRING_MENU_ZAP_CLEAN_MEMO_ENABLED).apply {
-      isSelected = getMenuBoolSetting(menuSettingsOnOpen, SETTING_MENU_ZAP_CLEAN_MEMO_ENABLED, false)
+      isSelected = getMenuBoolSetting(menuSettingsOnOpen, SETTING_MENU_ZAP_CLEAN_MEMO_ENABLED, DEFAULT_MENU_ZAP_CLEAN_MEMO_ENABLED)
     }
 
     private val enableMenuEditDateEnteredCheckbox = JCheckBox(STRING_MENU_EDIT_DATE_ENTERED_ENABLED).apply {
-      isSelected = getMenuBoolSetting(menuSettingsOnOpen, SETTING_MENU_EDIT_DATE_ENTERED_ENABLED, false)
+      isSelected = getMenuBoolSetting(menuSettingsOnOpen, SETTING_MENU_EDIT_DATE_ENTERED_ENABLED, DEFAULT_MENU_EDIT_DATE_ENTERED_ENABLED)
     }
 
     private val enableMenuShareBalanceCheckbox = JCheckBox(STRING_MENU_SHARE_BALANCE_ENABLED).apply {
-      isSelected = getMenuBoolSetting(menuSettingsOnOpen, SETTING_MENU_SHARE_BALANCE_ENABLED, false)
+      isSelected = getMenuBoolSetting(menuSettingsOnOpen, SETTING_MENU_SHARE_BALANCE_ENABLED, DEFAULT_MENU_SHARE_BALANCE_ENABLED)
     }
 
     private val includeSingleSplitCheckbox = JCheckBox(STRING_TEMPLATE_INCLUDE_SINGLE_SPLIT).apply {
-      isSelected = getMenuBoolSetting(menuSettingsOnOpen, SETTING_TEMPLATE_INCLUDE_SINGLE_SPLIT, false)
+      isSelected = getMenuBoolSetting(menuSettingsOnOpen, SETTING_TEMPLATE_INCLUDE_SINGLE_SPLIT, DEFAULT_TEMPLATE_INCLUDE_SINGLE_SPLIT)
       isEnabled = enableMenuTemplateCheckbox.isSelected
     }
-    
+
     private val templateMatchAccountCheckbox = JCheckBox(STRING_TEMPLATE_MATCH_ACCOUNT).apply {
-      isSelected = getMenuBoolSetting(menuSettingsOnOpen, SETTING_TEMPLATE_MATCH_ACCOUNT, false)
+      isSelected = getMenuBoolSetting(menuSettingsOnOpen, SETTING_TEMPLATE_MATCH_ACCOUNT, DEFAULT_TEMPLATE_MATCH_ACCOUNT)
       isEnabled = enableMenuTemplateCheckbox.isSelected
     }
-    
+
     private val excludeExpiredRemindersCheckbox = JCheckBox(STRING_TEMPLATE_EXCLUDE_EXPIRED).apply {
-      isSelected = getMenuBoolSetting(menuSettingsOnOpen, SETTING_TEMPLATE_EXCLUDE_EXPIRED, false)
+      isSelected = getMenuBoolSetting(menuSettingsOnOpen, SETTING_TEMPLATE_EXCLUDE_EXPIRED, DEFAULT_TEMPLATE_EXCLUDE_EXPIRED)
       isEnabled = enableMenuTemplateCheckbox.isSelected
     }
-    
-    private val templateNameFilterField = JTextField(getMenuStringSetting(menuSettingsOnOpen, SETTING_TEMPLATE_NAME_FILTER, ""), 20).apply {
+
+    private val templateNameFilterField = JTextField(getMenuStringSetting(menuSettingsOnOpen, SETTING_TEMPLATE_NAME_FILTER, DEFAULT_TEMPLATE_NAME_FILTER), 20).apply {
       isEnabled = enableMenuTemplateCheckbox.isSelected
       fixStuckDragSelection()
     }
-    
+
+    private val pasteTemplateOptionsLabel = JLabel(STRING_PASTE_TEMPLATE_OPTIONS)
+
     private val alwaysConfirmTotalCheckbox = JCheckBox(STRING_ALWAYS_CONFIRM_TOTAL).apply {
-      isSelected = getMenuBoolSetting(menuSettingsOnOpen, SETTING_ALWAYS_CONFIRM_TOTAL, false)
+      isSelected = getMenuBoolSetting(menuSettingsOnOpen, SETTING_ALWAYS_CONFIRM_TOTAL, DEFAULT_ALWAYS_CONFIRM_TOTAL)
       isEnabled = enableMenuCopyPasteCheckbox.isSelected || enableMenuTemplateCheckbox.isSelected
     }
-    
+
     private val defaultPercentAllocationCheckbox = JCheckBox(STRING_DEFAULT_PERCENT_ALLOCATION).apply {
-      isSelected = getMenuBoolSetting(menuSettingsOnOpen, SETTING_DEFAULT_PERCENT_ALLOCATION, false)
+      isSelected = getMenuBoolSetting(menuSettingsOnOpen, SETTING_DEFAULT_PERCENT_ALLOCATION, DEFAULT_DEFAULT_PERCENT_ALLOCATION)
       isEnabled = enableMenuCopyPasteCheckbox.isSelected || enableMenuTemplateCheckbox.isSelected
     }
-    
+
     private val fillBlankParentDescriptionCheckbox = JCheckBox(STRING_FILL_BLANK_PARENT_DESCRIPTION).apply {
-      isSelected = getMenuBoolSetting(menuSettingsOnOpen, SETTING_FILL_BLANK_PARENT_DESCRIPTION, false)
+      isSelected = getMenuBoolSetting(menuSettingsOnOpen, SETTING_FILL_BLANK_PARENT_DESCRIPTION, DEFAULT_FILL_BLANK_PARENT_DESCRIPTION)
       isEnabled = enableMenuCopyPasteCheckbox.isSelected || enableMenuTemplateCheckbox.isSelected
     }
-    
+
     private val fillBlankParentMemoCheckbox = JCheckBox(STRING_FILL_BLANK_PARENT_MEMO).apply {
-      isSelected = getMenuBoolSetting(menuSettingsOnOpen, SETTING_FILL_BLANK_PARENT_MEMO, false)
+      isSelected = getMenuBoolSetting(menuSettingsOnOpen, SETTING_FILL_BLANK_PARENT_MEMO, DEFAULT_FILL_BLANK_PARENT_MEMO)
       isEnabled = enableMenuCopyPasteCheckbox.isSelected || enableMenuTemplateCheckbox.isSelected
     }
-    
+
     private val forceOverwriteParentDescriptionCheckbox = JCheckBox(STRING_FORCE_OVERWRITE_PARENT_DESCRIPTION).apply {
-      isSelected = getMenuBoolSetting(menuSettingsOnOpen, SETTING_FORCE_OVERWRITE_PARENT_DESCRIPTION, false)
+      isSelected = getMenuBoolSetting(menuSettingsOnOpen, SETTING_FORCE_OVERWRITE_PARENT_DESCRIPTION, DEFAULT_FORCE_OVERWRITE_PARENT_DESCRIPTION)
       isEnabled = enableMenuCopyPasteCheckbox.isSelected || enableMenuTemplateCheckbox.isSelected
     }
-    
+
     private val forceOverwriteParentMemoCheckbox = JCheckBox(STRING_FORCE_OVERWRITE_PARENT_MEMO).apply {
-      isSelected = getMenuBoolSetting(menuSettingsOnOpen, SETTING_FORCE_OVERWRITE_PARENT_MEMO, false)
+      isSelected = getMenuBoolSetting(menuSettingsOnOpen, SETTING_FORCE_OVERWRITE_PARENT_MEMO, DEFAULT_FORCE_OVERWRITE_PARENT_MEMO)
       isEnabled = enableMenuCopyPasteCheckbox.isSelected || enableMenuTemplateCheckbox.isSelected
     }
     
@@ -489,23 +506,23 @@ class Main : FeatureModule(), PreferencesListener {
         val readmeText = Util.loadTextResource("readme.txt")
         val win = TextViewerDialog(
           mdGUI, this@MenuConfigDialog, STRING_HELP_INFO_TITLE, readmeText, STRING_COPY_TO_CLIPBOARD,
-          sizeKey = "$EXTN_ID.gui.help_info.size",
-          locationKey = "$EXTN_ID.gui.help_info.loc"
+          sizeKey = EXTN_ID + dialog_help_info_size,
+          locationKey = EXTN_ID + dialog_help_info_locn
         )
         win.isVisible = true
       }
     }
     
     private val enableMenuCopyRawCheckbox = JCheckBox(STRING_MENU_COPY_RAW_ENABLED).apply {
-      isSelected = getMenuBoolSetting(menuSettingsOnOpen, SETTING_MENU_COPY_RAW_ENABLED, false)
+      isSelected = getMenuBoolSetting(menuSettingsOnOpen, SETTING_MENU_COPY_RAW_ENABLED, DEFAULT_MENU_COPY_RAW_ENABLED)
     }
-    
+
     private val enableMenuShowRawCheckbox = JCheckBox(STRING_MENU_SHOW_RAW_ENABLED).apply {
-      isSelected = getMenuBoolSetting(menuSettingsOnOpen, SETTING_MENU_SHOW_RAW_ENABLED, false)
+      isSelected = getMenuBoolSetting(menuSettingsOnOpen, SETTING_MENU_SHOW_RAW_ENABLED, DEFAULT_MENU_SHOW_RAW_ENABLED)
     }
-    
+
     private val enableMenuDebugCheckbox = JCheckBox(STRING_DEBUG_ENABLED).apply {
-      isSelected = getMenuBoolSetting(menuSettingsOnOpen, SETTING_MENU_DEBUG_ENABLED, false)
+      isSelected = getMenuBoolSetting(menuSettingsOnOpen, SETTING_MENU_DEBUG_ENABLED, DEFAULT_MENU_DEBUG_ENABLED)
     }
     
     private val vstBaseCurrLabel = JLabel(STRING_MENU_VST_DISP_CURR.labelify)
@@ -563,13 +580,16 @@ class Main : FeatureModule(), PreferencesListener {
       form.border = EmptyBorder(16, 20, 12, 20)
       var y = 0
       
+      // same order as the right-click menu (getActionsForContext)
+      form.add(enableMenuShareBalanceCheckbox, GridC.getc(0, y++).west().insets(4, 4, 4, 4))
       form.add(lightSeparator(), GridC.getc(0, y++).west().wx(1f).fillboth().insets(6, 0, 6, 0))
+
       form.add(enableMenuVSTCheckbox, GridC.getc(0, y++).west().insets(4, 4, 2, 4))
-      
+
       val currPanel = JPanel(GridBagLayout())
       currPanel.add(vstBaseCurrLabel, GridC.getc(0, 0).west().insets(0, 0, 0, 6))
       currPanel.add(vstBaseCurrChoice!!, GridC.getc(1, 0).west().insets(0, 0, 0, 0))
-      
+
       form.add(currPanel, GridC.getc(0, y++).west().insets(0, 24, 4, 4))
       form.add(lightSeparator(), GridC.getc(0, y++).west().wx(1f).fillboth().insets(6, 0, 6, 0))
       form.add(enableMenuDupCheckbox, GridC.getc(0, y++).west().insets(4, 4, 4, 4))
@@ -579,12 +599,14 @@ class Main : FeatureModule(), PreferencesListener {
       form.add(includeSingleSplitCheckbox, GridC.getc(0, y++).west().insets(0, 24, 4, 4))
       form.add(templateMatchAccountCheckbox, GridC.getc(0, y++).west().insets(0, 24, 4, 4))
       form.add(excludeExpiredRemindersCheckbox, GridC.getc(0, y++).west().insets(0, 24, 4, 4))
-      
+
       val templateFilterPanel = JPanel(GridBagLayout())
       templateFilterPanel.add(JLabel(STRING_TEMPLATE_NAME_FILTER.labelify), GridC.getc(0, 0).west().insets(0, 0, 0, 6))
       templateFilterPanel.add(templateNameFilterField, GridC.getc(1, 0).west().insets(0, 0, 0, 0))
       form.add(templateFilterPanel, GridC.getc(0, y++).west().insets(0, 24, 4, 4))
+      form.add(enableMenuRebalanceCheckbox, GridC.getc(0, y++).west().insets(4, 4, 4, 4))
 
+      form.add(pasteTemplateOptionsLabel, GridC.getc(0, y++).west().insets(8, 4, 4, 4))
       form.add(alwaysConfirmTotalCheckbox, GridC.getc(0, y++).west().insets(0, 24, 4, 4))
       form.add(defaultPercentAllocationCheckbox, GridC.getc(0, y++).west().insets(0, 24, 4, 4))
       form.add(fillBlankParentDescriptionCheckbox, GridC.getc(0, y++).west().insets(0, 24, 4, 4))
@@ -593,32 +615,30 @@ class Main : FeatureModule(), PreferencesListener {
       form.add(forceOverwriteParentMemoCheckbox, GridC.getc(0, y++).west().insets(0, 24, 4, 4))
       form.add(lightSeparator(), GridC.getc(0, y++).west().wx(1f).fillboth().insets(6, 0, 6, 0))
 
-      form.add(enableMenuRebalanceCheckbox, GridC.getc(0, y++).west().insets(4, 4, 4, 4))
-      form.add(lightSeparator(), GridC.getc(0, y++).west().wx(1f).fillboth().insets(6, 0, 6, 0))
       form.add(enableMenuUpdateReminderCheckbox, GridC.getc(0, y++).west().insets(4, 4, 4, 4))
-      
       form.add(lightSeparator(), GridC.getc(0, y++).west().wx(1f).fillboth().insets(6, 0, 6, 0))
-      
+
       form.add(enableMenuEditOriginatingReminderCheckbox, GridC.getc(0, y++).west().insets(4, 4, 4, 4))
       form.add(lightSeparator(), GridC.getc(0, y++).west().wx(1f).fillboth().insets(6, 0, 6, 0))
-      
+
+      form.add(enableMenuReminderOneOffsCheckbox, GridC.getc(0, y++).west().insets(4, 4, 4, 4))
+      form.add(lightSeparator(), GridC.getc(0, y++).west().wx(1f).fillboth().insets(6, 0, 6, 0))
+
       form.add(enableMenuZapCleanMemoCheckbox, GridC.getc(0, y++).west().insets(4, 4, 4, 4))
+      form.add(lightSeparator(), GridC.getc(0, y++).west().wx(1f).fillboth().insets(6, 0, 6, 0))
+
+      form.add(enableMenuShowOtherSideCheckbox, GridC.getc(0, y++).west().insets(4, 4, 4, 4))
+
+      form.add(warnCategorySplitCheckbox, GridC.getc(0, y++).west().insets(0, 24, 4, 4))
+
+      form.add(showFullAccountNamesCheckbox, GridC.getc(0, y++).west().insets(0, 24, 4, 4))
+
+      form.add(includeSingleSplitTxnsCheckbox, GridC.getc(0, y++).west().insets(0, 24, 4, 4))
       form.add(lightSeparator(), GridC.getc(0, y++).west().wx(1f).fillboth().insets(6, 0, 6, 0))
 
       form.add(enableMenuEditDateEnteredCheckbox, GridC.getc(0, y++).west().insets(4, 4, 4, 4))
       form.add(lightSeparator(), GridC.getc(0, y++).west().wx(1f).fillboth().insets(6, 0, 6, 0))
 
-      form.add(enableMenuShareBalanceCheckbox, GridC.getc(0, y++).west().insets(4, 4, 4, 4))
-      form.add(lightSeparator(), GridC.getc(0, y++).west().wx(1f).fillboth().insets(6, 0, 6, 0))
-      
-      form.add(enableMenuShowOtherSideCheckbox, GridC.getc(0, y++).west().insets(4, 4, 4, 4))
-      
-      form.add(warnCategorySplitCheckbox, GridC.getc(0, y++).west().insets(0, 24, 4, 4))
-      
-      form.add(showFullAccountNamesCheckbox, GridC.getc(0, y++).west().insets(0, 24, 4, 4))
-      
-      form.add(includeSingleSplitTxnsCheckbox, GridC.getc(0, y++).west().insets(0, 24, 4, 4))
-      form.add(lightSeparator(), GridC.getc(0, y++).west().wx(1f).fillboth().insets(6, 0, 6, 0))
       form.add(enableMenuJumpCheckbox, GridC.getc(0, y++).west().insets(4, 4, 4, 4))
       form.add(lightSeparator(), GridC.getc(0, y++).west().wx(1f).fillboth().insets(6, 0, 6, 0))
       form.add(enableMenuShowRawCheckbox, GridC.getc(0, y++).west().insets(4, 4, 4, 4))
@@ -648,7 +668,7 @@ class Main : FeatureModule(), PreferencesListener {
       add(buttonPanel, BorderLayout.SOUTH)
       
       setEscapeKeyCancels(true)
-      setRememberSizeLocationKeys(EXTN_ID + dialogConfigSize, EXTN_ID + dialogConfigLocn)
+      setRememberSizeLocationKeys(EXTN_ID + dialog_config_size, EXTN_ID + dialog_config_locn)
       pack()
       // first-run default only - a remembered size from a previous session (via
       // setRememberSizeLocationKeys above) is applied afterward, when setVisible(true) is
@@ -681,6 +701,7 @@ class Main : FeatureModule(), PreferencesListener {
           menuSettings[SETTING_SHOW_FULL_ACCT_NAMES] = showFullAccountNamesCheckbox.isSelected
           menuSettings[SETTING_INCLUDE_SINGLE_SPLIT_TXNS] = includeSingleSplitTxnsCheckbox.isSelected
           menuSettings[SETTING_MENU_EDIT_ORIGINATING_REMINDER_ENABLED] = enableMenuEditOriginatingReminderCheckbox.isSelected
+          if (enableMenuReminderOneOffsCheckbox.isEnabled) menuSettings[SETTING_MENU_REMINDER_ONE_OFFS_ENABLED] = enableMenuReminderOneOffsCheckbox.isSelected
           menuSettings[SETTING_MENU_ZAP_CLEAN_MEMO_ENABLED] = enableMenuZapCleanMemoCheckbox.isSelected
           menuSettings[SETTING_MENU_EDIT_DATE_ENTERED_ENABLED] = enableMenuEditDateEnteredCheckbox.isSelected
           menuSettings[SETTING_MENU_SHARE_BALANCE_ENABLED] = enableMenuShareBalanceCheckbox.isSelected
@@ -752,7 +773,7 @@ class Main : FeatureModule(), PreferencesListener {
     get():Boolean {
       val prefs = mdMain?.preferences ?: return false
       val menuSettings = prefs.getTableSetting(EXTN_ID + SETTING_MASTER_KEY, null) ?: return false
-      return getMenuBoolSetting(menuSettings, SETTING_MENU_DEBUG_ENABLED, false)
+      return getMenuBoolSetting(menuSettings, SETTING_MENU_DEBUG_ENABLED, DEFAULT_MENU_DEBUG_ENABLED)
     }
   
   companion object {
@@ -771,22 +792,26 @@ class Main : FeatureModule(), PreferencesListener {
     
     var extensionContext:Main? = null
     var PREVIEW_BUILD = false            //TODO - update accordingly
-    
-    const val STRING_CONFIG = "Context Menu Tools: Configuration"
 
-    const val STRING_MENU_DUP_ENABLED = "Enable context menu: 'Duplicate'"
-    const val STRING_MENU_VST_ENABLED = "Enable context menu: 'Value Selected Transactions'"
+    const val REMINDERS_ONE_OFF_INSTANCES_BUILD = 5512
+
+    const val STRING_CONFIG = "Context Menu Tools - Configuration"
+
+    const val STRING_MENU_DUP_ENABLED = "Enable context menu: 'Duplicate Transactions'"
+    const val STRING_MENU_VST_ENABLED = "Enable context menu: 'Show Value of Selected Transactions'"
     const val STRING_MENU_VST_DISP_CURR = "Display Currency"
-    const val STRING_MENU_JUMP_ENABLED = "Enable context menu: 'Jump to date'"
-    const val STRING_MENU_COPYPASTE_ENABLED = "Enable context menu: 'Copy/Paste Splits'"
+    const val STRING_MENU_JUMP_ENABLED = "Enable context menu: 'Jump to Date in Register'"
+    const val STRING_MENU_COPYPASTE_ENABLED = "Enable context menu: 'Copy Splits / Paste Splits'"
     const val STRING_MENU_TEMPLATE_ENABLED = "Enable context menu: 'Apply Splits Template'"
-    const val STRING_MENU_REBALANCE_ENABLED = "Enable context menu: 'Rebalance Splits'"
-    const val STRING_MENU_UPDATE_REMINDER_ENABLED = "Enable context menu: 'Update Reminder Value'"
+    const val STRING_MENU_REBALANCE_ENABLED = "Enable context menu: 'Rebalance Splits - Update Total and/or Ratio'"
+    const val STRING_MENU_UPDATE_REMINDER_ENABLED = "Enable context menu: 'Update Reminder and Transaction's Value / Update Reminder from Selected Transaction'"
     const val STRING_MENU_SHOW_OTHER_SIDE_ENABLED = "Enable context menu: 'Show Other Side: Select Split'"
     const val STRING_MENU_EDIT_ORIGINATING_REMINDER_ENABLED = "Enable context menu: 'Edit Originating Reminder'"
+    const val STRING_MENU_REMINDER_ONE_OFFS_ENABLED = "Enable context menu: 'Edit Reminder One-off Instances'"
     const val STRING_MENU_ZAP_CLEAN_MEMO_ENABLED = "Enable context menu: 'Zap/Clean Memo'"
-    const val STRING_MENU_EDIT_DATE_ENTERED_ENABLED = "Enable context menu: 'Edit date entered'"
-    const val STRING_MENU_SHARE_BALANCE_ENABLED = "Enable context menu: 'Show share balance'"
+    const val STRING_MENU_EDIT_DATE_ENTERED_ENABLED = "Enable context menu: 'Edit Date Entered'"
+    const val STRING_MENU_SHARE_BALANCE_ENABLED = "Enable context menu: 'Show Share Balance'"
+    const val STRING_PASTE_TEMPLATE_OPTIONS = "Paste / Template options"
     const val STRING_WARN_CATEGORY_SPLIT = "Warn before showing a Category split"
     const val STRING_SHOW_FULL_ACCT_NAMES = "Show full account names (not just account name)"
     const val STRING_INCLUDE_SINGLE_SPLIT_TXNS = "Include single-split transactions"
@@ -820,6 +845,7 @@ class Main : FeatureModule(), PreferencesListener {
     const val SETTING_MENU_UPDATE_REMINDER_ENABLED = "menu.enabled.update_reminder"
     const val SETTING_MENU_SHOW_OTHER_SIDE_ENABLED = "menu.enabled.show_other_side"
     const val SETTING_MENU_EDIT_ORIGINATING_REMINDER_ENABLED = "menu.enabled.edit_originating_reminder"
+    const val SETTING_MENU_REMINDER_ONE_OFFS_ENABLED = "menu.enabled.reminder_one_offs"
     const val SETTING_MENU_ZAP_CLEAN_MEMO_ENABLED = "menu.enabled.zap_clean_memo"
     const val SETTING_MENU_EDIT_DATE_ENTERED_ENABLED = "menu.enabled.edit_date_entered"
     const val SETTING_MENU_SHARE_BALANCE_ENABLED = "menu.enabled.share_balance"
@@ -839,7 +865,36 @@ class Main : FeatureModule(), PreferencesListener {
     const val SETTING_FILL_BLANK_PARENT_MEMO = "paste.fill_blank_parent_memo"
     const val SETTING_FORCE_OVERWRITE_PARENT_DESCRIPTION = "paste.force_overwrite_parent_desc"
     const val SETTING_FORCE_OVERWRITE_PARENT_MEMO = "paste.force_overwrite_parent_memo"
-    
+
+    const val DEFAULT_MENU_DUP_ENABLED = true
+    const val DEFAULT_MENU_VST_ENABLED = true
+    const val DEFAULT_MENU_JUMP_ENABLED = true
+    const val DEFAULT_MENU_COPYPASTE_ENABLED = true
+    const val DEFAULT_MENU_TEMPLATE_ENABLED = true
+    const val DEFAULT_MENU_REBALANCE_ENABLED = true
+    const val DEFAULT_MENU_UPDATE_REMINDER_ENABLED = true
+    const val DEFAULT_MENU_SHOW_OTHER_SIDE_ENABLED = true
+    const val DEFAULT_MENU_EDIT_ORIGINATING_REMINDER_ENABLED = true
+    const val DEFAULT_MENU_REMINDER_ONE_OFFS_ENABLED = true
+    const val DEFAULT_MENU_ZAP_CLEAN_MEMO_ENABLED = false
+    const val DEFAULT_MENU_EDIT_DATE_ENTERED_ENABLED = false
+    const val DEFAULT_MENU_SHARE_BALANCE_ENABLED = false
+    const val DEFAULT_MENU_COPY_RAW_ENABLED = false
+    const val DEFAULT_MENU_SHOW_RAW_ENABLED = false
+    const val DEFAULT_MENU_DEBUG_ENABLED = false
+    const val DEFAULT_WARN_CATEGORY_SPLIT = true
+    const val DEFAULT_INCLUDE_SINGLE_SPLIT_TXNS = false
+    const val DEFAULT_TEMPLATE_INCLUDE_SINGLE_SPLIT = false
+    const val DEFAULT_TEMPLATE_MATCH_ACCOUNT = false
+    const val DEFAULT_TEMPLATE_EXCLUDE_EXPIRED = false
+    const val DEFAULT_TEMPLATE_NAME_FILTER = ""
+    const val DEFAULT_ALWAYS_CONFIRM_TOTAL = false
+    const val DEFAULT_DEFAULT_PERCENT_ALLOCATION = false
+    const val DEFAULT_FILL_BLANK_PARENT_DESCRIPTION = false
+    const val DEFAULT_FILL_BLANK_PARENT_MEMO = false
+    const val DEFAULT_FORCE_OVERWRITE_PARENT_DESCRIPTION = false
+    const val DEFAULT_FORCE_OVERWRITE_PARENT_MEMO = false
+
     private fun getMenuBoolSetting(table:StreamTable, key:String, default:Boolean):Boolean = table.getBoolean(key, default)
     private fun getMenuStringSetting(table:StreamTable, key:String, default:String):String { return (table[key] as? String) ?: default }
     

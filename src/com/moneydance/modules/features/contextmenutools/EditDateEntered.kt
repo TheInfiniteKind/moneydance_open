@@ -50,8 +50,8 @@ class EditDateEntered:ContextMenuAction {
   private val dialog_edit_date_entered_size = ".gui.edit_date_entered.size"
   private val dialog_edit_date_entered_locn = ".gui.edit_date_entered.loc"
 
-  private val string_edit_date_entered = "Edit date entered"
-  private val string_edit_date_entered_title = "Edit date entered"
+  private val string_edit_date_entered = "Edit Date Entered"
+  private val string_edit_date_entered_title = "Edit Date Entered"
   private val string_undo_redo_edit_date_entered = "Edit Date Entered"
   private val string_account_label = "Account"
   private val string_desc_label = "Description"

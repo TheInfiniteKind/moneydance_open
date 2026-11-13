@@ -21,6 +21,8 @@ import javax.swing.border.EmptyBorder
 import kotlin.math.abs
 
 /**
+ * Asks for a date and selects the register's transactions on that date, or the nearest one when none falls on it.
+ *
  * @author Stuart Beesley - March-August 2026
  */
 @Suppress("DuplicatedCode", "PrivatePropertyName")
@@ -30,8 +32,8 @@ class JumpToDate:ContextMenuAction {
   private val dialog_jump_to_date_size = ".gui.jump_to_date.size"
   private val dialog_jump_to_date_locn = ".gui.jump_to_date.loc"
   
-  private val string_jump_to_date = "Jump to date in register"
-  private val string_jump_enter_date = "Enter date to jump to"
+  private val string_jump_to_date = "Jump to Date in Register"
+  private val string_jump_enter_date = "Jump to Date in Register - Enter date to jump to"
   private val string_jump_date_label = "Date"
   
   override fun getActions(menuContext:MDActionContext, listAccts:List<Account>, listTxns:List<AbstractTxn>):List<Action> {

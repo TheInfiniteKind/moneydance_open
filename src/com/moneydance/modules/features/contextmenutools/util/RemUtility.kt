@@ -9,10 +9,10 @@ import java.lang.reflect.Method
  * Reminder one-off instances (deferred occurrences), MD2027(5512) onwards. These methods are not in
  * lib/moneydance-private.jar, so they are reached by reflection, and every call falls back to the
  * pre-5512 behaviour when they are missing.
+ *
+ * @author Stuart Beesley - November 2026
  */
 object RemUtility {
-  const val DEFERRED_REMINDERS_BUILD = 5512
-
   private val getDeferredDatesMethod:Method? by lazy {
     runCatching { Reminder::class.java.getMethod("getDeferredDates") }.getOrNull()
   }
@@ -24,12 +24,12 @@ object RemUtility {
   }
 
   val isDeferredRemindersBuild:Boolean by lazy {
-    (Main.mdMain?.build ?: 0) >= DEFERRED_REMINDERS_BUILD &&
+    (Main.mdMain?.build ?: 0) >= Main.REMINDERS_ONE_OFF_INSTANCES_BUILD &&
       getDeferredDatesMethod != null && getDeferredTxnInfoMethod != null && setDeferredTxnInfoMethod != null
   }
 
   /** Every scheduled date with a stored one-off record, complete or not; empty before 5512. */
-  private fun storedDeferredDates(rem:Reminder):List<Int> {
+  fun storedDeferredDates(rem:Reminder):List<Int> {
     if (!isDeferredRemindersBuild) return emptyList()
     @Suppress("UNCHECKED_CAST")
     return runCatching { getDeferredDatesMethod!!.invoke(rem) as List<Int> }.getOrNull() ?: emptyList()
@@ -45,6 +45,13 @@ object RemUtility {
   }
 
   fun hasOneOffs(rem:Reminder):Boolean = deferredDates(rem).isNotEmpty()
+
+  /** Stores the one-off instance for a scheduled date; null removes it.
+   *  The caller wraps it in an UndoableChange on the reminder. */
+  fun setDeferredTxn(rem:Reminder, scheduledDate:Int, txn:ParentTxn?) {
+    if (!isDeferredRemindersBuild) return
+    runCatching { setDeferredTxnInfoMethod!!.invoke(rem, scheduledDate, txn) }
+  }
 
   /** Removes every one-off instance, as MD's Edit Reminder does when the master changes.
    *  The caller wraps it in the same UndoableChange as the master edit. */

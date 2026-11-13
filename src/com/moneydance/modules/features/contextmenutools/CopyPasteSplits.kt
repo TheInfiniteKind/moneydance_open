@@ -1,12 +1,12 @@
 package com.moneydance.modules.features.contextmenutools
 
 import com.infinitekind.moneydance.model.*
+import com.infinitekind.util.labelify
 import com.moneydance.apps.md.controller.MDActionContext
 import com.moneydance.apps.md.view.gui.MDAction
 import com.moneydance.apps.md.view.gui.OKButtonPanel
 import com.moneydance.awt.GridC
 import com.moneydance.awt.JCurrencyField
-import com.moneydance.modules.features.contextmenutools.Main.Companion.DEBUG
 import com.moneydance.modules.features.contextmenutools.Main.Companion.extensionContext
 import com.moneydance.modules.features.contextmenutools.Main.Companion.mdGUI
 import com.moneydance.modules.features.contextmenutools.util.*
@@ -134,12 +134,12 @@ class CopyPasteSplits(
   private val forceOverwriteParentMemo:Boolean = false
 ):ContextMenuAction {
   
-  private val dialog_apply_tmplt_size = ".gui.apply_template.size"
-  private val dialog_apply_tmplt_locn = ".gui.apply_template.loc"
-  private val dialog_apply_tmplt_selected_size = ".gui.apply_template_selected.size"
-  private val dialog_apply_tmplt_selected_locn = ".gui.apply_template_selected.loc"
-  private val dialog_batch_allocation_size = ".gui.apply_template_selected_allocation.size"
-  private val dialog_batch_allocation_locn = ".gui.apply_template_selected_allocation.loc"
+  private val dialog_apply_template_size = ".gui.apply_template.size"
+  private val dialog_apply_template_locn = ".gui.apply_template.loc"
+  private val dialog_apply_template_selected_size = ".gui.apply_template_selected.size"
+  private val dialog_apply_template_selected_locn = ".gui.apply_template_selected.loc"
+  private val dialog_apply_template_selected_allocation_size = ".gui.apply_template_selected_allocation.size"
+  private val dialog_apply_template_selected_allocation_locn = ".gui.apply_template_selected_allocation.loc"
   private val dialog_paste_mismatch_size = ".gui.paste_mismatch.size"
   private val dialog_paste_mismatch_locn =  ".gui.paste_mismatch.loc"
   private val dialog_paste_always_confirm_size = ".gui.paste_always_confirm.size"
@@ -155,16 +155,17 @@ class CopyPasteSplits(
   private val string_opt_overwrite_total = "Change/Overwrite total to {total} (paste exact copied amounts)"
   private val string_opt_exact_new = "Exact amounts, remainder on a new split"
   private val string_opt_pct_hamilton = "Allocate by % (Hamilton's method)"
-  private val string_blocked_no_default_category_template = "{action} blocked. Please set the default category for account: {acct}"
-  private val string_warn_copy_splits_had_attachments = "One or more copied splits had attachments which were not pasted"
-  
-  private val string_source_label = "Source"
-  private val string_transaction_label = "Transaction"
-  private val string_source_splits_label = "Splits"
-  private val string_source_total_label = "Source total"
-  private val string_target_total_label = "Target total"
-  private val string_current_total_label = "Current total"
+  private val string_blocked_no_default_category_template = "{action} blocked. Please set the default category for account: {acct}."
+  private val string_warn_copy_splits_had_attachments = "One or more copied splits had attachments which were not pasted."
+
+  private val string_source_line = "Source: {value}"
+  private val string_transaction_line = "Transaction: {value}"
+  private val string_splits_line = "Splits: {value}"
+  private val string_source_total_line = "Source total: {value}"
+  private val string_target_total_line = "Target total: {value}"
+  private val string_current_total_line = "Current total: {value}"
   private val string_new_total_label = "New total"
+  private val string_split_summary_line = "{category}: {amount} ({percent}%)"
   
   private val string_source_splits_heading = "Source splits"
   private val string_current_splits_heading = "Current splits"
@@ -173,8 +174,7 @@ class CopyPasteSplits(
   private val string_reset_target_total_tooltip = "Reset to target's original total"
   private val string_reset_current_total_tooltip = "Reset to original total"
   
-  private val string_hamilton_link_tooltip = "About the largest-remainder (Hamilton's) method"
-  private val HAMILTON_WIKI_URL = "https://en.wikipedia.org/wiki/Largest_remainder_method"
+  private val string_hamilton_link_text = "(?)"
   private val ICON_RESET_PATH = "com/moneydance/apps/md/view/gui/glyphs/reset.png"
   private val ICON_USE_VALUE_PATH = "com/moneydance/apps/md/view/gui/glyphs/horizontal-left.png"
   
@@ -187,7 +187,7 @@ class CopyPasteSplits(
   private val string_undo_redo_apply_template_selected = "Apply Splits Template to Selected"
   private val string_batch_apply_summary = "Applied to {applied} of {total} selected transactions.{skipped}"
   private val string_batch_apply_skipped_suffix = " ({skipped} skipped - see debug log for details.)"
-  private val string_batch_applying_to_label = "Applying to {count} selected transactions"
+  private val string_batch_applying_to_label = "Applying to {num} selected transactions"
   private val string_batch_overwrite_warning = "This will replace the existing split on each selected transaction."
   
   private val string_reason_not_parent = "Not a parent transaction (target cannot be a split)"
@@ -203,15 +203,13 @@ class CopyPasteSplits(
   private val string_reason_not_single_split = "Transaction has more than one split"
   private val string_reason_different_account = "Selected transactions are not all in the same account"
   
-  private val string_rebalance_splits = "Rebalance Splits - update total and/or ratio"
+  private val string_rebalance_splits = "Rebalance Splits - Update Total and/or Ratio"
   private val string_rebalance_title = "Rebalance Splits"
-  private val string_rebalance_new_total_label = "New total"
   private val string_rebalance_mode_keep_ratio = "Keep existing ratio per split"
   private val string_rebalance_mode_equal_split = "Equal split per line"
   private val string_rebalance_hamilton_note = "Rounding uses the largest-remainder method"
-  private val string_undo_redo_rebalance_splits = "Rebalance Splits"
-  private val dialog_rebalance_size = ".gui.rebalance_splits.size"
-  private val dialog_rebalance_locn = ".gui.rebalance_splits.loc"
+  private val dialog_rebalance_splits_size = ".gui.rebalance_splits.size"
+  private val dialog_rebalance_splits_locn = ".gui.rebalance_splits.loc"
 
   // ------------------------------------------------------------------------------------------
   // stored copy snapshot - held by Main until cleared on file open/close events
@@ -426,7 +424,7 @@ class CopyPasteSplits(
   /** Same gate as logBlockedIfDebug, different message shape - reports which item (1-based, for
    *  readability) of how many total triggered the block, and that checking stopped there. */
   private fun logBatchBlockedIfDebug(actionLabel:String, failedIndex:Int, totalCount:Int, reason:String) {
-    if (extensionContext?.debugMenuEnabled != true) return
+    if (!isCmtDebug) return
     Util.logConsole(false, "$actionLabel blocked at transaction ${failedIndex + 1} of $totalCount: $reason (stopped checking further)")
   }
   
@@ -439,12 +437,11 @@ class CopyPasteSplits(
   
   private fun canPasteSplits(txn:ParentTxn, copy:CopiedSplitsSnapshot):Boolean = pasteEligibilityReason(txn, copy) == null
   
-  /** Logs why a menu action was NOT offered, gated by the extension's own "Enable debug
-   *  messages" config checkbox (debugMenuEnabled) - NOT Util.logConsole's Main.DEBUG launch-flag
-   *  gate, which is a different, unrelated debug switch. txn may be null for the "not a parent
-   *  transaction" case, where no transaction details are available yet to describe. */
+  /** Logs why a menu action was NOT offered, gated the same as the shared util logBlockedIfDebug
+   *  (the extension's "Enable debug messages" checkbox or Moneydance's debug launch). txn may be
+   *  null for the "not a parent transaction" case, where no transaction details are available. */
   private fun logBlockedIfDebug(actionLabel:String, txn:ParentTxn?, reason:String) {
-    if (extensionContext?.debugMenuEnabled != true) return
+    if (!isCmtDebug) return
     val desc = if (txn != null) {
       val dec = mdGUI.preferences.decimalChar
       val totalStr = txn.account.currencyType.formatFancy(txn.value, dec)
@@ -466,7 +463,6 @@ class CopyPasteSplits(
     
     // NOTE: it's split.parentAmount (not split.value, not split.amount) that sums to the parent
     // total. split.value is the split's own actual value; store that for reconstruction.
-    //require(total == splits.sumOf { it.parentAmount }) { "Parent total must equal sum of its splits" }
     
     val copiedLines = splits.map { split ->
       val pct = if (total != 0L) -split.value.toDouble() / total.toDouble() else 0.0
@@ -491,7 +487,7 @@ class CopyPasteSplits(
       sourceParentDescription = txn.description,
       sourceParentMemo = txn.memo
     )
-    if (extensionContext?.debugMenuEnabled == true || DEBUG) {
+    if (isCmtDebug) {
       val dec = mdGUI.preferences.decimalChar
       val totalStr = parentCurr.formatFancy(total, dec)
       Util.logConsole(
@@ -577,8 +573,8 @@ class CopyPasteSplits(
     
     val chosen = pickReminder(
       mdGUI, menuContext.component, string_apply_template_title, candidates,
-      sizeKey = Main.EXTN_ID + dialog_apply_tmplt_size,
-      locationKey = Main.EXTN_ID + dialog_apply_tmplt_locn,
+      sizeKey = Main.EXTN_ID + dialog_apply_template_size,
+      locationKey = Main.EXTN_ID + dialog_apply_template_locn,
       showSplitPercentages = true
     ) ?: return
     val copy = buildSnapshotFromTemplate(chosen.transaction, chosen.description, chosen.UUID) ?: return
@@ -610,8 +606,8 @@ class CopyPasteSplits(
     
     val chosen = pickReminder(
       mdGUI, menuContext.component, string_apply_template_selected_title, candidates,
-      sizeKey = Main.EXTN_ID + dialog_apply_tmplt_selected_size,
-      locationKey = Main.EXTN_ID + dialog_apply_tmplt_selected_locn,
+      sizeKey = Main.EXTN_ID + dialog_apply_template_selected_size,
+      locationKey = Main.EXTN_ID + dialog_apply_template_selected_locn,
       showSplitPercentages = true
     ) ?: return
     val copy = buildSnapshotFromTemplate(chosen.transaction, chosen.description, chosen.UUID) ?: return
@@ -649,7 +645,7 @@ class CopyPasteSplits(
       mdGUI.undoManager?.recordChange(change)
     }
     
-    if (extensionContext?.debugMenuEnabled == true || DEBUG) {
+    if (isCmtDebug) {
       Util.logConsole(
         "CopyPasteSplits: Apply Splits Template to Selected from '${copy.sourceDescription}': " +
         "applied $appliedCount, skipped $skippedCount, total ${txns.size}"
@@ -682,7 +678,6 @@ class CopyPasteSplits(
   private fun runPasteFlow(menuContext:MDActionContext, txn:ParentTxn, copy:CopiedSplitsSnapshot, undoName:String) {
     val existingSplits = txn.allSplits
     val targetTotal = txn.value
-    //require(targetTotal == existingSplits.sumOf { it.parentAmount }) { "Target parent total must equal sum of its splits" }
     
     val isBlankPlaceholderTarget = existingSplits.size == 1 && targetTotal == 0L
     
@@ -750,7 +745,7 @@ class CopyPasteSplits(
     
     pasteSplitsRecordChange(change, txn, undoName)
 
-    if (extensionContext?.debugMenuEnabled == true || DEBUG) {
+    if (isCmtDebug) {
       val dec = mdGUI.preferences.decimalChar
       val currency = copy.sourceCurrency
       val sourceTotalStr = currency.formatFancy(copy.parentTotal, dec)
@@ -850,7 +845,7 @@ class CopyPasteSplits(
   private fun formatSplitSummaryLine(categoryName:String, amount:Long, percent:Double, currency:CurrencyType, dec:Char):String {
     val amtStr = currency.formatFancy(amount, dec)
     val pctStr = String.format("%.1f", percent * 100.0)
-    return "$categoryName: $amtStr ($pctStr%)"
+    return string_split_summary_line.replace("{category}", categoryName).replace("{amount}", amtStr).replace("{percent}", pctStr)
   }
   
   private fun splitSummaryLinesFromCopied(lines:List<CopiedSplitLine>, currency:CurrencyType, dec:Char):List<String> =
@@ -871,7 +866,9 @@ class CopyPasteSplits(
     list.isFocusable = false
     list.selectionModel.selectionMode = ListSelectionModel.SINGLE_SELECTION
     list.visibleRowCount = minOf(summaryLines.size, 6).coerceAtLeast(1)
-    return JScrollPane(list, JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED, JScrollPane.HORIZONTAL_SCROLLBAR_NEVER)
+    val scrollPane = JScrollPane(list, JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED, JScrollPane.HORIZONTAL_SCROLLBAR_NEVER)
+    scrollPane.verticalScrollBar.unitIncrement = 16
+    return scrollPane
   }
   
   /**
@@ -880,15 +877,17 @@ class CopyPasteSplits(
    * bottom of all three popups (askPasteMismatchOption, askPasteAlwaysConfirmChoice,
    * askRebalanceChoice) - options/fields come first in each dialog, this block comes last.
    *
-   * @param extraLine Optional additional "Label: value" line shown after the total (e.g. the
-   * target's total on the mismatch popup, which has two distinct totals to show).
+   * The line strings hold a {value} placeholder for the shown value.
+   *
+   * @param extraLine Optional additional line shown after the total (e.g. the target's total on
+   * the mismatch popup, which has two distinct totals to show).
    */
   private fun buildBottomInfoBlock(
     heading:String,
-    descriptionLabel:String,
+    descriptionLine:String,
     description:String,
     splitCount:Int,
-    totalLabel:String,
+    totalLine:String,
     total:Long,
     currency:CurrencyType,
     summaryLines:List<String>,
@@ -904,13 +903,13 @@ class CopyPasteSplits(
       JLabel(heading).also { it.font = it.font.deriveFont(java.awt.Font.BOLD) },
       GridC.getc().xy(0, y++).colspan(2).wx(1f).west().insets(0, 0, 8, 0)
     )
-    panel.add(JLabel("$descriptionLabel: $description"), GridC.getc().xy(0, y++).colspan(2).wx(1f).west().insets(0, 0, 4, 0))
-    panel.add(JLabel("$string_source_splits_label: $splitCount"), GridC.getc().xy(0, y++).colspan(2).wx(1f).west().insets(0, 0, 4, 0))
+    panel.add(JLabel(descriptionLine.replace("{value}", description)), GridC.getc().xy(0, y++).colspan(2).wx(1f).west().insets(0, 0, 4, 0))
+    panel.add(JLabel(string_splits_line.replace("{value}", splitCount.toString())), GridC.getc().xy(0, y++).colspan(2).wx(1f).west().insets(0, 0, 4, 0))
     val totalBottomInset = if (extraLine != null) 4 else 8
-    panel.add(JLabel("$totalLabel: $totalStr"), GridC.getc().xy(0, y++).colspan(2).wx(1f).west().insets(0, 0, totalBottomInset, 0))
+    panel.add(JLabel(totalLine.replace("{value}", totalStr)), GridC.getc().xy(0, y++).colspan(2).wx(1f).west().insets(0, 0, totalBottomInset, 0))
     if (extraLine != null) {
       val extraStr = currency.formatFancy(extraLine.second, dec)
-      panel.add(JLabel("${extraLine.first}: $extraStr"), GridC.getc().xy(0, y++).colspan(2).wx(1f).west().insets(0, 0, 8, 0))
+      panel.add(JLabel(extraLine.first.replace("{value}", extraStr)), GridC.getc().xy(0, y++).colspan(2).wx(1f).west().insets(0, 0, 8, 0))
     }
     panel.add(buildSplitSummaryList(summaryLines), GridC.getc().xy(0, y++).colspan(2).wx(1f).fillboth())
     return panel
@@ -930,13 +929,13 @@ class CopyPasteSplits(
   
   /** Small clickable "(?)" label that opens the Hamilton's-method Wikipedia page. */
   private fun buildHamiltonHelpLink():JLabel {
-    val link = JLabel("(?)")
+    val link = JLabel(string_hamilton_link_text)
     link.foreground = Util.blue
     link.cursor = Cursor(Cursor.HAND_CURSOR)
-    link.toolTipText = string_hamilton_link_tooltip
+    link.toolTipText = Main.STRING_HAMILTON_LINK_TEXT
     link.addMouseListener(object:MouseAdapter() {
       override fun mouseClicked(e:MouseEvent) {
-        mdGUI.showInternetURL(HAMILTON_WIKI_URL)
+        mdGUI.showInternetURL(Main.HAMILTON_WIKI_URL)
       }
     })
     return link
@@ -1028,7 +1027,6 @@ class CopyPasteSplits(
     
     val existingSplits = txn.allSplits
     val currentTotal = txn.value
-    //require(currentTotal == existingSplits.sumOf { it.parentAmount }) { "Parent total must equal sum of its splits" }
     
     val choice = askRebalanceChoice(menuContext, txn, currentTotal) ?: return
     
@@ -1041,8 +1039,8 @@ class CopyPasteSplits(
       is RebalanceMode.EqualSplit ->
         // NOTE (flagged, not silently decided): equal CONTRIBUTION per line, not equal magnitude
         // with sign preserved - those two are mathematically incompatible whenever the existing
-        // splits have mixed signs (e.g. one income-side split alongside one expense-side split,
-        // as in the Gem Lettings example that surfaced this). Every line gets the SAME sign here;
+        // splits have mixed signs (e.g. one income-side split alongside one expense-side split).
+        // Every line gets the SAME sign here;
         // a split whose original sign differs from the others can flip. Confirm this is the
         // intended meaning of "Equal split" before relying on it for mixed-sign transactions.
         List(existingSplits.size) { 1.0 / existingSplits.size }
@@ -1058,11 +1056,11 @@ class CopyPasteSplits(
       split.setAmount(newAmount, newAmount)
     }
     
-    change.setNameCompat(string_undo_redo_rebalance_splits)
+    change.setNameCompat(string_rebalance_title)
     change.finishModification(modifiedItem = txn)
     mdGUI.undoManager?.recordChange(change)
     
-    if (extensionContext?.debugMenuEnabled == true || DEBUG) {
+    if (isCmtDebug) {
       val dec = mdGUI.preferences.decimalChar
       val currency = txn.account.currencyType
       val sourceTotalStr = currency.formatFancy(currentTotal, dec)
@@ -1131,7 +1129,7 @@ class CopyPasteSplits(
     panel.border = EmptyBorder(16, 16, 16, 16)
     
     var y = 0
-    panel.add(JLabel(string_rebalance_new_total_label), GridC.getc().xy(0, y).label())
+    panel.add(JLabel(string_new_total_label.labelify), GridC.getc().xy(0, y).label())
     panel.add(fieldRow, GridC.getc().xy(1, y++).wx(1f).field())
     panel.add(keepRatioRadio, GridC.getc().xy(0, y++).colspan(2).wx(1f).west())
     panel.add(equalSplitRadio, GridC.getc().xy(0, y++).colspan(2).wx(1f).west())
@@ -1144,10 +1142,10 @@ class CopyPasteSplits(
     panel.add(
       buildBottomInfoBlock(
         heading = string_current_splits_heading,
-        descriptionLabel = string_transaction_label,
+        descriptionLine = string_transaction_line,
         description = txn.description,
         splitCount = txn.allSplits.size,
-        totalLabel = string_current_total_label,
+        totalLine = string_current_total_line,
         total = currentTotal,
         currency = currency,
         summaryLines = splitSummaryLinesFromExisting(txn.allSplits, currentTotal, currency, dec)
@@ -1158,8 +1156,8 @@ class CopyPasteSplits(
     val win = SizedOKButtonWindow(
       mdGUI, menuContext.component, string_rebalance_title, OKButtonPanel.QUESTION_OK_CANCEL,
       focusComponent = newTotalField,
-      sizeKey = Main.EXTN_ID + dialog_rebalance_size,
-      locationKey = Main.EXTN_ID + dialog_rebalance_locn
+      sizeKey = Main.EXTN_ID + dialog_rebalance_splits_size,
+      locationKey = Main.EXTN_ID + dialog_rebalance_splits_locn
     )
     win.setEscapeKeyCancels(true)
     
@@ -1209,20 +1207,21 @@ class CopyPasteSplits(
     panel.add(
       buildBottomInfoBlock(
         heading = string_source_splits_heading,
-        descriptionLabel = string_source_label,
+        descriptionLine = string_source_line,
         description = copy.sourceDescription,
         splitCount = copy.splits.size,
-        totalLabel = string_source_total_label,
+        totalLine = string_source_total_line,
         total = copy.parentTotal,
         currency = copy.sourceCurrency,
         summaryLines = splitSummaryLinesFromCopied(copy.splits, copy.sourceCurrency, dec),
-        extraLine = string_target_total_label to targetTotal
+        extraLine = string_target_total_line to targetTotal
       ),
       GridC.getc().xy(0, y++).colspan(2).wx(1f).fillboth()
     )
-    
+
     val win = SizedOKButtonWindow(
       mdGUI, menuContext.component, dialogTitle, OKButtonPanel.QUESTION_OK_CANCEL,
+      focusComponent = defaultRadio,
       sizeKey = Main.EXTN_ID + dialog_paste_mismatch_size,
       locationKey = Main.EXTN_ID + dialog_paste_mismatch_locn
     )
@@ -1272,7 +1271,7 @@ class CopyPasteSplits(
     panel.border = EmptyBorder(16, 16, 16, 16)
     
     var y = 0
-    panel.add(JLabel(string_new_total_label), GridC.getc().xy(0, y).label())
+    panel.add(JLabel(string_new_total_label.labelify), GridC.getc().xy(0, y).label())
     panel.add(fieldRow, GridC.getc().xy(1, y++).wx(1f).field())
     panel.add(exactRadio, GridC.getc().xy(0, y++).colspan(2).wx(1f).west().insets(8, 0, 0, 0))
     panel.add(hamiltonRow, GridC.getc().xy(0, y++).colspan(2).wx(1f).west())
@@ -1280,14 +1279,14 @@ class CopyPasteSplits(
     panel.add(
       buildBottomInfoBlock(
         heading = string_source_splits_heading,
-        descriptionLabel = string_source_label,
+        descriptionLine = string_source_line,
         description = copy.sourceDescription,
         splitCount = copy.splits.size,
-        totalLabel = string_source_total_label,
+        totalLine = string_source_total_line,
         total = copy.parentTotal,
         currency = copy.sourceCurrency,
         summaryLines = splitSummaryLinesFromCopied(copy.splits, copy.sourceCurrency, dec),
-        extraLine = string_target_total_label to targetCurrentTotal
+        extraLine = string_target_total_line to targetCurrentTotal
       ),
       GridC.getc().xy(0, y++).colspan(2).wx(1f).fillboth()
     )
@@ -1337,7 +1336,7 @@ class CopyPasteSplits(
     
     var y = 0
     panel.add(
-      JLabel(string_batch_applying_to_label.replace("{count}", targetCount.toString())),
+      JLabel(string_batch_applying_to_label.replace("{num}", targetCount.toString())),
       GridC.getc().xy(0, y++).colspan(2).wx(1f).west().insets(0, 0, 4, 0)
     )
     panel.add(
@@ -1350,21 +1349,22 @@ class CopyPasteSplits(
     panel.add(
       buildBottomInfoBlock(
         heading = string_source_splits_heading,
-        descriptionLabel = string_source_label,
+        descriptionLine = string_source_line,
         description = copy.sourceDescription,
         splitCount = copy.splits.size,
-        totalLabel = string_source_total_label,
+        totalLine = string_source_total_line,
         total = copy.parentTotal,
         currency = copy.sourceCurrency,
         summaryLines = splitSummaryLinesFromCopied(copy.splits, copy.sourceCurrency, dec)
       ),
       GridC.getc().xy(0, y++).colspan(2).wx(1f).fillboth()
     )
-    
+
     val win = SizedOKButtonWindow(
       mdGUI, menuContext.component, string_apply_template_selected_title, OKButtonPanel.QUESTION_OK_CANCEL,
-      sizeKey = Main.EXTN_ID + dialog_batch_allocation_size,
-      locationKey = Main.EXTN_ID + dialog_batch_allocation_locn
+      focusComponent = if (hamiltonRadio.isSelected) hamiltonRadio else exactRadio,
+      sizeKey = Main.EXTN_ID + dialog_apply_template_selected_allocation_size,
+      locationKey = Main.EXTN_ID + dialog_apply_template_selected_allocation_locn
     )
     win.setEscapeKeyCancels(true)
     

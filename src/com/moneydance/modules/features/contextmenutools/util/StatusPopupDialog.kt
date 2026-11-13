@@ -23,6 +23,9 @@ import javax.swing.border.EmptyBorder
 enum class DialogResult { OK, CANCEL }
 
 /**
+ * Shows a status line and a read-only, monospaced message, with an optional severity icon and optional OK / Cancel
+ * buttons; modal or non-modal.
+ *
  * @author Stuart Beesley - February-August 2026
  */
 class StatusPopupDialog(mdGUI:MoneydanceGUI,
@@ -71,6 +74,7 @@ class StatusPopupDialog(mdGUI:MoneydanceGUI,
     } catch (_:Exception) {}
 
     val scrollPane = JScrollPane(messageArea, JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED, JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED)
+    scrollPane.verticalScrollBar.unitIncrement = 16
 
     val content = JPanel(BorderLayout(0, 8)).apply {
       border = EmptyBorder(12, 12, 12, 12)

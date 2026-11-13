@@ -66,6 +66,9 @@ class TextViewerDialog(
     private const val SEARCH_ICON_PATH = "com/moneydance/apps/md/view/gui/glyphs/glyph_search.png"
   }
 
+  private val string_search_direction = "[{direction}]"
+  private val string_search_not_found = "Searching {direction} text not found."
+
   private val textArea = JTextArea(10, 70)   // bounded preferred size, matching MD's own showRawItemDetails reference -
                                               // JScrollPane handles anything beyond this via scrollbars, instead of
                                               // pack() sizing the window to fit the entire (potentially huge) raw dump
@@ -88,6 +91,7 @@ class TextViewerDialog(
     } catch (_:Exception) { }
 
     val scrollPane = JScrollPane(textArea, JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED, JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED)
+    scrollPane.verticalScrollBar.unitIncrement = 16
 
     val copyButton = JButton(copyButtonLabel)
     copyButton.addActionListener {
@@ -211,7 +215,7 @@ class TextViewerDialog(
       var endPos:Int
       val direction:String
       if (response == 0) {
-        direction = "[${strings.next}]"
+        direction = string_search_direction.replace("{direction}", strings.next)
         if (searchWhat == lastSearch) {
           startPos = lastPosn
           if (lSwitch)
@@ -222,7 +226,7 @@ class TextViewerDialog(
         pos = theText.indexOf(searchWhat, startPos, true)
 
       } else {
-        direction = "[${strings.previous}]"
+        direction = string_search_direction.replace("{direction}", strings.previous)
         endPos = theText.length - 1
 
         if (searchWhat == lastSearch) {
@@ -248,7 +252,7 @@ class TextViewerDialog(
       } else {
         lastPosn = 0
         previousEndPosn = theText.length - 1
-        mdGUI.showInfoMessage(this@TextViewerDialog, "Searching ${direction} text not found")
+        mdGUI.showInfoMessage(this@TextViewerDialog, string_search_not_found.replace("{direction}", direction))
       }
     }
 

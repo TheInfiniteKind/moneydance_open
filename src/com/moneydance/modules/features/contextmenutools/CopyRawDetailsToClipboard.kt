@@ -61,10 +61,11 @@ class CopyRawDetailsToClipboard(
 
   private val string_copy_raw_details_template = "Copy Raw Details to Clipboard ({num} {what} {noun})"
   private val string_show_raw_details_template = "Show Raw Details ({num} {what} {noun})"
-  private val string_copy_raw_confirm = "Are you sure you want to copy {num} objects to clipboard?"
-  private val string_show_raw_confirm = "Are you sure you want to view {num} objects?"
-  private val string_copy_to_clipboard_button = "Copy to Clipboard"
+  private val string_copy_raw_confirm = "Copy {num} objects to the clipboard. Continue?"
+  private val string_show_raw_confirm = "View {num} objects. Continue?"
   private val string_multi_type = "multi-type"
+  private val string_object = "object"
+  private val string_objects = "objects"
 
   private val dialog_show_raw_size = ".gui.show_raw_details.size"
   private val dialog_show_raw_locn = ".gui.show_raw_details.loc"
@@ -99,7 +100,7 @@ class CopyRawDetailsToClipboard(
   private fun buildMenuLabel(template:String, items:List<MoneydanceSyncableItem>):String {
     val distinctTypes = items.map { it.javaClass.simpleName }.distinct()
     val what = if (distinctTypes.size == 1) distinctTypes.first() else string_multi_type
-    val noun = if (items.size == 1) "object" else "objects"
+    val noun = if (items.size == 1) string_object else string_objects
     return template
       .replace("{num}", items.size.toString())
       .replace("{what}", what)
@@ -241,11 +242,7 @@ class CopyRawDetailsToClipboard(
     }
   }
 
-  /**
-   * No confirmation threshold here (unlike copyRawDetails) - showing a large read-only window
-   * doesn't touch/overwrite anything, so the "are you sure" prompt (which exists specifically to
-   * protect the clipboard) doesn't apply.
-   */
+  /** Confirms first above the same threshold as copyRawDetails, since a large selection builds a large window. */
   private fun showRawDetails(menuContext:MDActionContext, items:List<MoneydanceSyncableItem>) {
     if (items.size > CONFIRM_THRESHOLD) {
       val msg = string_show_raw_confirm.replace("{num}", items.size.toString())
@@ -256,7 +253,7 @@ class CopyRawDetailsToClipboard(
     val title = buildMenuLabel(string_show_raw_details_template, items)
 
     val win = TextViewerDialog(
-      mdGUI, menuContext.component, title, combined, string_copy_to_clipboard_button,
+      mdGUI, menuContext.component, title, combined, Main.STRING_COPY_TO_CLIPBOARD,
       sizeKey = Main.EXTN_ID + dialog_show_raw_size,
       locationKey = Main.EXTN_ID + dialog_show_raw_locn
     )

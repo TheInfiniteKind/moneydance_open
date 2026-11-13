@@ -16,6 +16,9 @@ import javax.swing.text.JTextComponent
 
 fun String.prefixExtnID(): String { return "${Main.EXTN_ID}: $this"}
 
+/** True when the extension's own "Enable debug messages" checkbox is ticked or Moneydance was launched in debug mode. */
+val isCmtDebug:Boolean get() = extensionContext?.debugMenuEnabled == true || Main.DEBUG
+
 /**
  * Logs why a menu action was withheld entirely, or offered with fewer options than usual, gated
  * on either the extension's own "Enable debug messages" checkbox OR Moneydance's launch debug
@@ -23,7 +26,7 @@ fun String.prefixExtnID(): String { return "${Main.EXTN_ID}: $this"}
  * source is the calling class's own display name for the log prefix).
  */
 fun logBlockedIfDebug(source:String, message:String) {
-  if (extensionContext?.debugMenuEnabled != true && !Main.DEBUG) return
+  if (!isCmtDebug) return
   Util.logConsole(false, "$source: $message")
 }
 
@@ -66,6 +69,8 @@ fun <T : JTextComponent> T.fixStuckDragSelection(): T {
 fun lightSeparator(): JSeparator = JSeparator().apply { foreground = MDColors.getSingleton().headerBorder }
 
 /**
+ * Shared helpers for the extension: console logging, colours, date and string helpers, and icon loading.
+ *
  * @author Stuart Beesley - February-August 2026
  */
 object Util {

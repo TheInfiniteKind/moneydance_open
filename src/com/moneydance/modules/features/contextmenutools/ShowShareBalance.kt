@@ -12,6 +12,7 @@ import com.infinitekind.moneydance.model.ParentTxn
 import com.infinitekind.moneydance.model.ReportSpec
 import com.infinitekind.moneydance.model.TotalAmount
 import com.infinitekind.util.DateUtil
+import com.infinitekind.util.labelify
 import com.infinitekind.util.nullIfBlank
 import com.moneydance.apps.md.controller.MDActionContext
 import com.moneydance.apps.md.view.gui.MDAction
@@ -52,25 +53,27 @@ class ShowShareBalance:ContextMenuAction {
   private val dialog_share_balance_rpt_size = ".gui.share_balance_rpt.size"
   private val dialog_share_balance_rpt_locn = ".gui.share_balance_rpt.loc"
 
-  private val string_show_share_balance = "Show share balance"
-  private val string_held_today = "held in this account today"
+  private val string_menu = "Show Share Balance: {name} - {held} held in this account today"
+  private val string_menu_with_ticker = "Show Share Balance: {name} ({ticker}) - {held} held in this account today"
   private val string_title = "Share balance"
-  private val string_transaction = "Transaction"
-  private val string_this_account = "THIS ACCOUNT"
-  private val string_all_accounts = "ALL ACCOUNTS HOLDING"
-  private val string_on = "On"
+  private val string_title_security = "Share balance - {name}"
+  private val string_title_security_with_ticker = "Share balance - {name} ({ticker})"
+  private val string_transaction = "Transaction {date}  {desc}"
+  private val string_this_account = "THIS ACCOUNT ({account})"
+  private val string_all_accounts = "ALL ACCOUNTS HOLDING {name}"
+  private val string_on = "On {date}"
   private val string_in_todays_shares = "In today's terms"
-  private val string_opening = "Opening"
-  private val string_this_txn = "This transaction"
+  private val string_opening = "Opening {date}"
+  private val string_this_txn = "This transaction ({type})"
   private val string_other_txns = "Other transactions"
-  private val string_closing = "Closing"
+  private val string_closing = "Closing {date}"
   private val string_today = "Today"
-  private val string_splits_since = "Splits since"
-  private val string_splits_on = "Splits on"
-  private val string_already_included = "(already included in the figures below)"
-  private val string_none = "none"
-  private val string_ratio = "shares x"
-  private val string_failed = "Share balance could not be worked out"
+  private val string_splits_since = "Splits since {date}"
+  private val string_splits_since_none = "Splits since {date}: none"
+  private val string_splits_on = "Splits on {date} (already included in the figures below)"
+  private val string_ratio = "shares x {ratio}"
+  private val string_split_line = "  {date}   {ratio}"
+  private val string_failed = "Share balance could not be worked out: {error}."
 
   private val LABEL_WIDTH = 32
   private val VALUE_WIDTH = 20
@@ -88,7 +91,8 @@ class ShowShareBalance:ContextMenuAction {
     val secCurr = security.currencyType
     val ticker = secCurr.getTickerSymbol().nullIfBlank?.takeIf { it != secCurr.getName() }
     val heldToday = secCurr.formatSemiFancy(security.currentBalance, mdGUI.preferences.decimalChar)
-    val label = "$string_show_share_balance: ${secCurr.getName()}${ticker?.let { " ($it)" } ?: ""} - $heldToday $string_held_today"
+    val label = (if (ticker != null) string_menu_with_ticker.replace("{ticker}", ticker) else string_menu)
+      .replace("{name}", secCurr.getName()).replace("{held}", heldToday)
     val action = addAction(label = label, cmd = "show_share_balance")
     { showShareBalance(menuContext, ptxn, security) }
     return listOf(action)
@@ -114,7 +118,7 @@ class ShowShareBalance:ContextMenuAction {
       val balanceOf = try {
         balancesByAsOfDates(book, holdingAccts.toSet(), intArrayOf(dayBefore, txnDate, today))
       } catch (e:Exception) {
-        UiUtil.runOnUIThread { mdGUI.showErrorMessage("$string_failed: $e") }
+        UiUtil.runOnUIThread { mdGUI.showErrorMessage(string_failed.replace("{error}", e.toString())) }
         return@Thread
       }
       UiUtil.runOnUIThread { showWindows(menuContext, ptxn, security, holdingAccts, today, balanceOf) }
@@ -131,7 +135,8 @@ class ShowShareBalance:ContextMenuAction {
     val dayBefore = DateUtil.incrementDate(txnDate, 0, 0, -1)
 
     val thisTxn = (0 until ptxn.splitCount).mapNotNull { ptxn.getSplit(it) }.filter { it.account == security }.sumOf { it.value }
-    val thisTxnLabel = "$string_this_txn (${mdGUI.resources.getString(InvestFields().also { it.setFieldStatus(ptxn) }.txnType, true)})"
+    val thisTxnLabel = string_this_txn.replace("{type}", mdGUI.resources.getString(InvestFields().also { it.setFieldStatus(ptxn) }.txnType, true))
+    val onDateHeading = string_on.replace("{date}", dateFmt.format(txnDate))
 
     val rpt = Report2()
     rpt.addColumn()
@@ -147,8 +152,8 @@ class ShowShareBalance:ContextMenuAction {
     fun StringBuilder.appendHeading(label:String) {
       if (label.length >= LABEL_WIDTH) appendLine(label)
       appendLine((if (label.length >= LABEL_WIDTH) "" else label).padEnd(LABEL_WIDTH)
-                 + "$string_on ${dateFmt.format(txnDate)}".padStart(VALUE_WIDTH) + string_in_todays_shares.padStart(VALUE_WIDTH))
-      rpt.addRow().apply { listOf(label, "$string_on ${dateFmt.format(txnDate)}", string_in_todays_shares).forEach { addCell(it).styleBold() } }
+                 + onDateHeading.padStart(VALUE_WIDTH) + string_in_todays_shares.padStart(VALUE_WIDTH))
+      rpt.addRow().apply { listOf(label, onDateHeading, string_in_todays_shares).forEach { addCell(it).styleBold() } }
     }
 
     fun StringBuilder.appendRow(label:String, onDate:Long?, todays:Long) {
@@ -161,23 +166,25 @@ class ShowShareBalance:ContextMenuAction {
       val endOfDay = accts.sumOf { balanceOf(it, txnDate) }
       val otherTxns = endOfDay - startOfDay - thisTxn
       appendHeading(label)
-      appendRow("$string_opening ${dateFmt.format(txnDate)}", startOfDay, inToday(startOfDay))
+      appendRow(string_opening.replace("{date}", dateFmt.format(txnDate)), startOfDay, inToday(startOfDay))
       appendRow(thisTxnLabel, thisTxn, inToday(thisTxn))
       if (otherTxns != 0L) appendRow(string_other_txns, otherTxns, inToday(otherTxns))
-      appendRow("$string_closing ${dateFmt.format(txnDate)}", endOfDay, inToday(endOfDay))
+      appendRow(string_closing.replace("{date}", dateFmt.format(txnDate)), endOfDay, inToday(endOfDay))
       appendRow(string_today, null, accts.sumOf { balanceOf(it, today) })
     }
 
     fun StringBuilder.appendBlank() { appendLine(); rpt.addSeparatorRow() }
 
     fun StringBuilder.appendText(line:String, splitRatio:String? = null) {
-      appendLine(if (splitRatio == null) line else "  $line   $splitRatio")
+      appendLine(if (splitRatio == null) line else string_split_line.replace("{date}", line).replace("{ratio}", splitRatio))
       rpt.addRow().labels(listOfNotNull(line, splitRatio))
     }
 
     val ticker = secCurr.getTickerSymbol().nullIfBlank
-    val title = "$string_title - ${secCurr.getName()}${ticker?.takeIf { it != secCurr.getName() }?.let { " ($it)" } ?: ""}"
-    val txnLine = "$string_transaction ${dateFmt.format(txnDate)}  ${ptxn.description}"
+    val titleTicker = ticker?.takeIf { it != secCurr.getName() }
+    val title = (if (titleTicker != null) string_title_security_with_ticker.replace("{ticker}", titleTicker) else string_title_security)
+      .replace("{name}", secCurr.getName())
+    val txnLine = string_transaction.replace("{date}", dateFmt.format(txnDate)).replace("{desc}", ptxn.description)
     rpt.title(title).subTitle(txnLine)
     val text = buildString {
       appendLine(title)
@@ -186,27 +193,29 @@ class ShowShareBalance:ContextMenuAction {
 
       val sameDaySplits = secCurr.getSplits().filter { it.dateInt == txnDate }
       if (sameDaySplits.isNotEmpty()) {
-        appendText("$string_splits_on ${dateFmt.format(txnDate)} $string_already_included:")
-        sameDaySplits.forEach { appendText(dateFmt.format(it.dateInt), "$string_ratio ${ratio(it)}") }
+        appendText(string_splits_on.replace("{date}", dateFmt.format(txnDate)).labelify)
+        sameDaySplits.forEach { appendText(dateFmt.format(it.dateInt), string_ratio.replace("{ratio}", ratio(it))) }
         appendBlank()
       }
 
-      appendBlock("$string_this_account (${security.getParentAccount()?.fullAccountName ?: ""})", listOf(security))
+      appendBlock(string_this_account.replace("{account}", security.getParentAccount()?.fullAccountName ?: ""), listOf(security))
 
       if (holdingAccts.size > 1) {
         appendBlank()
-        appendBlock("$string_all_accounts ${ticker ?: secCurr.getName()}", holdingAccts)
+        appendBlock(string_all_accounts.replace("{name}", ticker ?: secCurr.getName()), holdingAccts)
       }
 
       val splits = secCurr.getSplits().filter { it.dateInt in (txnDate + 1)..today }
       appendBlank()
-      appendText("$string_splits_since ${dateFmt.format(txnDate)}:${if (splits.isEmpty()) " $string_none" else ""}")
-      splits.forEach { appendText(dateFmt.format(it.dateInt), "$string_ratio ${ratio(it)}") }
+      val sinceDate = dateFmt.format(txnDate)
+      appendText(if (splits.isEmpty()) string_splits_since_none.replace("{date}", sinceDate) else string_splits_since.replace("{date}", sinceDate).labelify)
+      splits.forEach { appendText(dateFmt.format(it.dateInt), string_ratio.replace("{ratio}", ratio(it))) }
     }
 
     val setKeys = try { ShowReportWindow::class.java.getMethod("setRememberSizeLocationKeys", String::class.java, String::class.java) } catch (_:NoSuchMethodException) { null }
     if (setKeys != null) {
       val rptWin = ShowReportWindow(mdGUI, null, ReportSpec(book), rpt)
+      rptWin.name = Main.EXTN_ID
       setKeys.invoke(rptWin, Main.EXTN_ID + dialog_share_balance_rpt_size, Main.EXTN_ID + dialog_share_balance_rpt_locn)
       rptWin.isVisible = true
     } else {

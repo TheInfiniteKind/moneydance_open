@@ -30,85 +30,88 @@ import kotlin.math.abs
 import kotlin.math.max
 
 /**
+ * Register right-click: duplicates the selected transactions, with the same date(s), a new date, dates
+ * adjusted by years/months/days, or dates moved on one month; the duplicates are recorded as one undo step.
+ *
  * @author Stuart Beesley - February-October 2026
  */
 @Suppress("DuplicatedCode", "PrivatePropertyName", "AssignedValueIsNeverRead")
 
 class DuplicateTransactions: ContextMenuAction {
 
-    private val dialog_duplicate_enter_date_size = ".gui.duplicate_enter_date.size"
-    private val dialog_duplicate_enter_date_locn = ".gui.duplicate_enter_date.loc"
-    private val dialog_duplicate_adjust_date_size = ".gui.duplicate_adjust_date.size"
-    private val dialog_duplicate_adjust_date_locn = ".gui.duplicate_adjust_date.loc"
+  private val dialog_duplicate_enter_date_size = ".gui.duplicate_enter_date.size"
+  private val dialog_duplicate_enter_date_locn = ".gui.duplicate_enter_date.loc"
+  private val dialog_duplicate_adjust_date_size = ".gui.duplicate_adjust_date.size"
+  private val dialog_duplicate_adjust_date_locn = ".gui.duplicate_adjust_date.loc"
 
-    private val string_duplicate = "Duplicate transactions"
-    private val string_duplicate_same_date = "With the same date(s)"
-    private val string_duplicate_adjust_date = "Adjust duplicated date(s)"
-    private val string_duplicate_adjust_date_one_month = "Adjust duplicated date(s) by one month"
-    private val string_duplicate_adjust_date_tip = "Existing tax dates will also be adjusted..."
-    private val string_duplicate_enter_date = "Enter new date"
-    private val string_duplicate_enter_tax_date = "Enter new tax date"
-    private val string_duplicate_enter_value = "New value"
-    private val string_duplicate_enter_value_tooltip = "All transactions have the same value. Enter a new value for all duplicated txns (the sign / debit/credit direction of each will be preserved)."
-    private val string_duplicate_are_you_sure = "Are you sure you want to duplicate {num} transactions?"
-    private val string_undo_redo_dup_txns = "Duplicate {num} Transaction(s)"
-    private val string_days = "Days"
-    private val string_months = "Months"
-    private val string_years  ="Years"
-    
-    override fun getActions(menuContext: MDActionContext, listAccts:List<Account>, listTxns:List<AbstractTxn>): List<Action> {
-      val actions = mutableListOf<Action>()
-      
-      // quick do-nothing exit if there are no items/accounts to process...
-      if (listTxns.isEmpty() && listAccts.isEmpty()) return actions
-      
-      if (listTxns.isNotEmpty()) {
-        
-        // check that all accounts are the same - otherwise, suspect running from home screen search, and reject
-        // we only need this check for versions prior to MD2026(5500)
-        listTxns.firstOrNull()?.account?.let { firstAcct ->
-          
-          // don't allow the duplicate options when called from an income/expense register (or other strange places)
-          val acctType = firstAcct.getAccountType()
-          if (!firstAcct.getAccountType().isCategory && acctType != Account.AccountType.ROOT && acctType != Account.AccountType.SECURITY) {
-            val allSameAccount = listTxns.size == 1 || listTxns.all { it.account == firstAcct }
-            if (allSameAccount) {
-              
-              if (listTxns.size > 1) {
-                val duplicateTxnSameDateAction = addAction(label = "$string_duplicate - $string_duplicate_same_date", cmd = "duplicate_same_date")
-                { duplicateTxns(adjustOption = DuplicateTxnDateOption.SAME, menuContext = menuContext, txns = listTxns) }
-                val duplicateTxnEnterDateAction = addAction(label = "$string_duplicate - $string_duplicate_enter_date", cmd = "duplicate_enter_date")
-                { duplicateTxns(adjustOption = DuplicateTxnDateOption.ENTER, menuContext = menuContext, txns = listTxns) }
-                val duplicateTxnAdjustDateAction = addAction(label = "$string_duplicate - $string_duplicate_adjust_date", cmd = "duplicate_adjust_date")
-                { duplicateTxns(adjustOption = DuplicateTxnDateOption.ADJUST, menuContext = menuContext, txns = listTxns) }
-                actions.add(duplicateTxnSameDateAction)
-                actions.add(duplicateTxnEnterDateAction)
-                actions.add(duplicateTxnAdjustDateAction)
-              //} else {
-              //  logBlockedIfDebug(
-              //    "Single transaction selected ('${listTxns.first().description}', ${listTxns.first().dateInt}) - " +
-              //    "'$string_duplicate_same_date' / '$string_duplicate_enter_date' / '$string_duplicate_adjust_date' " +
-              //    "require 2 or more transactions selected; only '$string_duplicate_adjust_date_one_month' is offered"
-              //  )
-              }
-              
-              // always add this option
-              val duplicateTxnAdjustOneMonthAction = addAction(label = "$string_duplicate - $string_duplicate_adjust_date_one_month", cmd = "duplicate_adjust_date_one_month")
-              { duplicateTxns(adjustOption = DuplicateTxnDateOption.ADJUST_ONE_MONTH, menuContext = menuContext, txns = listTxns) }
-              actions.add(duplicateTxnAdjustOneMonthAction)
-            } else {
-              logBlockedIfDebug(string_duplicate, "Selected transactions (${listTxns.size}) span multiple accounts")
+  private val confirmAboveTxnCount = 20
+
+  private val string_duplicate = "Duplicate Transactions"
+  private val string_feature_option = "{feature} - {option}"
+  private val string_duplicate_same_date = "With the Same Date(s)"
+  private val string_duplicate_adjust_date = "Adjust Duplicated Date(s)"
+  private val string_duplicate_adjust_date_one_month = "Adjust Duplicated Date(s) by One Month"
+  private val string_duplicate_adjust_date_tip = "Existing tax dates will also be adjusted."
+  private val string_duplicate_enter_date = "Enter New Date"
+  private val string_duplicate_enter_date_label = "Enter new date"
+  private val string_duplicate_enter_tax_date = "Enter new tax date"
+  private val string_duplicate_enter_value = "New value"
+  private val string_duplicate_enter_value_tooltip = "All transactions have the same value. Enter a new value for all duplicated txns (the sign / debit/credit direction of each will be preserved)."
+  private val string_duplicate_are_you_sure = "You are about to duplicate {num} transactions. Continue?"
+  private val string_undo_redo_dup_txns = "Duplicate {num} Transaction(s)"
+  private val string_days = "Days"
+  private val string_months = "Months"
+  private val string_years  ="Years"
+
+  private fun featureOption(option:String):String = string_feature_option.replace("{feature}", string_duplicate).replace("{option}", option)
+
+  override fun getActions(menuContext: MDActionContext, listAccts:List<Account>, listTxns:List<AbstractTxn>): List<Action> {
+    val actions = mutableListOf<Action>()
+
+    // quick do-nothing exit if there are no items/accounts to process...
+    if (listTxns.isEmpty() && listAccts.isEmpty()) return actions
+
+    if (listTxns.isNotEmpty()) {
+
+      // check that all accounts are the same - otherwise, suspect running from home screen search, and reject
+      // we only need this check for versions prior to MD2026(5500)
+      listTxns.firstOrNull()?.account?.let { firstAcct ->
+
+        // don't allow the duplicate options when called from an income/expense register (or other strange places)
+        val acctType = firstAcct.getAccountType()
+        if (!firstAcct.getAccountType().isCategory && acctType != Account.AccountType.ROOT && acctType != Account.AccountType.SECURITY) {
+          val allSameAccount = listTxns.size == 1 || listTxns.all { it.account == firstAcct }
+          if (allSameAccount) {
+
+            if (listTxns.size > 1) {
+              val duplicateTxnSameDateAction = addAction(label = featureOption(string_duplicate_same_date), cmd = "duplicate_same_date")
+              { duplicateTxns(adjustOption = DuplicateTxnDateOption.SAME, menuContext = menuContext, txns = listTxns) }
+              val duplicateTxnEnterDateAction = addAction(label = featureOption(string_duplicate_enter_date), cmd = "duplicate_enter_date")
+              { duplicateTxns(adjustOption = DuplicateTxnDateOption.ENTER, menuContext = menuContext, txns = listTxns) }
+              val duplicateTxnAdjustDateAction = addAction(label = featureOption(string_duplicate_adjust_date), cmd = "duplicate_adjust_date")
+              { duplicateTxns(adjustOption = DuplicateTxnDateOption.ADJUST, menuContext = menuContext, txns = listTxns) }
+              actions.add(duplicateTxnSameDateAction)
+              actions.add(duplicateTxnEnterDateAction)
+              actions.add(duplicateTxnAdjustDateAction)
             }
+
+            // always add this option
+            val duplicateTxnAdjustOneMonthAction = addAction(label = featureOption(string_duplicate_adjust_date_one_month), cmd = "duplicate_adjust_date_one_month")
+            { duplicateTxns(adjustOption = DuplicateTxnDateOption.ADJUST_ONE_MONTH, menuContext = menuContext, txns = listTxns) }
+            actions.add(duplicateTxnAdjustOneMonthAction)
           } else {
-            logBlockedIfDebug(string_duplicate, "Account type not eligible for account '${firstAcct.getAccountName()}' ($acctType)")
+            logBlockedIfDebug(string_duplicate, "Selected transactions (${listTxns.size}) span multiple accounts")
           }
+        } else {
+          logBlockedIfDebug(string_duplicate, "Account type not eligible for account '${firstAcct.getAccountName()}' ($acctType)")
         }
       }
-      
-      return actions
     }
-  
-  
+
+    return actions
+  }
+
+
   private fun addAction(label:String, cmd:String, listener:ActionListener):MDAction {
     return MDAction.make(label).command(cmd).callback(listener)
   }
@@ -123,7 +126,7 @@ class DuplicateTransactions: ContextMenuAction {
 
     val showTaxDate = mdGUI.preferences.getBoolSetting(UserPreferences.GEN_SEPARATE_TAX_DATE, false)
     
-    if (txns.size > 20 && !mdGUI.askQuestion(string_duplicate_are_you_sure.replace("{num}", "${txns.size}"))) return
+    if (txns.size > confirmAboveTxnCount && !mdGUI.askQuestion(string_duplicate_are_you_sure.replace("{num}", "${txns.size}"))) return
     
     var newDates: DateIntPair? = null
     var dateAdjustments: DateAdjustments? = null
@@ -294,7 +297,7 @@ class DuplicateTransactions: ContextMenuAction {
     
     var x = 0
     var y = 0
-    duplicateDatePnl.add(JLabel(string_duplicate_enter_date.labelify), GridC.getc().xy(x++, y).label())
+    duplicateDatePnl.add(JLabel(string_duplicate_enter_date_label.labelify), GridC.getc().xy(x++, y).label())
     duplicateDatePnl.add(dupFixedDateField, GridC.getc().xy(x, y++).field())
     
     if (showTaxDate) {
@@ -335,7 +338,7 @@ class DuplicateTransactions: ContextMenuAction {
     }
     
     val win = SizedOKButtonWindow(
-      mdGUI, menuContext.component, string_duplicate_enter_date, OKButtonPanel.QUESTION_OK_CANCEL,
+      mdGUI, menuContext.component, featureOption(string_duplicate_enter_date), OKButtonPanel.QUESTION_OK_CANCEL,
       focusComponent = dupFixedDateField,
       sizeKey = Main.EXTN_ID + dialog_duplicate_enter_date_size,
       locationKey = Main.EXTN_ID + dialog_duplicate_enter_date_locn
@@ -398,8 +401,10 @@ class DuplicateTransactions: ContextMenuAction {
     val dateAdjustmentPnl = JPanel(GridBagLayout())
     dateAdjustmentPnl.border = EmptyBorder(16, 16, 16, 16)
     
+    val firstSpinner = spinnerMap.getValue(adjControlsOrder.firstOrNull() ?: 'm')
     val win = SizedOKButtonWindow(
-      mdGUI, menuContext.component, string_duplicate_adjust_date, OKButtonPanel.QUESTION_OK_CANCEL,
+      mdGUI, menuContext.component, featureOption(string_duplicate_adjust_date), OKButtonPanel.QUESTION_OK_CANCEL,
+      focusComponent = (firstSpinner.editor as? JSpinner.DefaultEditor)?.textField ?: firstSpinner,
       sizeKey = Main.EXTN_ID + dialog_duplicate_adjust_date_size,
       locationKey = Main.EXTN_ID + dialog_duplicate_adjust_date_locn
     )

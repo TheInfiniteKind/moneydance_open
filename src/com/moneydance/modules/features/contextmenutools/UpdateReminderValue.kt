@@ -12,8 +12,6 @@ import com.moneydance.apps.md.view.gui.MDAction
 import com.moneydance.apps.md.view.gui.OKButtonPanel
 import com.moneydance.awt.GridC
 import com.moneydance.awt.JCurrencyField
-import com.moneydance.modules.features.contextmenutools.Main.Companion.DEBUG
-import com.moneydance.modules.features.contextmenutools.Main.Companion.extensionContext
 import com.moneydance.modules.features.contextmenutools.Main.Companion.mdGUI
 import com.moneydance.modules.features.contextmenutools.util.*
 import java.awt.GridBagLayout
@@ -33,13 +31,13 @@ import javax.swing.border.EmptyBorder
  * Adds two mutually-exclusive context-menu actions for correcting a Reminder's own stored
  * transaction value/structure against a real register transaction:
  *
- * - "Update Reminder and transaction's value" (Scenario A) - offered when exactly one eligible
+ * - "Update Reminder and Transaction's Value" (Scenario A) - offered when exactly one eligible
  *   reminder's single-split value exactly matches the selected transaction's single-split value.
  *   Opens a value-edit dialog that can optionally also update the selected transaction's own
  *   split to the same new value, in the same undo/redo batch. Saved one-off instances keep their
  *   own values; the user is told how many were not changed.
  *
- * - "Update Reminder from selected transaction" (Scenario B) - offered otherwise, whenever at
+ * - "Update Reminder from Selected Transaction" (Scenario B) - offered otherwise, whenever at
  *   least one structurally-eligible reminder exists in the same account. Opens a picker over
  *   every eligible reminder; the chosen reminder's entire transaction is wholesale-replaced with
  *   a duplicate of the selected transaction. One-way only (txn -> reminder), no value-edit step.
@@ -77,8 +75,8 @@ class UpdateReminderValue(
 
   private val LOG_SOURCE = "UpdateReminderValue"
 
-  private val string_update_reminder_and_txn = "Update Reminder and transaction's value"
-  private val string_update_reminder_from_txn = "Update Reminder from selected transaction"
+  private val string_update_reminder_and_txn = "Update Reminder and Transaction's Value"
+  private val string_update_reminder_from_txn = "Update Reminder from Selected Transaction"
 
   private val string_undo_redo_update_reminder_only = "Update Reminder Value"
   private val string_undo_redo_update_both = "Update Reminder and Transaction Value"
@@ -89,37 +87,38 @@ class UpdateReminderValue(
   private val string_edit_value_title = "Update Reminder Value"
   private val string_confirm_replace_title = "Confirm Update Reminder from Transaction"
 
-  private val string_from_label = "Current Value"
   private val string_new_value_label = "New Value"
   private val string_also_update_txn = "Also update this transaction"
-  private val string_reminder_label = "Reminder"
-  private val string_account_label = "Account"
-  private val string_category_label = "Category"
-  private val string_memo_label = "Memo"
-  private val string_next_scheduled_label = "Upcoming reminder dates..."
+  private val string_reminder_line = "Reminder: {value}"
+  private val string_account_line = "Account: {value}"
+  private val string_description_line = "Description: {value}"
+  private val string_category_line = "Category: {value}"
+  private val string_memo_line = "Memo: {value}"
+  private val string_current_value_line = "Current Value: {value}"
+  private val string_upcoming_dates_line = "Upcoming reminder dates: {value}"
+  private val string_total_line = "Total: {value}"
+  private val string_splits_line = "Splits: {num} ({value})"
+  private val string_list_separator = ", "
   private val string_current_txn_heading = "Current Transaction"
   private val string_replacement_txn_heading = "Will be replaced with"
-  private val string_description_label = "Description"
-  private val string_total_label = "Total"
-  private val string_splits_label = "Splits"
 
   private val string_reset_tooltip = "Reset to the selected transaction's value"
   private val string_rewind_tooltip = "Rewind to the reminder's current value"
 
-  private val string_one_offs_not_changed = "This change does not affect {num} saved one-off instance(s) of this reminder"
+  private val string_one_offs_not_changed = "This change does not affect {num} saved one-off instance(s) of this reminder."
   private val string_one_offs_will_be_deleted = "Saved one-off instances of this reminder to be deleted: {num}"
 
   private val ICON_RESET_PATH = "com/moneydance/apps/md/view/gui/glyphs/reset.png"
   private val ICON_REWIND_PATH = "com/moneydance/apps/md/view/gui/glyphs/horizontal-left.png"
 
-  private val dialog_disambiguate_size = ".gui.update_reminder.disambiguate.size"
-  private val dialog_disambiguate_locn = ".gui.update_reminder.disambiguate.loc"
-  private val dialog_full_picker_size = ".gui.update_reminder.picker.size"
-  private val dialog_full_picker_locn = ".gui.update_reminder.picker.loc"
-  private val dialog_edit_value_size = ".gui.update_reminder.edit_value.size"
-  private val dialog_edit_value_locn = ".gui.update_reminder.edit_value.loc"
-  private val dialog_confirm_replace_size = ".gui.update_reminder.confirm_replace.size"
-  private val dialog_confirm_replace_locn = ".gui.update_reminder.confirm_replace.loc"
+  private val dialog_update_reminder_disambiguate_size = ".gui.update_reminder.disambiguate.size"
+  private val dialog_update_reminder_disambiguate_locn = ".gui.update_reminder.disambiguate.loc"
+  private val dialog_update_reminder_picker_size = ".gui.update_reminder.picker.size"
+  private val dialog_update_reminder_picker_locn = ".gui.update_reminder.picker.loc"
+  private val dialog_update_reminder_edit_value_size = ".gui.update_reminder.edit_value.size"
+  private val dialog_update_reminder_edit_value_locn = ".gui.update_reminder.edit_value.loc"
+  private val dialog_update_reminder_confirm_replace_size = ".gui.update_reminder.confirm_replace.size"
+  private val dialog_update_reminder_confirm_replace_locn = ".gui.update_reminder.confirm_replace.loc"
 
   // ------------------------------------------------------------------------------------------
   // eligibility - evaluated both at menu-build time and again at click time
@@ -265,8 +264,8 @@ class UpdateReminderValue(
         val disambiguationSet = (uuidMatches + valueMatches).distinct()
         pickReminder(
           mdGUI, menuContext.component, string_disambiguate_title, disambiguationSet,
-          sizeKey = Main.EXTN_ID + dialog_disambiguate_size,
-          locationKey = Main.EXTN_ID + dialog_disambiguate_locn,
+          sizeKey = Main.EXTN_ID + dialog_update_reminder_disambiguate_size,
+          locationKey = Main.EXTN_ID + dialog_update_reminder_disambiguate_locn,
           showSplitPercentages = false,
           referenceTxn = txn
         ) ?: return
@@ -296,7 +295,7 @@ class UpdateReminderValue(
     val canAlsoUpdate = isAllUnreconciled(txn) && !hasAnyProtectedSplit(txn)
     val alsoUpdateTxnCheckbox = JCheckBox(string_also_update_txn).apply {
       isEnabled = canAlsoUpdate
-      isSelected = canAlsoUpdate   // default ticked whenever eligible, per author's instruction
+      isSelected = canAlsoUpdate   // default ticked whenever eligible
     }
 
     val fieldRow = JPanel(GridBagLayout())
@@ -307,15 +306,15 @@ class UpdateReminderValue(
     val panel = JPanel(GridBagLayout())
     panel.border = EmptyBorder(16, 16, 16, 16)
     var y = 0
-    panel.add(JLabel("$string_reminder_label: ${reminder.description}"), GridC.getc().xy(0, y++).colspan(2).wx(1f).west().insets(0, 0, 4, 0))
-    panel.add(JLabel("$string_account_label: ${reminderTxn.account.fullAccountName}"), GridC.getc().xy(0, y++).colspan(2).wx(1f).west().insets(0, 0, 4, 0))
-    panel.add(JLabel("$string_description_label: ${reminderTxn.description}"), GridC.getc().xy(0, y++).colspan(2).wx(1f).west().insets(0, 0, 4, 0))
-    panel.add(JLabel("$string_category_label: ${rSplit.account.fullAccountName}"), GridC.getc().xy(0, y++).colspan(2).wx(1f).west().insets(0, 0, 4, 0))
+    panel.add(JLabel(string_reminder_line.replace("{value}", reminder.description)), GridC.getc().xy(0, y++).colspan(2).wx(1f).west().insets(0, 0, 4, 0))
+    panel.add(JLabel(string_account_line.replace("{value}", reminderTxn.account.fullAccountName)), GridC.getc().xy(0, y++).colspan(2).wx(1f).west().insets(0, 0, 4, 0))
+    panel.add(JLabel(string_description_line.replace("{value}", reminderTxn.description)), GridC.getc().xy(0, y++).colspan(2).wx(1f).west().insets(0, 0, 4, 0))
+    panel.add(JLabel(string_category_line.replace("{value}", rSplit.account.fullAccountName)), GridC.getc().xy(0, y++).colspan(2).wx(1f).west().insets(0, 0, 4, 0))
     reminder.memo?.trim()?.takeIf { it.isNotEmpty() }?.let {
-      panel.add(JLabel("$string_memo_label: $it"), GridC.getc().xy(0, y++).colspan(2).wx(1f).west().insets(0, 0, 4, 0))
+      panel.add(JLabel(string_memo_line.replace("{value}", it)), GridC.getc().xy(0, y++).colspan(2).wx(1f).west().insets(0, 0, 4, 0))
     }
-    panel.add(JLabel("$string_from_label: $fromValueStr"), GridC.getc().xy(0, y++).colspan(2).wx(1f).west().insets(0, 0, 4, 0))
-    panel.add(JLabel("$string_next_scheduled_label: ${upcomingDatesStr(mdGUI, reminder)}"), GridC.getc().xy(0, y++).colspan(2).wx(1f).west().insets(0, 0, 12, 0))
+    panel.add(JLabel(string_current_value_line.replace("{value}", fromValueStr)), GridC.getc().xy(0, y++).colspan(2).wx(1f).west().insets(0, 0, 4, 0))
+    panel.add(JLabel(string_upcoming_dates_line.replace("{value}", upcomingDatesStr(mdGUI, reminder))), GridC.getc().xy(0, y++).colspan(2).wx(1f).west().insets(0, 0, 12, 0))
 
     panel.add(JLabel(string_new_value_label.labelify), GridC.getc().xy(0, y).label())
     panel.add(fieldRow, GridC.getc().xy(1, y++).wx(1f).field())
@@ -325,8 +324,8 @@ class UpdateReminderValue(
     val win = SizedOKButtonWindow(
       mdGUI, menuContext.component, string_edit_value_title, OKButtonPanel.QUESTION_OK_CANCEL,
       focusComponent = newValueField,
-      sizeKey = Main.EXTN_ID + dialog_edit_value_size,
-      locationKey = Main.EXTN_ID + dialog_edit_value_locn
+      sizeKey = Main.EXTN_ID + dialog_update_reminder_edit_value_size,
+      locationKey = Main.EXTN_ID + dialog_update_reminder_edit_value_locn
     )
     win.setEscapeKeyCancels(true)
 
@@ -375,7 +374,7 @@ class UpdateReminderValue(
     val oneOffCount = RemUtility.deferredDates(reminder).size
     if (oneOffCount > 0) mdGUI.showInfoMessage(string_one_offs_not_changed.replace("{num}", oneOffCount.toString()))
 
-    if (extensionContext?.debugMenuEnabled == true || DEBUG) {
+    if (isCmtDebug) {
       Util.logConsole(
         "UpdateReminderValue: updated reminder '${reminder.description}' to $newValue" +
         (if (alsoUpdateTxn) ", also updated txn '${txn.description}' (${txn.dateInt})" else "")
@@ -397,8 +396,8 @@ class UpdateReminderValue(
 
     val chosen = pickReminder(
       mdGUI, menuContext.component, string_full_picker_title, revalidatedPool,
-      sizeKey = Main.EXTN_ID + dialog_full_picker_size,
-      locationKey = Main.EXTN_ID + dialog_full_picker_locn,
+      sizeKey = Main.EXTN_ID + dialog_update_reminder_picker_size,
+      locationKey = Main.EXTN_ID + dialog_update_reminder_picker_locn,
       showSplitPercentages = false,
       referenceTxn = txn
     ) ?: return
@@ -422,9 +421,9 @@ class UpdateReminderValue(
     val panel = JPanel(GridBagLayout())
     panel.border = EmptyBorder(16, 16, 16, 16)
     var y = 0
-    panel.add(JLabel("$string_reminder_label: ${reminder.description}"), GridC.getc().xy(0, y++).colspan(2).wx(1f).west().insets(0, 0, 4, 0))
-    panel.add(JLabel("$string_account_label: ${reminderTxn.account.fullAccountName}"), GridC.getc().xy(0, y++).colspan(2).wx(1f).west().insets(0, 0, 4, 0))
-    panel.add(JLabel("$string_next_scheduled_label: ${upcomingDatesStr(mdGUI, reminder)}"), GridC.getc().xy(0, y++).colspan(2).wx(1f).west().insets(0, 0, 12, 0))
+    panel.add(JLabel(string_reminder_line.replace("{value}", reminder.description)), GridC.getc().xy(0, y++).colspan(2).wx(1f).west().insets(0, 0, 4, 0))
+    panel.add(JLabel(string_account_line.replace("{value}", reminderTxn.account.fullAccountName)), GridC.getc().xy(0, y++).colspan(2).wx(1f).west().insets(0, 0, 4, 0))
+    panel.add(JLabel(string_upcoming_dates_line.replace("{value}", upcomingDatesStr(mdGUI, reminder))), GridC.getc().xy(0, y++).colspan(2).wx(1f).west().insets(0, 0, 12, 0))
 
     val oneOffCount = RemUtility.deferredDates(reminder).size
     if (oneOffCount > 0) {
@@ -436,8 +435,8 @@ class UpdateReminderValue(
 
     val win = SizedOKButtonWindow(
       mdGUI, menuContext.component, string_confirm_replace_title, OKButtonPanel.QUESTION_OK_CANCEL,
-      sizeKey = Main.EXTN_ID + dialog_confirm_replace_size,
-      locationKey = Main.EXTN_ID + dialog_confirm_replace_locn
+      sizeKey = Main.EXTN_ID + dialog_update_reminder_confirm_replace_size,
+      locationKey = Main.EXTN_ID + dialog_update_reminder_confirm_replace_locn
     )
     win.setEscapeKeyCancels(true)
 
@@ -448,10 +447,10 @@ class UpdateReminderValue(
     val panel = JPanel(GridBagLayout())
     var y = 0
     panel.add(JLabel(heading).also { it.font = it.font.deriveFont(java.awt.Font.BOLD) }, GridC.getc().xy(0, y++).colspan(2).wx(1f).west().insets(0, 0, 4, 0))
-    panel.add(JLabel("$string_description_label: ${blockTxn.description}"), GridC.getc().xy(0, y++).colspan(2).wx(1f).west().insets(0, 0, 2, 0))
-    panel.add(JLabel("$string_total_label: ${currency.formatFancy(blockTxn.value, dec)}"), GridC.getc().xy(0, y++).colspan(2).wx(1f).west().insets(0, 0, 2, 0))
-    val splitsStr = blockTxn.allSplits.joinToString(", ") { it.account.getAccountName() }
-    panel.add(JLabel("$string_splits_label: ${blockTxn.allSplits.size} ($splitsStr)"), GridC.getc().xy(0, y++).colspan(2).wx(1f).west())
+    panel.add(JLabel(string_description_line.replace("{value}", blockTxn.description)), GridC.getc().xy(0, y++).colspan(2).wx(1f).west().insets(0, 0, 2, 0))
+    panel.add(JLabel(string_total_line.replace("{value}", currency.formatFancy(blockTxn.value, dec))), GridC.getc().xy(0, y++).colspan(2).wx(1f).west().insets(0, 0, 2, 0))
+    val splitsStr = blockTxn.allSplits.joinToString(string_list_separator) { it.account.getAccountName() }
+    panel.add(JLabel(string_splits_line.replace("{num}", blockTxn.allSplits.size.toString()).replace("{value}", splitsStr)), GridC.getc().xy(0, y++).colspan(2).wx(1f).west())
     return panel
   }
 
@@ -477,7 +476,7 @@ class UpdateReminderValue(
     // as Moneydance's Edit Reminder does: an occurrence whose one-off was cleared may now be due
     SwingUtilities.invokeLater { mdGUI.autocommitReminders() }
 
-    if (extensionContext?.debugMenuEnabled == true || DEBUG) {
+    if (isCmtDebug) {
       Util.logConsole(
         "UpdateReminderValue: replaced reminder '${reminder.description}' transaction from '${txn.description}' (${txn.dateInt})"
       )

@@ -30,14 +30,14 @@ import javax.swing.JComponent
  *
  * @author Stuart Beesley - August 2026
  */
-class SizedOKButtonWindow(
+open class SizedOKButtonWindow(
   mdGUI:MoneydanceGUI,
   private val parentComponent:Component?,
   title:String,
   buttonSet:Int,
   private val focusComponent:JComponent? = null,
-  sizeKey:String? = null,
-  locationKey:String? = null
+  private val sizeKey:String? = null,
+  private val locationKey:String? = null
 ):OKButtonWindow(mdGUI, parentComponent, title, null, buttonSet) {
   
   companion object {
@@ -62,11 +62,11 @@ class SizedOKButtonWindow(
       maxOf(preferredSize.height, MIN_DIALOG_SIZE.height)
     )
     
-    // only center on the parent when there's no saved position to fall back to (i.e. we're still
-    // at whatever undersized default the window started at) - setVisible() will apply a saved
-    // size/location afterward via SecondaryDialog's own loadSizeAndLocation(), and centering here
-    // unconditionally would fight with that on every subsequent open.
-    if (size.width < preferredSize.width || size.height < preferredSize.height) {
+    // with no saved size, SecondaryDialog centres for its own default size before the minimum size grows the
+    // window, which leaves it off-centre; make the minimum size the default so it is centred as shown
+    if (sizeKey != null || locationKey != null) {
+      setRememberSizeLocationKeys(sizeKey, locationKey, minimumSize)
+    } else {
       setLocationRelativeTo(parentComponent)
     }
   }

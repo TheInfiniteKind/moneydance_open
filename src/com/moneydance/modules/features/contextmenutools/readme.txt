@@ -1,4 +1,4 @@
-Author: Stuart Beesley - StuWareSoftSystems (created August 2026 - last updated: August 2026)
+Author: Stuart Beesley - StuWareSoftSystems (created August 2026 - last updated: November 2026)
 
 Context Menu Tools - User Guide
 ================================
@@ -17,26 +17,25 @@ section below, or "Why isn't an option showing?" near the end of this guide.
 
 MENU OPTIONS (in the order they appear)
 ------------------------------------------
-  - Show share balance
+  - Show Share Balance
   - Show Value of Selected Transactions
-  - Duplicate Transactions...
-      - With the same date(s)
-      - Enter new date
-      - Adjust duplicated date(s)
-      - Adjust duplicated date(s) by one month
+  - Duplicate Transactions - With the Same Date(s)
+  - Duplicate Transactions - Enter New Date
+  - Duplicate Transactions - Adjust Duplicated Date(s)
+  - Duplicate Transactions - Adjust Duplicated Date(s) by One Month
   - Copy Splits
   - Paste Splits
   - Apply Splits Template (from Reminders)
   - Apply Splits Template to Selected Transactions
-  - Rebalance Splits
-  - Update Reminder...
-      - and transaction's value
-      - from selected transaction
+  - Rebalance Splits - Update Total and/or Ratio
+  - Update Reminder and Transaction's Value
+  - Update Reminder from Selected Transaction
   - Edit Originating Reminder
+  - Edit Reminder One-off Instances
   - Zap/Clean Memo
   - Show Other Side: Select Split
-  - Edit date entered
-  - Jump to date in register
+  - Edit Date Entered
+  - Jump to Date in Register
   - Show Raw Details
   - Copy Raw Details to Clipboard
 
@@ -44,9 +43,28 @@ MENU OPTIONS (in the order they appear)
 CONFIGURATION SCREEN
 ---------------------
 Use Moneydance's Extension Menu, and select "Context Menu Tools" to open the settings screen.
-Every feature above can be turned on or off individually, and a few have extra options of their
-own (shown indented underneath the relevant checkbox). Click OK to save, Cancel to discard
-changes.
+Every feature above can be turned on or off individually, in the same order as the menu, and a
+few have extra options of their own (shown indented underneath the relevant checkbox). The
+options shared by Paste Splits and Apply Splits Template are under their own heading, "Paste /
+Template options". On Moneydance builds before 5512 the Edit Reminder One-off Instances checkbox
+is greyed out, as the feature needs build 5512. Click OK to save, Cancel to discard changes.
+
+
+SHOW SHARE BALANCE
+--------------------
+Right-click a single transaction that has a security, in an investment account's register or in a
+security's own register, and choose this option to see how many shares were held. Off by default -
+turn it on in the config screen. The menu item shows the security's name (and ticker) and the shares
+held in that transaction's account today.
+
+A read-only window shows, for the transaction's account: the shares at the start of that day, this
+transaction, any other transactions for that security on the same day, the shares at the end of
+that day, and the shares held today. Each figure is shown as it stood on the transaction's date
+and also in today's terms, after any later stock splits. When the security is held in more than
+one account, the same figures are shown again as totals across all of them. The stock splits
+between the transaction's date and today are listed at the end. A split dated on the transaction's
+own day counts as already applied, and is listed above the figures. Transactions with no shares (a cash dividend, for
+example) show 0 for this transaction. The balances are only worked out when you click the option.
 
 
 SHOW VALUE OF SELECTED TRANSACTIONS
@@ -56,25 +74,25 @@ into a currency of your choice (set in the config screen). This feature knows ho
 summarise complex investment transactions or different types.
 
 
-DUPLICATE TRANSACTIONS...
+DUPLICATE TRANSACTIONS
 ----------------------------
 Right-click a transaction and choose one of the Duplicate options to create a copy of it. With a
-single transaction selected, only "Adjust duplicated date(s) by one month" is available - the
+single transaction selected, only "Adjust Duplicated Date(s) by One Month" is available - the
 other three options below only appear when 2 or more transactions are selected:
 
-  - With the same date(s) - the duplicate keeps the original transaction's date(s), no prompt
+  - With the Same Date(s) - the duplicate keeps the original transaction's date(s), no prompt
     (2 or more transactions only)
 
-  - Enter new date - prompts for one specific new date, applied to every duplicated transaction
+  - Enter New Date - prompts for one specific new date, applied to every duplicated transaction
     (2 or more transactions only)
     ** may also let you enter a new value - see below
 
-  - Adjust duplicated date(s) - prompts for a relative shift (days/months/years), applied to
+  - Adjust Duplicated Date(s) - prompts for a relative shift (days/months/years), applied to
     every duplicated transaction - suits duplicating several transactions at once
     (2 or more transactions only)
     ** may also let you enter a new value - see below
 
-  - Adjust duplicated date(s) by one month - shortcut that duplicates one month forward
+  - Adjust Duplicated Date(s) by One Month - shortcut that duplicates one month forward
     automatically, no prompt - available whether you've selected one transaction or several
 
 ** When duplicating 2 or more single-split transactions, where every selected transaction
@@ -83,6 +101,7 @@ other three options below only appear when 2 or more transactions are selected:
    bank-transfer-type transaction, a "New value" field will also appear, letting you set one new
    amount applied to every duplicate (each duplicate's original debit/credit direction is kept).
 
+When more than 20 transactions are selected, you are asked to confirm before they are duplicated.
 
 COPY SPLITS / PASTE SPLITS
 ----------------------------
@@ -175,8 +194,8 @@ of the selected transactions were actually updated; if any were skipped (most li
 something changed between right-clicking and confirming), check the debug log for details.
 
 
-REBALANCE SPLITS
--------------------
+REBALANCE SPLITS - UPDATE TOTAL AND/OR RATIO
+-----------------------------------------------
 Unlike the other three, this doesn't bring in anything from elsewhere - it changes a
 transaction's own total (or just the ratio between its existing splits) while keeping the same
 split lines. Useful when you've duplicated an old transaction and the total has changed, but the
@@ -193,14 +212,14 @@ You'll be asked for a new total (or leave it as-is to just change the ratio) and
 each split's existing proportion or divide the new total equally across all splits.
 
 
-UPDATE REMINDER VALUE
+UPDATE REMINDER
 -------------------------
 Right-click a single transaction in a Bank or Credit Card account and, depending on what's
 found, one of two options appears - only ever one of the two, never both. Only Reminders set up
 as transaction-type reminders are ever considered - plain note-style reminders and loan payment
 reminders are always excluded.
 
-  - Update Reminder and transaction's value - shown when the transaction has a single split, and
+  - Update Reminder and Transaction's Value - shown when the transaction has a single split, and
     exactly one active Reminder in the same account has a single split with the exact same
     value. Opens a dialog showing the reminder's current ("From") value and lets you enter a new
     one, with Reset (back to the transaction's value) and Rewind (back to the reminder's current
@@ -215,7 +234,7 @@ reminders are always excluded.
     closely each reminder matches the transaction (value, then number of splits, then shared
     categories), most likely match first, rather than alphabetically.
 
-  - Update Reminder from selected transaction - shown instead whenever no reminder's value
+  - Update Reminder from Selected Transaction - shown instead whenever no reminder's value
     exactly matches (or the transaction has more than one split). Opens a list of every eligible
     reminder in the same account, again ordered by closeness to the selected transaction rather
     than alphabetically; whichever one you pick has its stored transaction completely replaced
@@ -230,9 +249,9 @@ which option you use.
 
 Saved one-off instances (Moneydance build 5512 onwards): an occurrence of a reminder saved with
 its own date or amount (Save and Defer).
-  - Update Reminder and transaction's value leaves them unchanged, and then tells you how many
+  - Update Reminder and Transaction's Value leaves them unchanged, and then tells you how many
     there are.
-  - Update Reminder from selected transaction deletes them, as Moneydance's own Edit Reminder
+  - Update Reminder from Selected Transaction deletes them, as Moneydance's own Edit Reminder
     does; the confirmation shows how many will be deleted, and Undo brings them back.
   - In the "Upcoming reminder dates" lists, a date marked * is a one-off instance's own date.
   - A reminder with no scheduled occurrences left but a one-off instance still waiting is still
@@ -255,6 +274,36 @@ This only appears when a link back to a specific Reminder can be found, checked 
 Neither is a guess based on matching description or value - both are exact identity links. If
 the transaction wasn't committed from a Reminder, and never had a Splits Template applied
 to it by this extension either, this option simply doesn't appear.
+
+
+EDIT REMINDER ONE-OFF INSTANCES (Moneydance build 5512 onwards)
+-----------------------------------------------------------------
+A one-off instance is one occurrence of a reminder saved with its own date or amount (Moneydance's
+Save and Defer). Right-click a reminder in the Reminders view (Reminders in the sidebar) and
+choose this option to see and change them. It is offered for an active transaction reminder on a Bank or Credit Card
+account (not loan reminders, not expired or inactive ones). On by default.
+
+The window lists the reminder's next occurrences (12 by default; choose 6, 12, 24, 36 or 60), plus any one-off
+left behind an occurrence that has already been recorded (Moneydance still posts these), in date
+order. Each row shows the scheduled date, the one-off date (blank if none), the days moved, the
+new amount (blank when the same as the reminder's), what else was changed (account, splits,
+currency, description, memo, tags, check number), and a status:
+Overdue, Waiting (held until an earlier occurrence is recorded) or Left behind.
+  - Edit (or double-click, or Enter) opens Moneydance's own transaction editor for that
+    occurrence. OK keeps the change in the window. On a row with no one-off, OK only creates one
+    if you changed the date, the amount, or anything the Changed column shows.
+  - Delete (or the Delete or Backspace key) removes that row's one-off; the row goes back to the
+    reminder's normal date and amount. This is the only way to remove a one-off.
+  - Clear all removes every one-off, including any not shown.
+
+Nothing is saved until you press OK, which saves everything as one Undo step; changed rows are
+marked * until then. A one-off's date must stay between its neighbouring scheduled dates: the
+editor will not accept a changed date outside that range. One-offs that are already outside it
+are listed when you press OK, and you can fix them or save anyway. Cancel with unsaved changes asks
+before discarding them. After saving, Moneydance's auto-commit runs, so a one-off that is now due
+on an auto-commit reminder is posted straight away. If you then Undo the save, the posted
+transaction stays but the reminder goes back to not recorded, so that occurrence would be posted
+again - delete the posted transaction too (Moneydance's own Edit Reminder works the same way).
 
 
 ZAP/CLEAN MEMO
@@ -397,23 +446,6 @@ anything saves nothing. A change is saved straight away as a single
 named Undo step - Menu > Edit > Undo reverses it.
 
 
-SHOW SHARE BALANCE
---------------------
-Right-click a single transaction that has a security, in an investment account's register or in a
-security's own register, and choose this option to see how many shares were held. Off by default -
-turn it on in the config screen. The menu item shows the security's name (and ticker) and the shares
-held in that transaction's account today.
-
-A read-only window shows, for the transaction's account: the shares at the start of that day, this
-transaction, any other transactions for that security on the same day, the shares at the end of
-that day, and the shares held today. Each figure is shown as it stood on the transaction's date
-and also in today's terms, after any later stock splits. When the security is held in more than
-one account, the same figures are shown again as totals across all of them. The stock splits
-between the transaction's date and today are listed at the end. A split dated on the transaction's
-own day counts as already applied, and is listed above the figures. Transactions with no shares (a cash dividend, for
-example) show 0 for this transaction. The balances are only worked out when you click the option.
-
-
 JUMP TO DATE IN REGISTER
 ----------------------------
 Quickly jump the register to a specific date, instead of scrolling.
@@ -442,8 +474,8 @@ The config screen has an "Enable debug messages" checkbox. Turning it on makes t
 write extra diagnostic information to Moneydance's console/log (accessed via Help / Console
 Window) - mainly useful if something isn't behaving as expected and you want to see what the
 extension is actually doing. In particular, this will show messages when the Copy Splits, Paste
-Splits, Apply Splits Template, Rebalance Splits, Duplicate Transactions, or Update Reminder
-Value menu items have been blocked, explaining exactly why the option was not allowed. Show
+Splits, Apply Splits Template, Rebalance Splits, Duplicate Transactions, Update Reminder,
+Edit Reminder One-off Instances or Zap/Clean Memo menu items have been blocked, explaining exactly why the option was not allowed. Show
 Other Side: Select Split does not currently have this diagnostic logging.
 
 

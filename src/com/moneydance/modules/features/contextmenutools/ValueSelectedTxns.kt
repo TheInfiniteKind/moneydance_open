@@ -17,13 +17,16 @@ import javax.swing.SwingUtilities
 import kotlin.math.roundToLong
 
 /**
+ * Shows the total, count and average value of the selected transactions (plus share, amount and fee totals for
+ * investment transactions) in a popup, and copies the total to the clipboard.
+ *
  * @author Stuart Beesley - February 2026
  */
 @Suppress("DuplicatedCode", "PrivatePropertyName", "LocalVariableName", "SameParameterValue")
 
 class ValueSelectedTxns: ContextMenuAction {
   
-  private val string_value_selected_txns = "Show value of selected transactions"
+  private val string_value_selected_txns = "Show Value of Selected Transactions"
 
   override fun getActions(menuContext:MDActionContext, listAccts:List<Account>, listTxns:List<AbstractTxn>):List<Action> {
     val actions = mutableListOf<Action>()

@@ -11,11 +11,11 @@ import com.moneydance.apps.md.controller.MDActionContext
 import com.moneydance.apps.md.view.gui.MDAction
 import com.moneydance.apps.md.view.gui.OKButtonPanel
 import com.moneydance.awt.GridC
-import com.moneydance.modules.features.contextmenutools.Main.Companion.DEBUG
-import com.moneydance.modules.features.contextmenutools.Main.Companion.extensionContext
+import com.infinitekind.util.labelify
 import com.moneydance.modules.features.contextmenutools.Main.Companion.mdGUI
 import com.moneydance.modules.features.contextmenutools.util.SizedOKButtonWindow
 import com.moneydance.modules.features.contextmenutools.util.Util.logConsole
+import com.moneydance.modules.features.contextmenutools.util.isCmtDebug
 import com.moneydance.modules.features.contextmenutools.util.logBlockedIfDebug
 import com.moneydance.modules.features.contextmenutools.util.setNameCompat
 import java.awt.GridBagLayout
@@ -44,13 +44,6 @@ import javax.swing.border.EmptyBorder
  * bypass, and the actual Stage 1/Stage 2 decision) only ever runs after the item is clicked, via
  * the settings popup and the apply pass - never at build time.
  *
- * NOTE on API surface: this ports several Moneydance fields never previously used elsewhere in
- * this codebase (txn.getFIID(), AbstractTxn.ORIG_TXN_TAG, AbstractTxn.TAG_IS_NEW_TXN via
- * getBooleanParameter, account-active check, OnlineTxnMerger.ORIG_MEMO_TAG). Each real, confirmed
- * call is taken directly from the original script's own working Jython source - but several of
- * the exact Kotlin accessor forms (property vs explicit getter) are inferred, not independently
- * compiled/tested. Flagged inline at each specific call.
- *
  * @author Stuart Beesley - August 2026
  */
 class ZapCleanMemo:ContextMenuAction {
@@ -58,8 +51,24 @@ class ZapCleanMemo:ContextMenuAction {
   
   private val string_zap_clean_memo = "Zap/Clean Memo"
   private val string_zap_settings_title = "Zap/Clean Memo - Settings"
-  private val string_zap_large_selection_confirm = "You have selected {count} transactions. This may take a moment and cannot easily be reviewed item-by-item before applying - continue?"
-  private val string_zap_info_line = "{count} of the {total} selected transactions currently look like candidates, based on your settings below."
+  private val string_zap_large_selection_confirm = "You have selected {num} transactions. This may take a moment and cannot easily be reviewed item-by-item before applying. Continue?"
+  private val string_zap_info_line = "{num} of the {total} selected transactions currently look like candidates, based on your settings below."
+  private val string_zap_types_heading = "Which download types to include"
+  private val string_zap_include_mdp = "MD+ downloads (Moneydance, via Plaid) - {num} in selection"
+  private val string_zap_include_ofx = "OFX Direct Connect downloads (OFX+) - {num} in selection"
+  private val string_zap_include_imported_ofx = "Manually imported .ofx/.qfx files (OFX-) - {num} in selection"
+  private val string_zap_include_downloaded_qif = "Downloaded .qif files (QIF+) - {num} in selection"
+  private val string_zap_include_non_downloaded_qif = "Manually imported .qif files, non-downloaded (QIF-) - {num} in selection"
+  private val string_zap_include_mdp_tooltip = "Always zaps unedited memos unconditionally - only the memo, nothing else, and every other rule below is ignored."
+  private val string_zap_reconciled_only = "Only reconciled transactions"
+  private val string_zap_confirmed_only = "Only confirmed transactions (bypassed on QIF-)"
+  private val string_zap_when_subset_desc = "Zap unchanged memo when it's already contained in a longer description"
+  private val string_zap_swap_when_subset_desc = "Swap memo into description when description is the same text, just shorter than the memo"
+  private val string_zap_dont_check_original_memo = "Don't check the original downloaded memo first"
+  private val string_zap_dont_compare_with_desc = "Don't compare memo to description - just zap"
+  private val string_zap_swap_when_subset_desc_tooltip = "Only when the description matches exactly within the memo, not just any shorter description."
+  private val string_zap_dont_check_original_memo_tooltip = "Zaps the memo regardless of edits made to it. QIF- is never protected either way, ticked or not."
+  private val string_zap_dont_compare_with_desc_tooltip = "Reconciled-only, confirmed-only, and the memo edit-protection check above still apply on top of this."
   private val string_zap_summary = "Zapped/swapped the memo on {applied} of {total} selected transactions."
   private val string_undo_redo_zap_clean_memo = "Zap/Clean Memo"
   
@@ -84,10 +93,6 @@ class ZapCleanMemo:ContextMenuAction {
    * (Financial Institution ID) prefix; non-downloaded transactions are only ever QIF- (manually
    * imported), detected via a specific stored parameter. A transaction matching none of these
    * returns null (never processed).
-   *
-   * UNVERIFIED: txn.getFIID() - never used elsewhere in this codebase. Confirmed real in the
-   * original script's own working source, exact Kotlin call form (property vs explicit getter)
-   * not independently checked here.
    */
   private fun detectType(txn:ParentTxn):DownloadType? {
     val fiid = try {
@@ -122,11 +127,6 @@ class ZapCleanMemo:ContextMenuAction {
       "ofx:" in fiidLower -> DownloadType.OFX
       "qif" in fiidLower || "script:" in fiidLower -> DownloadType.DOWNLOADED_QIF
       else -> {
-        // UNVERIFIED: AbstractTxn.ORIG_TXN_TAG - the original script reflects this field
-        // (getFieldByReflection(AbstractTxn, "ORIG_TXN_TAG")), suggesting it may not have been
-        // directly compile-time accessible in its own older devkit. Trying the direct reference
-        // first, given this codebase's MD2024.4 devkit may expose it normally now - flagged for
-        // a compile check.
         val origTxnData = try {
           txn.getParameter(ORIG_TXN_TAG, "")
         } catch (_:Exception) {
@@ -208,10 +208,7 @@ class ZapCleanMemo:ContextMenuAction {
   
   private fun groupKey():String = "${Main.EXTN_ID}.zap_memo"
   
-  // UNVERIFIED: AccountBook.localStorage - inferred from this codebase's own Java-getter-to-
-  // Kotlin-property convention (book.reminders, book.currencies), and confirmed as a real,
-  // nullable var property from AccountBook.kt's own source. Null-safe throughout - falls back
-  // to script defaults if unavailable.
+  // AccountBook.localStorage is nullable; falls back to the script defaults if unavailable.
   private fun loadSettings(account:Account):ZapSettings {
     val ls = account.book.localStorage
     val subset:SyncRecord? = try {
@@ -275,7 +272,7 @@ class ZapCleanMemo:ContextMenuAction {
    * marker, which we don't reproduce - it's fully unconditional here).
    */
   private fun decideZapAction(txn:ParentTxn, type:DownloadType, settings:ZapSettings, logReason:Boolean = false):ZapAction? {
-    val debug = logReason && (extensionContext?.debugMenuEnabled == true || DEBUG)
+    val debug = logReason && isCmtDebug
     fun skip(reason:String):ZapAction? {
       if (debug) logConsole("Zap/Clean Memo: skipped '${txn.description}' (${txn.dateInt}) [$type] - $reason")
       return null
@@ -291,9 +288,6 @@ class ZapCleanMemo:ContextMenuAction {
     // to check, not a deliberate leniency.
     if (settings.reconciledOnly && txn.clearedStatus != AbstractTxn.ClearedStatus.CLEARED) return skip("not reconciled (reconciled-only is on)")
     if (type != DownloadType.NON_DOWNLOADED_QIF) {
-      // UNVERIFIED: AbstractTxn.TAG_IS_NEW_TXN via getBooleanParameter - confirmed real constant
-      // and real method shape from the original script; exact Kotlin call form not independently
-      // checked here.
       if (settings.confirmedOnly && txn.getBooleanParameter(AbstractTxn.TAG_IS_NEW_TXN, false)) return skip("not confirmed (confirmed-only is on)")
     }
     
@@ -352,12 +346,12 @@ class ZapCleanMemo:ContextMenuAction {
   
   private fun runZapFlow(menuContext:MDActionContext, txns:List<ParentTxn>, account:Account) {
     if (txns.size > LARGE_SELECTION_THRESHOLD) {
-      val msg = string_zap_large_selection_confirm.replace("{count}", txns.size.toString())
+      val msg = string_zap_large_selection_confirm.replace("{num}", txns.size.toString())
       if (!mdGUI.askQuestion(msg)) return
     }
     
     val settings = askZapSettings(menuContext, txns, account) ?: return
-    val debug = extensionContext?.debugMenuEnabled == true || DEBUG
+    val debug = isCmtDebug
     
     val change = UndoableChange()
     var appliedCount = 0
@@ -401,12 +395,13 @@ class ZapCleanMemo:ContextMenuAction {
 
     val typeCounts = DownloadType.entries.associateWith { wanted -> txns.count { detectType(it) == wanted } }
 
-    val includeMdpCheckbox = JCheckBox("MD+ downloads (Moneydance, via Plaid) - ${typeCounts[DownloadType.MDP]} in selection", current.includeMdp)
-    val includeOfxCheckbox = JCheckBox("OFX Direct Connect downloads (OFX+) - ${typeCounts[DownloadType.OFX]} in selection", current.includeOfx)
-    val includeImportedOfxCheckbox = JCheckBox("Manually imported .ofx/.qfx files (OFX-) - ${typeCounts[DownloadType.IMPORTED_OFX]} in selection", current.includeImportedOfx)
-    val includeDownloadedQifCheckbox = JCheckBox("Downloaded .qif files (QIF+) - ${typeCounts[DownloadType.DOWNLOADED_QIF]} in selection", current.includeDownloadedQif)
-    val includeNonDownloadedQifCheckbox = JCheckBox("Manually imported .qif files, non-downloaded (QIF-) - ${typeCounts[DownloadType.NON_DOWNLOADED_QIF]} in selection", current.includeNonDownloadedQif)
-    includeMdpCheckbox.toolTipText = "Always zaps unedited memos unconditionally - only the memo, nothing else, and every other rule below is ignored."
+    fun typeLabel(template:String, type:DownloadType):String = template.replace("{num}", (typeCounts[type] ?: 0).toString())
+    val includeMdpCheckbox = JCheckBox(typeLabel(string_zap_include_mdp, DownloadType.MDP), current.includeMdp)
+    val includeOfxCheckbox = JCheckBox(typeLabel(string_zap_include_ofx, DownloadType.OFX), current.includeOfx)
+    val includeImportedOfxCheckbox = JCheckBox(typeLabel(string_zap_include_imported_ofx, DownloadType.IMPORTED_OFX), current.includeImportedOfx)
+    val includeDownloadedQifCheckbox = JCheckBox(typeLabel(string_zap_include_downloaded_qif, DownloadType.DOWNLOADED_QIF), current.includeDownloadedQif)
+    val includeNonDownloadedQifCheckbox = JCheckBox(typeLabel(string_zap_include_non_downloaded_qif, DownloadType.NON_DOWNLOADED_QIF), current.includeNonDownloadedQif)
+    includeMdpCheckbox.toolTipText = string_zap_include_mdp_tooltip
 
     // disabled (not hidden) when that type isn't present at all in this selection - ticking it
     // would have zero effect either way. Checkbox state itself is left exactly as persisted,
@@ -417,15 +412,15 @@ class ZapCleanMemo:ContextMenuAction {
     includeDownloadedQifCheckbox.isEnabled = (typeCounts[DownloadType.DOWNLOADED_QIF] ?: 0) > 0
     includeNonDownloadedQifCheckbox.isEnabled = (typeCounts[DownloadType.NON_DOWNLOADED_QIF] ?: 0) > 0
 
-    val reconciledOnlyCheckbox = JCheckBox("Only reconciled transactions", current.reconciledOnly)
-    val confirmedOnlyCheckbox = JCheckBox("Only confirmed transactions (bypassed on QIF-)", current.confirmedOnly)
-    val zapWhenSubsetDescCheckbox = JCheckBox("Zap unchanged memo when it's already contained in a longer description", current.zapWhenSubsetDesc)
-    val swapWhenSubsetDescCheckbox = JCheckBox("Swap memo into description when description is the same text, just shorter than the memo", current.swapWhenSubsetDesc)
-    val dontCheckOriginalMemoCheckbox = JCheckBox("Don't check the original downloaded memo first", current.dontCheckOriginalMemo)
-    val dontCompareWithDescCheckbox = JCheckBox("Don't compare memo to description - just zap", current.dontCompareWithDesc)
-    swapWhenSubsetDescCheckbox.toolTipText = "Only when the description matches exactly within the memo, not just any shorter description."
-    dontCheckOriginalMemoCheckbox.toolTipText = "Zaps the memo regardless of edits made to it. QIF- is never protected either way, ticked or not."
-    dontCompareWithDescCheckbox.toolTipText = "Reconciled-only, confirmed-only, and the memo edit-protection check above still apply on top of this."
+    val reconciledOnlyCheckbox = JCheckBox(string_zap_reconciled_only, current.reconciledOnly)
+    val confirmedOnlyCheckbox = JCheckBox(string_zap_confirmed_only, current.confirmedOnly)
+    val zapWhenSubsetDescCheckbox = JCheckBox(string_zap_when_subset_desc, current.zapWhenSubsetDesc)
+    val swapWhenSubsetDescCheckbox = JCheckBox(string_zap_swap_when_subset_desc, current.swapWhenSubsetDesc)
+    val dontCheckOriginalMemoCheckbox = JCheckBox(string_zap_dont_check_original_memo, current.dontCheckOriginalMemo)
+    val dontCompareWithDescCheckbox = JCheckBox(string_zap_dont_compare_with_desc, current.dontCompareWithDesc)
+    swapWhenSubsetDescCheckbox.toolTipText = string_zap_swap_when_subset_desc_tooltip
+    dontCheckOriginalMemoCheckbox.toolTipText = string_zap_dont_check_original_memo_tooltip
+    dontCompareWithDescCheckbox.toolTipText = string_zap_dont_compare_with_desc_tooltip
     
     // Reads the CURRENT, live checkbox states - not the persisted 'current' loaded at dialog-
     // open time. Used both to recompute the candidate count as the user toggles things, and to
@@ -453,7 +448,7 @@ class ZapCleanMemo:ContextMenuAction {
         val type = detectType(txn)
         type != null && includeToggleFor(type, liveSettings) && decideZapAction(txn, type, liveSettings) != null
       }
-      infoLabel.text = string_zap_info_line.replace("{count}", candidateCount.toString()).replace("{total}", txns.size.toString())
+      infoLabel.text = string_zap_info_line.replace("{num}", candidateCount.toString()).replace("{total}", txns.size.toString())
     }
     
     for (checkbox in listOf(
@@ -473,7 +468,7 @@ class ZapCleanMemo:ContextMenuAction {
       GridC.getc().xy(0, y++).colspan(2).wx(1f).west().insets(0, 0, 12, 0)
     )
     
-    panel.add(JLabel("Which download types to include:"), GridC.getc().xy(0, y++).colspan(2).wx(1f).west().insets(0, 0, 4, 0))
+    panel.add(JLabel(string_zap_types_heading.labelify),GridC.getc().xy(0, y++).colspan(2).wx(1f).west().insets(0, 0, 4, 0))
     panel.add(includeMdpCheckbox, GridC.getc().xy(0, y++).colspan(2).wx(1f).west())
     panel.add(includeOfxCheckbox, GridC.getc().xy(0, y++).colspan(2).wx(1f).west())
     panel.add(includeImportedOfxCheckbox, GridC.getc().xy(0, y++).colspan(2).wx(1f).west())
@@ -488,8 +483,14 @@ class ZapCleanMemo:ContextMenuAction {
     panel.add(dontCheckOriginalMemoCheckbox, GridC.getc().xy(0, y++).colspan(2).wx(1f).west())
     panel.add(dontCompareWithDescCheckbox, GridC.getc().xy(0, y++).colspan(2).wx(1f).west())
     
+    val firstEnabledCheckbox = listOf(
+      includeMdpCheckbox, includeOfxCheckbox, includeImportedOfxCheckbox, includeDownloadedQifCheckbox, includeNonDownloadedQifCheckbox,
+      reconciledOnlyCheckbox
+    ).first { it.isEnabled }
+
     val win = SizedOKButtonWindow(
       mdGUI, menuContext.component, string_zap_settings_title, OKButtonPanel.QUESTION_OK_CANCEL,
+      focusComponent = firstEnabledCheckbox,
       sizeKey = Main.EXTN_ID + dialog_zap_settings_size,
       locationKey = Main.EXTN_ID + dialog_zap_settings_locn
     )

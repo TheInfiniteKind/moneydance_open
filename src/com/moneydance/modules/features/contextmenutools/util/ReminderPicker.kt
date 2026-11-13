@@ -35,6 +35,12 @@ class ReminderPickerRenderer(
   private val mdGUI:MoneydanceGUI,
   private val showSplitPercentages:Boolean = true
 ):JPanel(GridBagLayout()), ListCellRenderer<Reminder> {
+  private val string_expired = "{desc} (EXPIRED)"
+  private val string_total_split_percents = "{total} (splits: {percents})"
+  private val string_total_split_count = "{total} ({num} splits)"
+  private val string_upcoming = "Upcoming: {dates}"
+  private val string_list_separator = ", "
+
   private val label = JLabel()
   private val subLabel = JLabel()
   private val dateLabel = JLabel()
@@ -55,8 +61,7 @@ class ReminderPickerRenderer(
     val dec = mdGUI.preferences.decimalChar
     val totalStr = templateTxn.account.currencyType.formatFancy(templateTxn.value, dec)
     
-    val expiredSuffix = if (value.isInactiveOrExpired()) " (EXPIRED)" else ""
-    label.text = value.description + expiredSuffix
+    label.text = if (value.isInactiveOrExpired()) string_expired.replace("{desc}", value.description) else value.description
     label.foreground = if (isSelected) colors.sidebarSelectedFG else colors.defaultTextForeground
     
     val subLabelText =
@@ -66,15 +71,15 @@ class ReminderPickerRenderer(
           val pct = if (total != 0L) -split.value.toDouble() / total.toDouble() * 100.0 else 0.0
           String.format("%.0f%%", pct)
         }
-        "$totalStr (splits: ${percents.joinToString(", ")})"
+        string_total_split_percents.replace("{total}", totalStr).replace("{percents}", percents.joinToString(string_list_separator))
       } else {
-        "$totalStr (${templateTxn.allSplits.size} splits)"
+        string_total_split_count.replace("{total}", totalStr).replace("{num}", templateTxn.allSplits.size.toString())
       }
     subLabel.text = subLabelText
     subLabel.foreground = if (isSelected) colors.sidebarSelectedFG else colors.secondaryTextFG
     subLabel.font = mdGUI.fonts.mini
     
-    dateLabel.text = "Upcoming: ${upcomingDatesStr(mdGUI, value)}"
+    dateLabel.text = string_upcoming.replace("{dates}", upcomingDatesStr(mdGUI, value))
     dateLabel.foreground = if (isSelected) colors.sidebarSelectedFG else colors.secondaryTextFG
     dateLabel.font = mdGUI.fonts.mini
     
@@ -126,6 +131,10 @@ private fun categoryOverlap(a:ParentTxn, b:ParentTxn):Int {
   return aAccounts.intersect(bAccounts).size
 }
 
+private val string_none_scheduled = "None scheduled"
+private val string_one_off_date = "{date}*"
+private val string_dates_separator = ", "
+
 /** Next 3 upcoming dates (or fewer), formatted for display, a one-off instance's moved date marked
  *  with "*" (as Reminder Details does). Bound is 1 year + 1 day forward, same as Moneydance's own
  *  reminder detail panel. */
@@ -133,8 +142,10 @@ fun upcomingDatesStr(mdGUI:MoneydanceGUI, reminder:Reminder):String {
   val dateFmt = mdGUI.preferences.shortDateFormatter
   val searchBound = DateUtil.incrementDate(today, 1, 0, 1)
   val nextDates = RemUtility.upcomingOccurrences(reminder, searchBound).take(3)
-  return if (nextDates.isEmpty()) "None scheduled"
-         else nextDates.joinToString(", ") { (date, isOneOff) -> dateFmt.format(date) + if (isOneOff) "*" else "" }
+  return if (nextDates.isEmpty()) string_none_scheduled
+         else nextDates.joinToString(string_dates_separator) { (date, isOneOff) ->
+           if (isOneOff) string_one_off_date.replace("{date}", dateFmt.format(date)) else dateFmt.format(date)
+         }
 }
 
 /**
@@ -181,6 +192,7 @@ fun pickReminder(
   list.selectedIndex = 0
   
   val scrollPane = JScrollPane(list, JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED, JScrollPane.HORIZONTAL_SCROLLBAR_NEVER)
+  scrollPane.verticalScrollBar.unitIncrement = 16
   val panel = JPanel(BorderLayout())
   panel.border = EmptyBorder(16, 16, 16, 16)
   panel.add(scrollPane, BorderLayout.CENTER)

@@ -52,14 +52,10 @@ fun Reminder.isInactiveOrExpired():Boolean {
  * Moneydance committed from a reminder. Since Apply Splits Template is applied manually by the user, transactions it
  * touches would otherwise never carry any link back to their source reminder at all. Prefixed
  * with Main.EXTN_ID, matching every other preference/parameter key this extension writes, to
- * avoid colliding with Moneydance's own fields or another extension's.
- *
- * NOTE: the write side (SyncableItem.setParameter) is confirmed real - it's the exact mechanism
- * Moneydance's own ReminderSet.autoCommitReminder uses for the uuid.date convention itself. The
- * read side (getParameter) is inferred by symmetry, not independently confirmed - worth a quick
- * check that this compiles/behaves as expected before relying on it.
+ * avoid colliding with Moneydance's own fields or another extension's. Built when used, as Main.EXTN_ID is only
+ * set when the extension starts.
  */
-private val REM_ID_PARAM_KEY = "${Main.EXTN_ID}.rem_id"
+private val REM_ID_PARAM_KEY:String get() = "${Main.EXTN_ID}.rem_id"
 
 fun isRemIdMarkerMatch(txn:ParentTxn, reminder:Reminder):Boolean =
   txn.getParameter(REM_ID_PARAM_KEY, null) == reminder.UUID
