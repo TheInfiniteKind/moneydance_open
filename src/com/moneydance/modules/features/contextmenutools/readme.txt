@@ -297,8 +297,9 @@ Overdue, Waiting (held until an earlier occurrence is recorded) or Left behind.
   - Clear all removes every one-off, including any not shown.
 
 Nothing is saved until you press OK, which saves everything as one Undo step; changed rows are
-marked * until then. A one-off's date must stay between its neighbouring scheduled dates: the
-editor will not accept a changed date outside that range. One-offs that are already outside it
+marked * until then. A one-off's date must stay between its neighbouring scheduled dates, keep the
+one-offs in schedule order, and not be before the reminder's start date: the editor will not accept
+a changed date outside that range. One-offs that are already outside it
 are listed when you press OK, and you can fix them or save anyway. Cancel with unsaved changes asks
 before discarding them. After saving, Moneydance's auto-commit runs, so a one-off that is now due
 on an auto-commit reminder is posted straight away. If you then Undo the save, the posted

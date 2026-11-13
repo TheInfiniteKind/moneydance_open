@@ -67,6 +67,11 @@ import javax.swing.table.TableCellRenderer
  * occurrence's window, writes only the changed dates and records one undo step on the reminder.
  * One-offs not shown in the table are never touched, except by Clear all.
  *
+ * KNOWN ISSUES:
+ * - "Waiting" can show when nothing will wait: when the earlier unrecorded occurrences fall within the
+ *   reminder's auto-commit days, Moneydance posts them and the one-off in the same run.
+ * - Moneydance's own reminder editor clears all one-offs whenever the reminder is saved there.
+ *
  * @author Stuart Beesley - November 2026
  */
 class EditReminderOneOffInstances:ContextMenuAction {
@@ -418,16 +423,28 @@ private class OneOffInstancesWindow(mdGUI:MoneydanceGUI, frame:java.awt.Frame, p
     if (row >= 0) table.setRowSelectionInterval(row, row)
   }
 
-  /** The window a one-off's date must fall in: after the previous occurrence (or the last recorded date)
-   *  and before the next one (or on or before the end date). A left-behind one-off only has to be before the
-   *  next upcoming occurrence, and has no limit once the reminder has no occurrences left. */
+  /** The window a one-off's date must fall in: on or after the reminder's start date, after the previous
+   *  occurrence (or the last recorded date) and before the next one (or on or before the end date). It must
+   *  also stay after the previous row's date and before the next row's, one-offs included, so the one-offs
+   *  post in schedule order. A left-behind one-off only has to keep that order, and be before the next
+   *  upcoming occurrence. */
   private fun bounds(scheduled:Int):DateBounds? {
+    val rows = leftBehindDates + allOccurrences
+    val row = rows.indexOf(scheduled)
+    if (row < 0) return null
+    fun effectiveDate(date:Int) = effectiveOneOff(date)?.dateInt ?: date
     val index = allOccurrences.indexOf(scheduled)
-    if (index < 0) return allOccurrences.firstOrNull()?.let { DateBounds(0, it, 0) }
-    val lowerExclusive = if (index > 0) allOccurrences[index - 1] else ackDate
-    val upperExclusive = allOccurrences.getOrNull(index + 1) ?: 0
-    val upperInclusive = if (upperExclusive == 0) reminder.lastDateInt else 0
-    return DateBounds(lowerExclusive, upperExclusive, upperInclusive)
+    val previous = rows.getOrNull(row - 1)?.let { effectiveDate(it) } ?: 0
+    val next = rows.getOrNull(row + 1)
+    val occurrenceLower = if (index > 0) allOccurrences[index - 1] else if (index == 0) ackDate else 0
+    val lowerExclusive = maxOf(previous, occurrenceLower)
+    val upperExclusive = when {
+      next == null -> 0
+      next in allOccurrences -> minOf(next, effectiveDate(next))
+      else -> effectiveDate(next)
+    }
+    val upperInclusive = if (index >= 0 && next == null) reminder.lastDateInt else 0
+    return DateBounds(reminder.initialDateInt, lowerExclusive, upperExclusive, upperInclusive)
   }
 
   /** What Moneydance will do with the row; mirrors core's rule that a one-off due for posting (on or before
@@ -598,21 +615,25 @@ private class OneOffInstancesWindow(mdGUI:MoneydanceGUI, frame:java.awt.Frame, p
 private enum class OccurrenceStatus { OVERDUE, UPCOMING, WAITING, LEFT_BEHIND, RECORDED }
 
 /** An occurrence's date window; a zero limit means none. */
-private class DateBounds(private val lowerExclusive:Int, private val upperExclusive:Int, private val upperInclusive:Int) {
+private class DateBounds(private val lowerInclusive:Int, private val lowerExclusive:Int, private val upperExclusive:Int,
+                         private val upperInclusive:Int) {
   private val string_date_must_be = "The date must be {limits}."
+  private val string_on_or_after = "on or after {date}"
   private val string_after = "after {date}"
   private val string_before = "before {date}"
   private val string_on_or_before = "on or before {date}"
   private val string_and = " and "
 
   fun allows(date:Int):Boolean =
+    !(lowerInclusive > 0 && date < lowerInclusive) &&
     !(lowerExclusive > 0 && date <= lowerExclusive) &&
     !(upperExclusive > 0 && date >= upperExclusive) &&
     !(upperInclusive > 0 && date > upperInclusive)
 
   fun describe(fmtDate:(Int) -> String):String {
     val limits = mutableListOf<String>()
-    if (lowerExclusive > 0) limits += string_after.replace("{date}", fmtDate(lowerExclusive))
+    if (lowerInclusive > lowerExclusive) limits += string_on_or_after.replace("{date}", fmtDate(lowerInclusive))
+    else if (lowerExclusive > 0) limits += string_after.replace("{date}", fmtDate(lowerExclusive))
     if (upperExclusive > 0) limits += string_before.replace("{date}", fmtDate(upperExclusive))
     else if (upperInclusive > 0) limits += string_on_or_before.replace("{date}", fmtDate(upperInclusive))
     return string_date_must_be.replace("{limits}", limits.joinToString(string_and))
