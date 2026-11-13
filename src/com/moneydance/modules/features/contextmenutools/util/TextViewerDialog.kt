@@ -128,11 +128,9 @@ class TextViewerDialog(
     isResizable = true
     pack()
 
-    // default to a large, screen-relative size rather than whatever the small bounded
-    // JTextArea(10,70) would otherwise produce - only affects the FIRST-EVER open; if a
-    // sizeKey/locationKey remembered size exists from a previous session, SecondaryDialog's own
-    // loadSizeAndLocation() applies afterward (when the caller sets isVisible = true) and takes
-    // over from here, respecting whatever size the user last left it at.
+    // default to a large, screen-relative size on the first open, instead of the text area's small
+    // preferred size; after that, the size remembered under sizeKey/locationKey (applied by
+    // SecondaryDialog.loadSizeAndLocation() when shown) takes over.
     val screenSize = Toolkit.getDefaultToolkit().screenSize
     val defaultWidth = (screenSize.width * 0.8).toInt()
     val defaultHeight = (screenSize.height * 0.75).toInt()

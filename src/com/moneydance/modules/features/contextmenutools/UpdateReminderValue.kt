@@ -31,8 +31,9 @@ import javax.swing.border.EmptyBorder
  * Adds two mutually-exclusive context-menu actions for correcting a Reminder's own stored
  * transaction value/structure against a real register transaction:
  *
- * - "Update Reminder and Transaction's Value" (Scenario A) - offered when exactly one eligible
- *   reminder's single-split value exactly matches the selected transaction's single-split value.
+ * - "Update Reminder and Transaction's Value" (Scenario A) - offered when at least one eligible
+ *   single-split reminder matches the selected single-split transaction, by reminder ID or by
+ *   exact value. Several matches, or a value match without a matching description, go to a picker.
  *   Opens a value-edit dialog that can optionally also update the selected transaction's own
  *   split to the same new value, in the same undo/redo batch. Saved one-off instances keep their
  *   own values; the user is told how many were not changed.
@@ -128,8 +129,9 @@ class UpdateReminderValue(
     acct.getAccountType() == Account.AccountType.BANK || acct.getAccountType() == Account.AccountType.CREDIT_CARD
 
   /**
-   * Base candidate pool: unexpired, same account as the selected txn (which also enforces
-   * BANK/CREDIT_CARD on the reminder side, since it's the same account). No split-count or
+   * Base candidate pool: transaction reminders, not loan reminders, unexpired, same account as the
+   * selected txn (which also enforces BANK/CREDIT_CARD on the reminder side, since it's the same
+   * account). No split-count or
    * per-split-currency restriction here - those are applied narrower, only for the Scenario A
    * exact-match subset below.
    *
@@ -150,17 +152,10 @@ class UpdateReminderValue(
   }
 
   /**
-   * Scenario A candidate subset of the given pool: both sides single-split, both sides' single
-   * split currency matches its own account's currency, and the values match exactly (raw,
-   * signed). Empty immediately if the selected txn itself is multi-split - Scenario A is never
-   * attempted for a multi-split selection.
-   */
-  /**
    * Structural prerequisite for BOTH Scenario A match tiers (UUID.date and exact value): both
    * sides must have exactly 1 split, with that split's currency matching its own account's
    * currency. Multi-split selections never enter Scenario A - both tiers below return empty for
-   * an ineligible pool, and getActions/updateReminderAndTxnFlow fall straight through to
-   * Scenario B as a result.
+   * an ineligible pool, so getActions offers Scenario B instead.
    */
   private fun singleSplitEligiblePool(txn:ParentTxn, pool:List<Reminder>):List<Reminder> {
     if (txn.allSplits.size != 1) return emptyList()

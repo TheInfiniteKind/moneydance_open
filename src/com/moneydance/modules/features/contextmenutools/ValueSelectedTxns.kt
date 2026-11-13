@@ -186,11 +186,6 @@ class ValueSelectedTxns: ContextMenuAction {
                          "${pad(strings.bal_popup_selection_fees_local.labelify, 18)}${StringUtils.formatRate(feesInAcctCurr, dec, 2, true)}\n"
     } else ""
 
-    val extraPreviewTxt = ""
-    //val extraPreviewTxt =
-    //  if (Main.PREVIEW_BUILD) "\n<PREVIEW BUILD: ${Main.mdMain!!.build}>"
-    //  else ""
-
     val cashValueTxt =
       if (multiCurrency) base.formatFancy(totalInBaseCurrency, dec)
       else primaryCurr.formatFancy(sumAcctCurr, dec)
@@ -213,7 +208,6 @@ class ValueSelectedTxns: ContextMenuAction {
       append(pad(strings.bal_popup_selection_account_type.labelify, 18)).append(if (multiAccountTypes) MULTI_STR else primary.getAccountType()).append('\n')
       append(pad(strings.bal_popup_selection_currency.labelify, 18)).append(if (multiCurrency) MULTI_STR else "${primaryCurr.getName()} (${primaryCurr.idString})").append('\n')
       append(baseCurrTxt)
-      append(extraPreviewTxt)
     }
 
     StatusPopupDialog(mdGUI = Main.mdGUI,

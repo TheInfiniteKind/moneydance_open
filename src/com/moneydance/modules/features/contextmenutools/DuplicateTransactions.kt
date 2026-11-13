@@ -32,6 +32,7 @@ import kotlin.math.max
 /**
  * Register right-click: duplicates the selected transactions, with the same date(s), a new date, dates
  * adjusted by years/months/days, or dates moved on one month; the duplicates are recorded as one undo step.
+ * A single duplicate in an editable register opens in the register editor instead, unsaved.
  *
  * @author Stuart Beesley - February-October 2026
  */
@@ -74,12 +75,12 @@ class DuplicateTransactions: ContextMenuAction {
     if (listTxns.isNotEmpty()) {
 
       // check that all accounts are the same - otherwise, suspect running from home screen search, and reject
-      // we only need this check for versions prior to MD2026(5500)
       listTxns.firstOrNull()?.account?.let { firstAcct ->
 
         // don't allow the duplicate options when called from an income/expense register (or other strange places)
         val acctType = firstAcct.getAccountType()
         if (!firstAcct.getAccountType().isCategory && acctType != Account.AccountType.ROOT && acctType != Account.AccountType.SECURITY) {
+          // we only need this check for versions prior to MD2027(5500)
           val allSameAccount = listTxns.size == 1 || listTxns.all { it.account == firstAcct }
           if (allSameAccount) {
 
@@ -312,7 +313,6 @@ class DuplicateTransactions: ContextMenuAction {
         }
       })
       
-      // Add document listener to update tax field as user types
       dupFixedDateField.document.addDocumentListener(object : DocumentListener {
         fun update() {
           try {

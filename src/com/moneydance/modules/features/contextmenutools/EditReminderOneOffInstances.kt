@@ -326,7 +326,8 @@ private class OneOffInstancesWindow(mdGUI:MoneydanceGUI, frame:java.awt.Frame, p
   private fun autoCommitDescription(r:Reminder):String =
     if (r.autoCommitDays < 0) string_auto_commit_no else string_auto_commit_yes_days.replace("{num}", r.autoCommitDays.toString())
 
-  /** As core's Reminder Details report frequency (ReminderDetailsReport buildFrequencyText), with core's strings. */
+  /** As core's Reminder Details report frequency (ReminderDetailsReport buildFrequencyText), using core's
+   *  strings where it has them. */
   private fun frequencyDescription(r:Reminder):String {
     val strings = mdGUI.strings
     val parts = mutableListOf<String>()
@@ -550,7 +551,7 @@ private class OneOffInstancesWindow(mdGUI:MoneydanceGUI, frame:java.awt.Frame, p
     }
   }
 
-  /** What differs from the reminder's own transaction, other than the date and the amount. */
+  /** What differs from the reminder's own transaction, other than the date and the total amount. */
   private fun changesFromBase(txn:ParentTxn):List<String> {
     fun splits(t:ParentTxn) = (0 until t.splitCount).mapNotNull { t.getSplit(it) }
     // split amounts and descriptions count only when there is more than one split: a single split's amount is the

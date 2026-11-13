@@ -31,7 +31,7 @@ fun logBlockedIfDebug(source:String, message:String) {
 }
 
 /**
- * UndoableChange.name became a public var in MD2026. For compatibility with pre-2026 builds,
+ * UndoableChange.name became a public var in MD2027. For compatibility with pre-2027 builds,
  * try the setName() method first, then fall back to reflection on the private field. Silently
  * does nothing if neither exists (older/unexpected builds).
  */
@@ -121,19 +121,19 @@ object Util {
   data class TIKDate(val year: Int, val month: Int, val day: Int)
   val Int.extractDate: TIKDate get() = TIKDate(year=this/10000, month = (this/100)%100, day = this%100)
 
-  // the signature changed for MD2026(5500) to add @JvmStatic - prevent runtime compatibility issues....
+  // the signature changed for MD2027(5500) to add @JvmStatic - prevent runtime compatibility issues....
   @JvmStatic val Int?.validYYYYMMDD:Int?
     get() = this?.takeIf { it > 10000000 && it < 40000000 }
   
-  // the signature changed for MD2026(5500) to add @JvmStatic - prevent runtime compatibility issues....
+  // the signature changed for MD2027(5500) to add @JvmStatic - prevent runtime compatibility issues....
   @JvmStatic val Int?.nullIfToday:Int?
     get() = this?.takeIf { it != today }
   
-  // the signature changed for MD2026(5500) to add @JvmStatic - prevent runtime compatibility issues....
+  // the signature changed for MD2027(5500) to add @JvmStatic - prevent runtime compatibility issues....
   @JvmStatic val String?.nullIfBlank: String?
     get() = if (isNullOrBlank()) null else this
   
-  // the signature changed for MD2026(5500) to add @JvmStatic - prevent runtime compatibility issues....
+  // the signature changed for MD2027(5500) to add @JvmStatic - prevent runtime compatibility issues....
   @JvmStatic val String?.blankIfNull: String
     get() = if (isNullOrBlank()) "" else this
   
@@ -147,9 +147,9 @@ object Util {
   }
   
   /**
-   * Loads a small icon from the extension jar's classpath resources (e.g. an icon dropped into
-   * src/.../contextmenutools/icons/ and built into the jar). Returns null (never throws) if the
-   * resource isn't found or fails to load - callers should fall back to a text/unicode label.
+   * Loads a small icon from the classpath (Moneydance's own glyphs or the extension jar).
+   * Returns null (never throws) if the resource isn't found or fails to load - callers should
+   * fall back to a text/unicode label.
    */
   @JvmStatic
   fun loadIcon(resourcePath:String):javax.swing.Icon? {
@@ -164,8 +164,8 @@ object Util {
     }
   }
   
-  /** Loads a UTF-8 text resource bundled in the extension jar, e.g. "/contextmenutools_readme.txt"
-   *  at the resource root. Returns a placeholder message instead of throwing if the resource is
+  /** Loads a UTF-8 text resource bundled in the extension jar; a relative path resolves next to
+   *  the extension's class. Returns a placeholder message instead of throwing if the resource is
    *  missing or unreadable. */
   fun loadTextResource(resourcePath:String):String {
     return try {

@@ -54,7 +54,8 @@ object RemUtility {
   }
 
   /** Removes every one-off instance, as MD's Edit Reminder does when the master changes.
-   *  The caller wraps it in the same UndoableChange as the master edit. */
+   *  The caller wraps it in an UndoableChange on the reminder, together with the master edit
+   *  when there is one. */
   fun clearAllOneOffs(rem:Reminder) {
     if (!isDeferredRemindersBuild) return
     for (date in storedDeferredDates(rem)) runCatching { setDeferredTxnInfoMethod!!.invoke(rem, date, null) }

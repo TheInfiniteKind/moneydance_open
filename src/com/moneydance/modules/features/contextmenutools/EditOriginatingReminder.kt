@@ -21,8 +21,9 @@ import javax.swing.Action
  * committed the selected transaction, identified via Moneydance's own reminder ID convention
  * ("{reminderUUID}.{scheduled date}" - see RemUtility.isFromReminder).
  *
- * Only offered when exactly 1 match is found. No other eligibility rules currently - the search
- * itself is same-account, transaction-type reminders, no expiry filter (unlike
+ * Offered when a match is found: the first reminder linked by Moneydance's uuid.date ID, else the
+ * first linked by the extension's rem_id marker (see findOriginatingReminder). The search is
+ * same-account, transaction-type reminders, no expiry filter (unlike
  * UpdateReminderValue's candidate search, which needs usable-for-future-edits reminders; this is
  * an identity lookup for a transaction that already happened, so an expired or since-modified
  * reminder should still be found if it's the one that actually created this transaction).

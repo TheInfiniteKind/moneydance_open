@@ -46,7 +46,7 @@ private fun isSelectableAccountType(txn:AbstractTxn):Boolean {
  *
  * Candidate labelling: selecting the parent lists every split as 1, 2, 3... . Selecting a split
  * lists "Parent" plus every OTHER split, skipping the one currently selected but not renumbering
- * the rest - e.g. on split 3 of 5, the list reads Parent, 1, 2, 4, 5.
+ * the rest.
  *
  * @author Stuart Beesley - August 2026
  */
@@ -95,9 +95,9 @@ class ShowOtherSideSelectSplit(
   /**
    * Row title for an investment transaction's split, identifying WHICH PART of the transaction
    * this row actually is (security/fee/category/transfer), instead of repeating the parent's
-   * description on every row. Returns null for the parent row's own overall summary (handled
-   * separately) or for a split matching none of the known roles - callers fall back to the
-   * plain description in either case.
+   * description on every row. Not used for the parent row (see investmentSummaryTitle). Returns
+   * null for a split matching none of the known roles - the caller falls back to the plain
+   * description.
    */
   private fun investmentRoleTitle(txn:AbstractTxn, fields:InvestFields):String? {
     val acct = txn.account

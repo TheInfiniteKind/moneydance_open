@@ -8,7 +8,8 @@ import com.moneydance.modules.features.contextmenutools.Main
 /**
  * Extension-specific (contextmenutools-only) shared transaction-eligibility helpers - unlike
  * Util.kt (common across StuWareSoftSystems extensions), this file holds logic specific to how
- * THIS extension defines "protected" and "unreconciled" for its own split-editing actions.
+ * THIS extension defines "protected", "unreconciled" and "expired" for its own actions, and the
+ * rem_id marker that links a transaction to the template reminder applied to it.
  *
  * @author Stuart Beesley - August 2026
  */

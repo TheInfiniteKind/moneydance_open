@@ -20,31 +20,28 @@ import javax.swing.Action
  * context - no type, account-type, or context-type restriction:
  *
  * - "Copy Raw Details to Clipboard" - concatenates each selected item's raw detail block and
- *   copies it to the system clipboard. Confirms first if more than 10 items are selected.
+ *   copies it to the system clipboard.
  * - "Show Raw Details" - same concatenated text, shown in a read-only window instead, with its
  *   own "Copy to Clipboard" button. Never touches the clipboard on open, so it doesn't clobber
  *   whatever the user currently has copied - only the explicit button does.
  *
- * Both actions are independently toggleable (see copyEnabled/showEnabled) and share the same
- * underlying text-building logic (buildCombinedText), so the two are always in sync.
+ * Both actions are independently toggleable (see copyEnabled/showEnabled), confirm first when
+ * more than CONFIRM_THRESHOLD items are selected, and share the same underlying text-building
+ * logic (buildCombinedText), so the two are always in sync.
  *
- * Reads directly from menuContext.items (the raw, unfiltered selection MDActionContext exposes -
- * confirmed List<Any> in ContextActions.kt), not the narrower listAccts/listTxns views other
- * actions use, then filters to MoneydanceSyncableItem - confirmed to be the common base every
- * real selectable model type extends (Account, AbstractTxn, Budget, CurrencyType, Reminder,
- * ReportSpec). Confirmed every real MDActionContext construction site in the codebase already
- * populates items with real resolved model objects, never UI tree-node wrappers - so no
- * unwrapping is needed here.
+ * Reads directly from menuContext.items (the raw, unfiltered selection), not the narrower
+ * listAccts/listTxns views other actions use, then filters to MoneydanceSyncableItem, the common
+ * base of every selectable model type. Moneydance fills items with model objects, never UI
+ * tree-node wrappers, so no unwrapping is needed.
  *
- * Menu labels include the selection count and type, e.g. "Copy Raw Details to Clipboard (3
- * Account objects)" or "...(2 multi-type objects)" when the selection mixes types.
+ * Menu labels include the selection count and type, or "multi-type" when the selection mixes
+ * types.
  *
  * DETAIL BLOCK FORMAT: each item gets "--- {header} ---" followed by its syncInfo dump wrapped
  * in { }, 2-space indented inside the braces. The header line varies by type (see buildHeader) -
- * the body itself never varies by type, only which header precedes it. SplitTxn is a special
- * case: after its own header+dump block, its ParentTxn's full header+dump block is appended
- * immediately after, indented 5 spaces, so a split's parent context is always visible without
- * needing to separately select the parent.
+ * the body itself never varies by type, only which header precedes it. Two special cases append
+ * a second, indented block: a SplitTxn gets its ParentTxn's block, so the parent context is
+ * always visible; a non-memorized ReportSpec gets its default report settings block.
  *
  * @param copyEnabled Whether "Copy Raw Details to Clipboard" should be offered. Read once by the
  * caller (Main.getActionsForContext) from user preferences - this class does not read
@@ -109,9 +106,9 @@ class CopyRawDetailsToClipboard(
 
   /**
    * Per-type header line (no braces, no dump - just the "--- {this} ---" content). Account/full
-   * account names are wrapped in single quotes throughout. SplitTxn deliberately does NOT
-   * include its parent's details inline anymore - that's handled by recursion in buildItemBlock,
-   * appended as its own indented block instead.
+   * account names are wrapped in single quotes throughout. With no item, the header names the
+   * syncInfo record (and its key, for default report settings). A SplitTxn's parent is not in
+   * the header; buildItemBlock appends it as its own block.
    */
   private fun buildHeader(item:MoneydanceSyncableItem? = null, syncInfo:SyncRecord? = null, syncInfoKey:String? = null, dec:Char):String {
 
@@ -186,10 +183,9 @@ class CopyRawDetailsToClipboard(
   }
 
   /**
-   * Builds one item's full "--- header ---" + brace-wrapped-dump block. For SplitTxn only, the
-   * same block for its ParentTxn is appended immediately after, indented 5 spaces - this does
-   * not recurse further, since a ParentTxn passed back into this function never re-enters the
-   * SplitTxn branch.
+   * Builds one item's full "--- header ---" + brace-wrapped-dump block, then appends an indented
+   * second block: a SplitTxn's ParentTxn, or a non-memorized ReportSpec's default report
+   * settings. This does not recurse further, since neither second block re-enters those branches.
    */
   private fun buildItemBlock(item:MoneydanceSyncableItem? = null, syncInfo:SyncRecord? = null, syncInfoKey:String? = null, dec:Char):String {
     val header = "--- ${buildHeader(item = item, syncInfo = syncInfo, syncInfoKey = syncInfoKey, dec = dec)} ---\n"

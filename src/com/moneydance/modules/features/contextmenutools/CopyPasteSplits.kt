@@ -50,13 +50,12 @@ import kotlin.math.abs
  * ELIGIBILITY - Paste ([canPasteSplits]): `isTargetEligible(txn)` PLUS:
  * - Target cannot be the same transaction that was copied from.
  * - Target account's currency must match the copied source's currency.
- * - Target account must have a default category set, or the paste is blocked with a message
- *   (checked inside [runPasteFlow], since it's a property of the eventual write, not eligibility).
+ * - A default category on the target account is needed only when the remainder goes on a new
+ *   split; without one, that option is blocked with a message (checked in [runPasteFlow]).
  *
- * ELIGIBILITY - Apply Splits Template: identical ruleset to Paste, in full - `isTargetEligible(txn)`
- * PLUS currency match against whichever candidate reminder is chosen. The menu item's visibility
- * now requires `isTargetEligible(txn)` AND at least one candidate reminder whose currency matches;
- * candidates are every [Reminder] whose transaction passes [canCopySplits], searched/filtered fresh
+ * ELIGIBILITY - Apply Splits Template: the same rules as Paste - `isTargetEligible(txn)` PLUS a
+ * currency match against the chosen reminder. The menu item needs `isTargetEligible(txn)` AND at
+ * least one candidate reminder (see [findTemplateCandidates] for the filters), searched fresh
  * each time the menu action is invoked (not cached at menu-build time).
  *
  * If any of the above conditions fails, the corresponding menu action is simply not shown - no
@@ -68,11 +67,9 @@ import kotlin.math.abs
  * Online-download/match data (blue-dot state, match type, FI/transaction IDs) is deliberately
  * NEVER copied onto pasted splits - this is enforced, not just omitted.
  *
- * OVERWRITE CONFIRMATION: the only remaining pre-action popup (besides the allocation-mismatch
- * popup below) is a plain Yes/No "this will overwrite existing splits, continue?" prompt, shown
- * only when the target currently has more than one split. It no longer has an "online data"
- * variant - protected-split targets are excluded entirely before this point is ever reached (see
- * [isTargetEligible] above). Pasting onto a single blank ($0) placeholder split skips this prompt.
+ * OVERWRITE CONFIRMATION: a Yes/No "this will overwrite existing splits, continue?" prompt, shown
+ * only when the target has more than one split. Protected-split targets never get this far (see
+ * [isTargetEligible]).
  *
  * AMOUNT MISMATCH HANDLING: if the target's current total differs from the copied splits' total,
  * the user is asked to choose one of:
@@ -82,6 +79,9 @@ import kotlin.math.abs
  *   - Allocate by % (Hamilton's method): rescale every split to its original percentage share of
  *     the new total, distributing any rounding remainder across splits (largest-remainder method)
  *     so no single split absorbs more than a whole unit of rounding error.
+ * A blank placeholder target (one split, zero total) takes the copied amounts with no prompt.
+ * With "always confirm total" on, a different popup is always shown instead: it takes a new
+ * total and offers only the remainder and % options.
  * The same mismatch handling applies identically whether the source is an ad-hoc copy or a
  * chosen Splits Template - both funnel into the same paste execution (see runPasteFlow).
  *
@@ -114,6 +114,22 @@ import kotlin.math.abs
  * CopyRawDetailsToClipboard's copyEnabled/showEnabled parameters.
  * @param rebalanceEnabled Whether the "Rebalance Splits" menu action should be offered.
  * Same sourcing as copyPasteEnabled.
+ * @param includeSingleSplitReminders Whether single-split reminders are offered as templates.
+ * @param templateNameFilter Restricts templates to reminders whose description contains this
+ * text (case-insensitive); blank means no filter.
+ * @param excludeExpiredReminders Whether expired or inactive reminders are left out as templates.
+ * @param alwaysConfirmTotal Whether Paste always shows the new-total popup, even when the
+ * totals match.
+ * @param allReminders Reminders read once by the caller for this menu build; null means read
+ * them from the current book.
+ * @param defaultToPercentAllocation Whether the allocation popups preselect % (Hamilton's
+ * method) instead of the remainder on a new split.
+ * @param fillBlankParentDescription Whether a blank target description takes the source's.
+ * @param fillBlankParentMemo Whether a blank target memo takes the source's.
+ * @param forceOverwriteParentDescription Whether the target description is always replaced by
+ * a non-blank source description.
+ * @param forceOverwriteParentMemo Whether the target memo is always replaced by a non-blank
+ * source memo.
  *
  * @author Stuart Beesley - August 2026
  */
@@ -212,7 +228,8 @@ class CopyPasteSplits(
   private val dialog_rebalance_splits_locn = ".gui.rebalance_splits.loc"
 
   // ------------------------------------------------------------------------------------------
-  // stored copy snapshot - held by Main until cleared on file open/close events
+  // stored copy snapshot - held by Main until cleared on file open/close events, or on any app
+  // event once older than COPY_EXPIRY_MILLIS
   // ------------------------------------------------------------------------------------------
   
   data class CopiedSplitLine(
@@ -248,8 +265,9 @@ class CopyPasteSplits(
     object PercentHamilton:PasteMismatchOption()
   }
   
-  /** Used only by the always-confirm popup (askPasteAlwaysConfirmChoice) - no "overwrite total"
-   *  option there, since the free-text total field replaces it entirely. */
+  /** Used by the always-confirm popup (askPasteAlwaysConfirmChoice) and the batch template popup
+   *  (askBatchAllocationMethod) - no "overwrite total" option, since the total is either typed
+   *  in or kept per transaction. */
   private sealed class AllocationMode {
     object ExactNewLine:AllocationMode()
     object PercentHamilton:AllocationMode()
@@ -404,7 +422,7 @@ class CopyPasteSplits(
    * Strict, all-or-nothing eligibility for Apply Splits Template to Selected Transactions.
    * Returns (0-based index of the first failing item, reason) on the FIRST failure found, or
    * null if every item passes. Checks, per item, in order: is a ParentTxn (not a split row) ->
-   * targetEligibilityReason (account type, unreconciled, protected data, currency-consistent) ->
+   * targetEligibilityReason (protected data, account type, unreconciled, currency-consistent) ->
    * single-split only -> same account as every prior item. Stops checking further items the
    * moment one fails - see logBatchBlockedIfDebug for how that's reported.
    */
@@ -502,12 +520,11 @@ class CopyPasteSplits(
   // ------------------------------------------------------------------------------------------
   
   /**
-   * Search all reminders and filter to those whose transaction is a valid copy source (same
-   * rules as canCopySplits) and whose currency matches the paste target. Also applies three
-   * user-configurable filters: same-account matching (default ON - reminder's own account must
-   * be the exact same account as the target, not just same currency), single-split reminders can
-   * be excluded (default excluded), and an optional name filter restricts by reminder description
-   * (case-insensitive, substring match).
+   * Search all transaction reminders and keep those whose transaction is a valid copy source
+   * (same rules as canCopySplits), whose currency matches the paste target, and whose total equals
+   * the sum of its splits. Then applies the user's filters: same account as the target (not just
+   * same currency), single-split reminders, expired reminders, and a name filter on the reminder
+   * description (case-insensitive, substring match).
    */
   private fun findTemplateCandidates(targetAccount:Account, cachedReminders:List<Reminder>? = null):List<Reminder> {
     val nameFilter = templateNameFilter.trim()
@@ -832,7 +849,8 @@ class CopyPasteSplits(
     if (d < 0) kotlin.math.ceil(d).toLong() else kotlin.math.floor(d).toLong()
   
   // ------------------------------------------------------------------------------------------
-  // reusable split-summary display (used by Rebalance, Paste mismatch/always-confirm popups)
+  // reusable split-summary display (used by Rebalance, Paste mismatch/always-confirm and batch
+  // template popups)
   // ------------------------------------------------------------------------------------------
   
   /**
@@ -874,8 +892,9 @@ class CopyPasteSplits(
   /**
    * Builds the bottom-of-dialog info block: a separator, an intro label, the source/current
    * description + split count + total, and the scrollable split summary list. Used at the
-   * bottom of all three popups (askPasteMismatchOption, askPasteAlwaysConfirmChoice,
-   * askRebalanceChoice) - options/fields come first in each dialog, this block comes last.
+   * bottom of all four popups (askPasteMismatchOption, askPasteAlwaysConfirmChoice,
+   * askRebalanceChoice, askBatchAllocationMethod) - options/fields come first in each dialog,
+   * this block comes last.
    *
    * The line strings hold a {value} placeholder for the shown value.
    *
@@ -1037,12 +1056,7 @@ class CopyPasteSplits(
       is RebalanceMode.KeepRatio ->
         existingSplits.map { split -> if (currentTotal != 0L) -split.value.toDouble() / currentTotal.toDouble() else 0.0 }
       is RebalanceMode.EqualSplit ->
-        // NOTE (flagged, not silently decided): equal CONTRIBUTION per line, not equal magnitude
-        // with sign preserved - those two are mathematically incompatible whenever the existing
-        // splits have mixed signs (e.g. one income-side split alongside one expense-side split).
-        // Every line gets the SAME sign here;
-        // a split whose original sign differs from the others can flip. Confirm this is the
-        // intended meaning of "Equal split" before relying on it for mixed-sign transactions.
+        // every line gets the same amount and sign, so with mixed-sign splits a split of the minority sign flips
         List(existingSplits.size) { 1.0 / existingSplits.size }
     }
     

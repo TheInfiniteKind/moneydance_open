@@ -24,8 +24,8 @@ import kotlin.math.abs
 
 /**
  * Renders a Reminder in a JList picker: description (with an EXPIRED suffix when applicable),
- * account total, and either a per-split percentage breakdown or a plain split count depending on
- * showSplitPercentages. Percentages assume all splits share the account's currency - set
+ * account total, either a per-split percentage breakdown or a plain split count depending on
+ * showSplitPercentages, and the upcoming dates (see upcomingDatesStr). Percentages assume all splits share the account's currency - set
  * showSplitPercentages = false for candidate lists that may include differing per-split
  * currencies, where a percent-of-total figure would be misleading.
  *

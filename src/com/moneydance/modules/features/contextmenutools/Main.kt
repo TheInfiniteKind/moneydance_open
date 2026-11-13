@@ -73,11 +73,9 @@ class Main : FeatureModule(), PreferencesListener {
 
     nukeLegacyPrefKeys()
     
-    // fire the reminder-date precache immediately if a data file and UI are already available at
-    // init() time - this is the LESS common path (e.g. reinstall/enable while Moneydance is
-    // already running with a file open). The far more common path (normal startup) is the
-    // FILE_OPENED event in handleEvent() below, since init() typically runs before any file is
-    // open.
+    // start the reminder-date precache if a data file and UI are already available at init() time
+    // (reinstall or enable while a file is open). On a normal startup init() runs before any file
+    // is open, so the FILE_OPENED event in handleEvent() starts it instead.
     if (mdMain.currentAccountBook != null && mdMain.ui != null) {
       precacheReminderDates("init()", 10)
     }
@@ -85,13 +83,11 @@ class Main : FeatureModule(), PreferencesListener {
   
   /**
    * Proactively warms Reminder's own internal next-occurrence-dates cache, so the first real
-   * context-menu build that needs it (isInactiveOrExpired, in UpdateReminderValue/
-   * CopyPasteSplits) doesn't pay that cost on the user's first click - see the class kdoc above
-   * for the full explanation of the underlying lag.
+   * context-menu build that needs it (any isInactiveOrExpired call) doesn't pay that cost on the
+   * user's first click - see the class kdoc above for the full explanation of the underlying lag.
    *
    * Deliberately waits before doing any work (delaySeconds, caller-specified), so this runs
-   * well after the native reminders auto-commit (which fires ~5s after FILE_OPENED - see class
-   * kdoc), never competing with it. That wait runs on its OWN dedicated thread, NOT on
+   * after the native reminders auto-commit that follows FILE_OPENED, never competing with it. That wait runs on its OWN dedicated thread, NOT on
    * Moneydance's shared background thread (BackgroundOpsThread) - that thread processes queued
    * work synchronously, one task at a time, so sleeping inside a task queued there would block
    * every other real background task (auto-commit, auto-save, net-sync) for the full wait. Only
@@ -133,8 +129,9 @@ class Main : FeatureModule(), PreferencesListener {
    * The default implementation of this method returns an empty list. If you override it,
    * please ensure that it returns quickly so that the context menu appearance remains snappy.
    *
-   * @param context Information about the context, including
-   * @return a list of actions that the UI can perform on the
+   * @param context Information about the context, including the kind of context, the selected
+   * objects and the UI component.
+   * @return a list of actions that the UI can perform on the selected objects.
    */
   override fun getActionsForContext(context:MDActionContext):List<Action> {
 
@@ -898,7 +895,7 @@ class Main : FeatureModule(), PreferencesListener {
     private fun getMenuBoolSetting(table:StreamTable, key:String, default:Boolean):Boolean = table.getBoolean(key, default)
     private fun getMenuStringSetting(table:StreamTable, key:String, default:String):String { return (table[key] as? String) ?: default }
     
-    // advanced_search is new for MD2026(5500)
+    // advanced_search is new for MD2027(5500)
     internal val advancedSearchType:ActionContextType? by lazy {
       try { ActionContextType::class.java.getField("advanced_search").get(null) as ActionContextType
       } catch (_:NoSuchFieldException) { null }

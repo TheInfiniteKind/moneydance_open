@@ -35,11 +35,10 @@ import javax.swing.border.EmptyBorder
  * Description first.
  *
  * Menu-build gate is deliberately TYPE- and SETTING-AGNOSTIC and purely STRUCTURAL - it never
- * reads any of the 11 persisted toggles (see ZapSettings below), and never inspects any
- * transaction's memo/description/download-type either. It only checks: 1-100 selected items,
- * every one a ParentTxn (non-parents are silently excluded from consideration, never block),
- * all sharing one account, that account Active and Bank/Credit Card/Investment. If those hold,
- * the menu item appears - full stop. All content-based logic (which download types to include,
+ * reads the persisted settings (see ZapSettings below), and never inspects any transaction's
+ * memo/description/download-type either. It only checks: between 1 and MAX_SELECTION selected
+ * transactions (non-parent rows are ignored, never block), all sharing one account, that account
+ * Active and Bank/Credit Card/Investment. If those hold, the menu item appears. All content-based logic (which download types to include,
  * reconciled/confirmed-only, subset zap/swap, edit-protection bypass, description-compare
  * bypass, and the actual Stage 1/Stage 2 decision) only ever runs after the item is clicked, via
  * the settings popup and the apply pass - never at build time.
@@ -59,7 +58,7 @@ class ZapCleanMemo:ContextMenuAction {
   private val string_zap_include_imported_ofx = "Manually imported .ofx/.qfx files (OFX-) - {num} in selection"
   private val string_zap_include_downloaded_qif = "Downloaded .qif files (QIF+) - {num} in selection"
   private val string_zap_include_non_downloaded_qif = "Manually imported .qif files, non-downloaded (QIF-) - {num} in selection"
-  private val string_zap_include_mdp_tooltip = "Always zaps unedited memos unconditionally - only the memo, nothing else, and every other rule below is ignored."
+  private val string_zap_include_mdp_tooltip = "Zaps unedited memos without comparing them to the description. Reconciled-only and confirmed-only still apply."
   private val string_zap_reconciled_only = "Only reconciled transactions"
   private val string_zap_confirmed_only = "Only confirmed transactions (bypassed on QIF-)"
   private val string_zap_when_subset_desc = "Zap unchanged memo when it's already contained in a longer description"
@@ -109,14 +108,7 @@ class ZapCleanMemo:ContextMenuAction {
       // Confirm/Merge step, none of Moneydance's normal online-banking metadata (see readme). The
       // best available signal is just whether this one stored parameter happens to be present -
       // a weaker, more ambiguous hint than the other four types get.
-      //
-      // The original script reflects this uncertainty by bundling the include-toggle INTO
-      // detection itself: a transaction only ever becomes "QIF-" at all if the toggle is on,
-      // right at this line. We split that into two steps instead - detect purely from the
-      // signal here, check the toggle separately afterward (includeToggleFor) - same end result
-      // for every real case (skipped either way when the toggle's off), just structured
-      // differently. Noted here since it's the one real structural difference from the script
-      // found during audit, not because it changes behavior.
+      // Detection only; the QIF- include toggle is checked separately (includeToggleFor).
       val isNonDownloadedQif = (txn.getParameter(QIF_NON_DOWNLOADED_IMPORT_KEY, "") ?: "").isNotBlank()
       return if (isNonDownloadedQif) DownloadType.NON_DOWNLOADED_QIF else null
     }
@@ -174,7 +166,7 @@ class ZapCleanMemo:ContextMenuAction {
     }
     
     // menu-build stops here - basic structural checks only. Every content-based rule (memo/
-    // description comparison, download type, edit-status, all 11 toggles) is deliberately left
+    // description comparison, download type, edit-status, the settings) is deliberately left
     // to the settings popup and the actual apply pass, not evaluated at build time at all.
     
     val action = addAction(label = string_zap_clean_memo, cmd = "zap_clean_memo")
@@ -291,7 +283,6 @@ class ZapCleanMemo:ContextMenuAction {
       if (settings.confirmedOnly && txn.getBooleanParameter(AbstractTxn.TAG_IS_NEW_TXN, false)) return skip("not confirmed (confirmed-only is on)")
     }
     
-    // Stage 1 - edit-protection
     // Stage 1 - edit-protection. QIF- is exempt here too, for the same underlying reason as the
     // confirmed-only exemption above: this check compares the current memo against Moneydance's
     // own record of what was originally downloaded, and QIF- was never downloaded - there's no
@@ -342,7 +333,7 @@ class ZapCleanMemo:ContextMenuAction {
   }
   
   // ------------------------------------------------------------------------------------------
-  // the flow: >30 confirm -> settings popup -> apply -> summary
+  // the flow: large-selection confirm (LARGE_SELECTION_THRESHOLD) -> settings popup -> apply -> summary
   
   private fun runZapFlow(menuContext:MDActionContext, txns:List<ParentTxn>, account:Account) {
     if (txns.size > LARGE_SELECTION_THRESHOLD) {

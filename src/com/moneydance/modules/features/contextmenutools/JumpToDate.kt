@@ -60,7 +60,7 @@ class JumpToDate:ContextMenuAction {
     val txnRegister = (menuContext.component as? TxnRegister) ?: return
     
     val dateField = JDateField(mdGUI.preferences.shortDateFormatter).also {
-      it.dateInt = txn.dateInt  // default to selected txn's date
+      it.dateInt = txn.dateInt
     }
     
     val panel = JPanel(GridBagLayout()).also {
@@ -90,9 +90,8 @@ class JumpToDate:ContextMenuAction {
       txnRegister.setSelectedTransactions(exactMatches.toTypedArray())
       txnRegister.ensureTxnIsVisible(exactMatches.first())
     } else {
-      // NOTE: comparing dateInt (YYYYMMDD encoded) via plain integer subtraction is WRONG across
-      // month/year boundaries (e.g. 20260131 vs 20260201 differ by 70, not 1 day) - use
-      // DateUtil.calculateDaysBetween for a true calendar-day distance instead.
+      // dateInt is YYYYMMDD, so plain subtraction is not a day count across month/year boundaries -
+      // calculateDaysBetween gives the true calendar-day distance
       val nearest = allTxns.minByOrNull { abs(calculateDaysBetween(it.dateInt, targetDate)) } ?: return
       txnRegister.setSelectedTransactions(arrayOf(nearest))
       txnRegister.ensureTxnIsVisible(nearest)

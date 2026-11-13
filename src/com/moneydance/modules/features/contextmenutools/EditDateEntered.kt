@@ -38,8 +38,7 @@ import javax.swing.border.EmptyBorder
  * - any date may be entered, but never a date/time later than now: pressing OK with one, or with
  *   a date or time that cannot be read, shows an info message that nothing was saved, and ends;
  * - the time is entered as 24-hour HH:mm:ss in a spinner (the arrows change the part under the
- *   cursor: hours, minutes or seconds); the old value's milliseconds are kept on save, so
- *   the value stays unique;
+ *   cursor: hours, minutes or seconds); the old value's milliseconds are kept on save;
  * - OK with no change saves nothing and records no undo step;
  * - a change is saved straight away as one undo/redo step.
  *
