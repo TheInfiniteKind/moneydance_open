@@ -180,10 +180,14 @@ public class Main extends FeatureModule {
   public static void queueOrSyncItem(AccountBook book, MoneydanceSyncableItem obj) { queueOrSyncItem(book, obj, false); }
   public static void queueOrSyncItem(AccountBook book, MoneydanceSyncableItem obj, boolean clearEditingMode) {
     if (isQueueModifiedItemPublic()) {
-      if (clearEditingMode) {
-        obj.clearEditingMode();
+      try {
+        if (clearEditingMode) {
+          obj.getClass().getMethod("clearEditingMode").invoke(obj);
+        }
+        book.getClass().getMethod("queueModifiedItem", MoneydanceSyncableItem.class).invoke(book, obj);
+      } catch (Exception e) {
+        obj.syncItem();
       }
-      book.queueModifiedItem(obj);
     } else {
       obj.syncItem();
     }
